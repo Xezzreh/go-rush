@@ -303,7 +303,6 @@
 
         socket.on('game_already_started', () => { loginScreen.style.display = "none"; menuScreen.style.display = "none"; lobbyScreen.style.display = "none"; gameScreen.style.display = "block"; });
 
-        // NEU: Nimmt jetzt auch die maximale Zeit mit entgegen
         socket.on('new_round', (data) => {
             canClick = true; currentPuzzle = data.puzzle; roundTimeLimit = data.maxTime;
             myPlacedStone = null; timeoutSolutions = null; hoverX = -1; hoverY = -1;
@@ -328,7 +327,23 @@
             renderScene();
         });
 
-        socket.on('wrong_guess', () => { msgLabel.innerText = "Daneben! (Combo resettet!)"; msgLabel.style.color = "#ff4444"; myPlacedStone = null; SoundFX.play('lose'); renderScene(); });
+        // NEU: Die 1.5 Sekunden Strafe bei einem falschen Klick!
+        socket.on('wrong_guess', () => {
+            msgLabel.innerText = "Daneben! ⏳ 1.5 Sekunden Strafe..."; 
+            msgLabel.style.color = "#ff4444";
+            myPlacedStone = null; 
+            SoundFX.play('lose'); 
+            renderScene();
+
+            setTimeout(() => {
+                if (msgLabel.innerText.includes("Strafe")) {
+                    canClick = true;
+                    msgLabel.innerText = "Weiter geht's! Versuch es nochmal!";
+                    msgLabel.style.color = "#fff";
+                }
+            }, 1500); 
+        });
+
         socket.on('round_won_by_other', (winnerName) => { canClick = false; msgLabel.innerText = "Zu langsam! " + winnerName + " war schneller!"; msgLabel.style.color = "#ffaa00"; SoundFX.play('lose'); renderScene(); });
         socket.on('timeout', (solutions) => { canClick = false; msgLabel.innerText = "ZEIT ABGELAUFEN! 💀 Hier ist die Lösung:"; msgLabel.style.color = "#ff4444"; timeoutSolutions = solutions; SoundFX.play('lose'); renderScene(); });
         
