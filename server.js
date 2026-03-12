@@ -197,6 +197,13 @@ function broadcastLeaderboard(roomId) {
     io.to(roomId).emit('update_leaderboard', sortedPlayers); 
 }
 
+function broadcastMatchmaking() {
+    const activeList = Object.values(active1v1Matches).map(m => ({
+        id: m.id, size: m.size, playerBlack: m.players.black, playerWhite: m.players.white
+    }));
+    io.emit('update_challenges', { challenges: Object.values(challenges), activeMatches: activeList });
+}
+
 setInterval(() => {
     for (let matchId in active1v1Matches) {
         let match = active1v1Matches[matchId];
@@ -208,6 +215,7 @@ setInterval(() => {
                 let winner = match.players[match.turn === 'black' ? 'white' : 'black'];
                 io.to(matchId).emit('1v1_game_over', { reason: `⏱️ Zeit abgelaufen! ${winner.avatar} ${winner.name} gewinnt.` });
                 delete active1v1Matches[matchId];
+                broadcastMatchmaking();
             }
         }
     }
@@ -216,17 +224,15 @@ setInterval(() => {
 io.on('connection', (socket) => {
     let currentRoom = null; 
 
-    // --- NEU: Avatare werden jetzt überall mitgespeichert! ---
-
-    socket.on('request_challenges', () => { socket.emit('update_challenges', Object.values(challenges)); });
+    socket.on('request_challenges', () => { broadcastMatchmaking(); });
     
     socket.on('create_challenge', (data) => { 
         const challengeId = 'chal_' + socket.id; 
         challenges[challengeId] = { id: challengeId, challengerId: socket.id, challengerName: data.name, challengerAvatar: data.avatar, boardSize: parseInt(data.boardSize) }; 
-        io.emit('update_challenges', Object.values(challenges)); 
+        broadcastMatchmaking(); 
     });
     
-    socket.on('cancel_challenge', () => { const challengeId = 'chal_' + socket.id; if (challenges[challengeId]) { delete challenges[challengeId]; io.emit('update_challenges', Object.values(challenges)); } });
+    socket.on('cancel_challenge', () => { const challengeId = 'chal_' + socket.id; if (challenges[challengeId]) { delete challenges[challengeId]; broadcastMatchmaking(); } });
 
     socket.on('accept_challenge', (challengeId, acceptorData) => {
         const chal = challenges[challengeId];
@@ -256,7 +262,23 @@ io.on('connection', (socket) => {
             io.to(chal.challengerId).emit('1v1_match_started', { roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, avatarBlack: chal.challengerAvatar, playerWhite: acceptorData.name, avatarWhite: acceptorData.avatar, myColor: 'black' });
             socket.emit('1v1_match_started', { roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, avatarBlack: chal.challengerAvatar, playerWhite: acceptorData.name, avatarWhite: acceptorData.avatar, myColor: 'white' });
             
-            delete challenges[challengeId]; io.emit('update_challenges', Object.values(challenges));
+            delete challenges[challengeId]; broadcastMatchmaking();
+        }
+    });
+
+    socket.on('spectate_match', (matchId) => {
+        const match = active1v1Matches[matchId];
+        if(match) {
+            if(currentRoom && rooms[currentRoom]) { delete rooms[currentRoom].players[socket.id]; socket.leave(currentRoom); broadcastLeaderboard(currentRoom); }
+            socket.join(matchId);
+            socket.emit('1v1_match_started', { 
+                roomId: matchId, size: match.size, 
+                playerBlack: match.players.black.name, avatarBlack: match.players.black.avatar, 
+                playerWhite: match.players.white.name, avatarWhite: match.players.white.avatar, 
+                myColor: 'spectator', 
+                board: match.board, turn: match.turn, captures: match.captures, timers: match.timers,
+                state: match.state, deadStones: Array.from(match.deadStones)
+            });
         }
     });
 
@@ -307,6 +329,7 @@ io.on('connection', (socket) => {
     socket.on('1v1_toggle_dead', (data) => {
         const matchId = data.roomId; const match = active1v1Matches[matchId];
         if(!match || match.state !== 'scoring') return;
+        if(match.players.black.id !== socket.id && match.players.white.id !== socket.id) return; 
         if(match.board[data.x][data.y] === null) return; 
 
         let group = getGroupOfColor(match.board, data.x, data.y);
@@ -344,6 +367,7 @@ io.on('connection', (socket) => {
                 </div>`
             });
             delete active1v1Matches[matchId];
+            broadcastMatchmaking();
         }
     });
 
@@ -351,7 +375,7 @@ io.on('connection', (socket) => {
         const match = active1v1Matches[matchId]; if(!match) return;
         const loser = (match.players.black.id === socket.id) ? match.players.black : match.players.white;
         io.to(matchId).emit('1v1_game_over', { reason: `🏳️ ${loser.avatar} ${loser.name} hat aufgegeben.` });
-        delete active1v1Matches[matchId];
+        delete active1v1Matches[matchId]; broadcastMatchmaking();
     });
 
     // --- TSUMEGO RUSH LOGIK ---
@@ -360,7 +384,7 @@ io.on('connection', (socket) => {
         currentRoom = requestedRoom; initRoom(currentRoom); socket.join(currentRoom); 
         let isHost = false; if (currentRoom !== 'public' && Object.keys(rooms[currentRoom].players).length === 0) rooms[currentRoom].hostId = socket.id;
         if (rooms[currentRoom].hostId === socket.id) isHost = true;
-        // Speichere den Avatar mit ab!
+        
         rooms[currentRoom].players[socket.id] = { name: playerName, avatar: playerAvatar, score: 0, combo: 0, id: socket.id }; 
         socket.emit('room_joined', { roomId: currentRoom, isHost: isHost }); broadcastLeaderboard(currentRoom); 
         if (rooms[currentRoom].isPlaying) { socket.emit('game_already_started'); if (rooms[currentRoom].currentLevel < rooms[currentRoom].puzzles.length) { socket.emit('new_round', { puzzle: rooms[currentRoom].puzzles[rooms[currentRoom].currentLevel], maxTime: rooms[currentRoom].settings.timeLimit }); } }
@@ -371,7 +395,6 @@ io.on('connection', (socket) => {
         if (!r.isPlaying) { let freshDeck = [...r.originalPuzzles]; shuffle(freshDeck); if (settings) { r.settings.timeLimit = parseInt(settings.timeLimit); let count = settings.puzzleCount === 'all' ? freshDeck.length : parseInt(settings.puzzleCount); r.puzzles = freshDeck.slice(0, count); } else { r.puzzles = freshDeck; } r.isPlaying = true; r.currentLevel = -1; for (let id in r.players) { r.players[id].score = 0; r.players[id].combo = 0; } broadcastLeaderboard(currentRoom); io.to(currentRoom).emit('game_starting'); setTimeout(() => nextLevel(currentRoom), 1000); }
     });
 
-    // NEU: Nimmt Name UND Avatar direkt vom Client für den Chat
     socket.on('chat_message', (data) => { 
         let targetRoom = Array.from(socket.rooms).find(r => r !== socket.id);
         if(targetRoom) io.to(targetRoom).emit('chat_message', data);
@@ -384,7 +407,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        const chalId = 'chal_' + socket.id; if (challenges[chalId]) { delete challenges[chalId]; io.emit('update_challenges', Object.values(challenges)); }
+        const chalId = 'chal_' + socket.id; if (challenges[chalId]) { delete challenges[chalId]; broadcastMatchmaking(); }
         if(currentRoom && rooms[currentRoom] && rooms[currentRoom].players[socket.id]) { delete rooms[currentRoom].players[socket.id]; broadcastLeaderboard(currentRoom); const remainingPlayers = Object.keys(rooms[currentRoom].players); if (currentRoom !== 'public' && remainingPlayers.length === 0) { clearInterval(rooms[currentRoom].interval); delete rooms[currentRoom]; } else if (currentRoom !== 'public' && rooms[currentRoom].hostId === socket.id) { rooms[currentRoom].hostId = remainingPlayers[0]; io.to(remainingPlayers[0]).emit('you_are_host'); } }
     });
 });

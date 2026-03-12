@@ -17,7 +17,6 @@
         button:hover { background: #3388cc; transform: scale(1.05); } 
         button:active { transform: scale(0.95); } 
         
-        /* NEU: Avatar Auswahl CSS */
         .avatar-options { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; font-size: 2.5rem; cursor: pointer; flex-wrap: wrap; }
         .avatar-option { opacity: 0.5; transition: transform 0.2s, opacity 0.2s; padding: 5px; border-radius: 10px; border: 2px solid transparent; }
         .avatar-option:hover { transform: scale(1.2); opacity: 0.8;}
@@ -27,8 +26,8 @@
         .btn-private { background: #ffaa00; } .btn-private:hover { background: #e69500; }
         .btn-1v1 { background: #9932cc; } .btn-1v1:hover { background: #8a2be2; }
 
-        #top-bar { position: absolute; top: 10px; left: 10px; }
-        #mute-btn { background: #333; font-size: 1rem; padding: 5px 10px; }
+        #top-bar { position: absolute; top: 10px; left: 10px; display: flex; gap: 5px; }
+        .top-btn { background: #333; font-size: 1rem; padding: 5px 10px; }
 
         #room-code-display { font-size: 2rem; color: #ffaa00; background: #333; padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; border: 2px dashed #ffaa00;}
         #host-settings { background: #2a2a2a; border: 2px solid #ffaa00; padding: 15px; border-radius: 8px; margin: 15px auto; max-width: 400px; display: none; }
@@ -81,7 +80,8 @@
 <body>
 
     <div id="top-bar">
-        <button id="mute-btn">🔊</button>
+        <button class="top-btn" id="mute-btn">🔊</button>
+        <button class="top-btn" id="profile-btn" style="display:none;">👤 Profil ändern</button> 
     </div>
 
     <div id="login-screen">
@@ -112,17 +112,31 @@
     </div>
 
     <div id="matchmaking-screen">
-        <h1 style="color: #9932cc; margin-top: 0;">Das Schwarze Brett</h1>
-        <p style="color: #aaa;">Suche dir einen Gegner oder poste deine eigene Herausforderung!</p>
-        <div style="background: #2a2a2a; border: 2px dashed #555; padding: 15px; border-radius: 8px; max-width: 400px; margin: 0 auto 20px auto;">
-            <h3>Neue Herausforderung stellen</h3>
-            <select id="select-boardsize"><option value="9">9x9 Brett (Schnell)</option><option value="13">13x13 Brett (Mittel)</option><option value="19" selected>19x19 Brett (Klassisch)</option></select><br>
-            <button class="btn-1v1" id="btn-create-challenge">Suchen 🔎</button>
-            <button id="btn-cancel-challenge" style="display:none; background: #ff4444;">Suche abbrechen</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; max-width: 900px; margin: 0 auto;">
+            <h1 style="color: #9932cc; margin-top: 0;">Das Schwarze Brett</h1>
+            <button id="btn-back-to-menu" style="background: #555; padding: 8px 15px; font-size: 1rem;">Zurück zum Menü</button>
         </div>
-        <h3>Aktuelle Herausforderungen:</h3>
-        <div id="challenge-list"><p style="color: #666;">Aktuell sucht niemand nach einem Spiel.</p></div>
-        <button id="btn-back-to-menu" style="margin-top: 30px; background: #555;">Zurück zum Menü</button>
+        <p style="color: #aaa; max-width: 900px; margin: 0 auto 20px auto; text-align: left;">Suche dir einen Gegner oder schau laufenden Spielen zu!</p>
+        
+        <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; max-width: 900px; margin: 0 auto;">
+            
+            <div style="flex: 1; min-width: 300px;">
+                <div style="background: #2a2a2a; border: 2px dashed #555; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3>Neue Herausforderung stellen</h3>
+                    <select id="select-boardsize"><option value="9">9x9 Brett (Schnell)</option><option value="13">13x13 Brett (Mittel)</option><option value="19" selected>19x19 Brett (Klassisch)</option></select><br>
+                    <button class="btn-1v1" id="btn-create-challenge">Suchen 🔎</button>
+                    <button id="btn-cancel-challenge" style="display:none; background: #ff4444;">Suche abbrechen</button>
+                </div>
+                <h3>Offene Herausforderungen:</h3>
+                <div id="challenge-list"><p style="color: #666;">Aktuell sucht niemand nach einem Spiel.</p></div>
+            </div>
+
+            <div style="flex: 1; min-width: 300px; background: #1a1a1a; border: 2px solid #333; padding: 15px; border-radius: 8px;">
+                <h3 style="margin-top:0;">Laufende Spiele (Zuschauen):</h3>
+                <div id="active-matches-list"><p style="color: #666;">Aktuell laufen keine Spiele.</p></div>
+            </div>
+
+        </div>
     </div>
 
     <div id="room-container" style="display: none; justify-content: center; align-items: flex-start; gap: 30px; max-width: 1250px; margin: 20px auto; padding: 0 10px; flex-wrap: wrap-reverse;">
@@ -162,7 +176,6 @@
             </div>
 
             <div id="pvp-screen">
-                
                 <div id="pvp-hud" style="display:flex; justify-content:space-between; width:100%; max-width:600px; background:#222; padding:10px; border-radius:8px; border:2px solid #444; margin-bottom:5px; box-sizing:border-box;">
                     <div style="text-align:left;">
                         <div style="color:#fff; font-size:1.4rem; font-weight:bold;" id="pvp-black-name">⚫ Schwarz</div>
@@ -181,6 +194,12 @@
                         <canvas id="pvpCanvas" width="600" height="600"></canvas>
                     </div>
                     <div id="pvp-sidebar">
+                        
+                        <div id="pvp-confirm-area" style="display:none; margin-bottom: 20px; padding: 10px; background: #333; border-radius: 8px; border: 2px dashed #44aaff;">
+                            <p style="margin-top:0; font-size: 0.9rem; color: #44aaff;">Zug markiert!</p>
+                            <button id="btn-pvp-confirm-move" style="width: 100%; background: #44aaff; color: white; padding: 15px; font-size: 1.4rem;">👆 HIER SETZEN</button>
+                        </div>
+
                         <h3 style="margin-top:0;">Aktionen</h3>
                         <div id="pvp-playing-actions">
                             <button id="btn-pvp-pass" style="width: 100%; background: #ffaa00; margin-bottom: 10px;">Passen</button>
@@ -191,6 +210,7 @@
                             <button id="btn-pvp-accept" style="width: 100%; background: #28a745; margin-bottom: 10px;">Auszählung akzeptieren</button>
                             <p id="pvp-accept-status" style="font-size: 0.9rem; color:#ffaa00;"></p>
                         </div>
+                        <button id="btn-leave-spectate" style="display:none; width: 100%; background: #555; margin-top: 10px;">Zuschauen beenden</button>
                     </div>
                 </div>
             </div>
@@ -218,55 +238,73 @@
         const matchmakingScreen = document.getElementById('matchmaking-screen'); const lobbyScreen = document.getElementById('lobby-screen'); 
         const gameScreen = document.getElementById('game-screen'); const pvpScreen = document.getElementById('pvp-screen');
         
-        let myName = ""; 
-        let myAvatar = "🦊"; // NEU: Standard Avatar
-        let amIHost = false;
+        let myName = ""; let myAvatar = "🦊"; let amIHost = false;
 
-        // NEU: Avatar Auswahl Logik
+        window.onload = () => {
+            const savedName = localStorage.getItem('goRushName'); const savedAvatar = localStorage.getItem('goRushAvatar');
+            if (savedName && savedAvatar) {
+                myName = savedName; myAvatar = savedAvatar;
+                document.getElementById('username').value = myName;
+                document.querySelectorAll('.avatar-option').forEach(opt => { opt.classList.remove('selected'); if(opt.innerText === myAvatar) opt.classList.add('selected'); });
+                loginScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('profile-btn').style.display = "inline-block";
+            }
+        };
+
+        document.getElementById('profile-btn').addEventListener('click', () => { menuScreen.style.display = "none"; loginScreen.style.display = "block"; document.getElementById('profile-btn').style.display = "none"; });
+
         document.querySelectorAll('.avatar-option').forEach(el => {
             el.addEventListener('click', (e) => {
                 document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
-                e.target.classList.add('selected');
-                myAvatar = e.target.innerText;
+                e.target.classList.add('selected'); myAvatar = e.target.innerText;
             });
         });
 
-        // ÜBERGABE DES AVATARS AN DEN SERVER
-        document.getElementById('next-btn').addEventListener('click', () => { SoundFX.init(); myName = document.getElementById('username').value.trim(); if (myName !== "") { loginScreen.style.display = "none"; menuScreen.style.display = "block"; } });
+        document.getElementById('next-btn').addEventListener('click', () => { 
+            SoundFX.init(); myName = document.getElementById('username').value.trim(); 
+            if (myName !== "") { 
+                localStorage.setItem('goRushName', myName); localStorage.setItem('goRushAvatar', myAvatar);
+                loginScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('profile-btn').style.display = "inline-block";
+            } 
+        });
+
         document.getElementById('btn-public').addEventListener('click', () => { socket.emit('join_room', { name: myName, avatar: myAvatar, roomId: 'public' }); });
         document.getElementById('btn-create-private').addEventListener('click', () => { const randomCode = Math.random().toString(36).substring(2, 6).toUpperCase(); socket.emit('join_room', { name: myName, avatar: myAvatar, roomId: randomCode }); });
         document.getElementById('btn-join-private').addEventListener('click', () => { let code = document.getElementById('roomcode-input').value.trim().toUpperCase(); if (code !== "") socket.emit('join_room', { name: myName, avatar: myAvatar, roomId: code }); });
         document.getElementById('start-btn').addEventListener('click', () => { const settings = { timeLimit: document.getElementById('set-time').value, puzzleCount: document.getElementById('set-count').value }; socket.emit('start_game', settings); });
 
-        // --- MATCHMAKING LOGIK ---
         document.getElementById('btn-goto-matchmaking').addEventListener('click', () => { menuScreen.style.display = "none"; matchmakingScreen.style.display = "block"; socket.emit('request_challenges'); });
         document.getElementById('btn-back-to-menu').addEventListener('click', () => { socket.emit('cancel_challenge'); matchmakingScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('btn-create-challenge').style.display = "inline-block"; document.getElementById('btn-cancel-challenge').style.display = "none"; });
-        
-        // AVATAR ÜBERGABE
         document.getElementById('btn-create-challenge').addEventListener('click', () => { socket.emit('create_challenge', { name: myName, avatar: myAvatar, boardSize: document.getElementById('select-boardsize').value }); document.getElementById('btn-create-challenge').style.display = "none"; document.getElementById('btn-cancel-challenge').style.display = "inline-block"; });
         document.getElementById('btn-cancel-challenge').addEventListener('click', () => { socket.emit('cancel_challenge'); document.getElementById('btn-create-challenge').style.display = "inline-block"; document.getElementById('btn-cancel-challenge').style.display = "none"; });
         
-        socket.on('update_challenges', (challenges) => {
-            const list = document.getElementById('challenge-list'); list.innerHTML = "";
-            if(challenges.length === 0) { list.innerHTML = '<p style="color: #666;">Aktuell sucht niemand nach einem Spiel.</p>'; } 
+        socket.on('update_challenges', (data) => {
+            const cList = document.getElementById('challenge-list'); cList.innerHTML = "";
+            if(data.challenges.length === 0) { cList.innerHTML = '<p style="color: #666;">Aktuell sucht niemand.</p>'; } 
             else { 
-                challenges.forEach(c => { 
+                data.challenges.forEach(c => { 
                     const isMe = (c.challengerId === socket.id); 
                     const btnHtml = isMe ? `<button disabled style="background:#555;">Deine Suche</button>` : `<button onclick="acceptChallenge('${c.id}')" style="background:#28a745;">Annehmen</button>`; 
-                    // ZEIGT DEN AVATAR IM SCHWARZEN BRETT
-                    list.innerHTML += `<div class="challenge-card"><div class="challenge-info"><h3>${c.challengerAvatar} ${c.challengerName}</h3><span>Brettgröße: ${c.boardSize}x${c.boardSize}</span></div><div>${btnHtml}</div></div>`; 
+                    cList.innerHTML += `<div class="challenge-card"><div class="challenge-info"><h3 style="margin-bottom:5px;">${c.challengerAvatar} ${c.challengerName}</h3><span>Brettgröße: ${c.boardSize}x${c.boardSize}</span></div><div>${btnHtml}</div></div>`; 
                 }); 
             }
+            
+            const mList = document.getElementById('active-matches-list'); mList.innerHTML = "";
+            if(data.activeMatches.length === 0) { mList.innerHTML = '<p style="color: #666;">Aktuell laufen keine Spiele.</p>'; }
+            else {
+                data.activeMatches.forEach(m => {
+                    const isMyGame = (m.playerBlack.id === socket.id || m.playerWhite.id === socket.id);
+                    if(isMyGame) return; 
+                    mList.innerHTML += `<div class="challenge-card" style="border-color:#44aaff;"><div class="challenge-info"><h3 style="font-size:1.1rem; margin-bottom:5px;">${m.playerBlack.avatar} ${m.playerBlack.name} <br><span style="color:#aaa; font-size:0.9rem;">vs</span><br> ${m.playerWhite.avatar} ${m.playerWhite.name}</h3><span>Brett: ${m.size}x${m.size}</span></div><div><button onclick="spectateMatch('${m.id}')" style="background:#44aaff;">Zuschauen 👀</button></div></div>`;
+                });
+            }
         });
-        
-        // AVATAR ÜBERGABE
-        window.acceptChallenge = function(challengeId) { socket.emit('accept_challenge', challengeId, {name: myName, avatar: myAvatar}); };
 
-        // --- 1v1 PVP ENGINE ---
-        const pvpCanvas = document.getElementById('pvpCanvas');
-        const pvpCtx = pvpCanvas.getContext('2d');
+        window.acceptChallenge = function(challengeId) { socket.emit('accept_challenge', challengeId, {name: myName, avatar: myAvatar}); };
+        window.spectateMatch = function(matchId) { socket.emit('spectate_match', matchId); };
+
+        const pvpCanvas = document.getElementById('pvpCanvas'); const pvpCtx = pvpCanvas.getContext('2d');
         let currentPvpMatch = null; let myPvpColor = null; let pvpBoardSize = 19; let pvpCellSize = 0; let pvpHoverX = -1, pvpHoverY = -1;
-        let pvpState = 'playing'; let pvpDeadStones = new Set();
+        let pvpState = 'playing'; let pvpDeadStones = new Set(); let pendingMoveX = -1; let pendingMoveY = -1;
 
         function formatTime(seconds) { let m = Math.floor(seconds / 60); let s = seconds % 60; return m + ":" + (s < 10 ? "0" : "") + s; }
 
@@ -274,24 +312,34 @@
             matchmakingScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex";
             lobbyScreen.style.display = "none"; pvpScreen.style.display = "block"; SoundFX.play('win');
             
-            document.getElementById('pvp-playing-actions').style.display = "block";
-            document.getElementById('pvp-scoring-actions').style.display = "none";
-            document.getElementById('btn-pvp-accept').innerText = "Auszählung akzeptieren";
-            document.getElementById('btn-pvp-accept').style.background = "#28a745";
-            document.getElementById('pvp-accept-status').innerText = "";
-            
-            pvpState = 'playing'; pvpDeadStones.clear(); currentPvpMatch = data.roomId; pvpBoardSize = data.size; pvpCellSize = (600 - padding * 2) / (pvpBoardSize - 1);
-            
-            // AVATARE IM HUD
-            document.getElementById('pvp-black-name').innerText = `⚫ ${data.avatarBlack} ${data.playerBlack}`; 
-            document.getElementById('pvp-white-name').innerText = `⚪ ${data.avatarWhite} ${data.playerWhite}`;
-            
-            document.getElementById('pvp-black-caps').innerText = "0"; document.getElementById('pvp-white-caps').innerText = "0";
-            document.getElementById('pvp-black-time').innerText = "10:00"; document.getElementById('pvp-white-time').innerText = "10:00";
             myPvpColor = data.myColor;
-            let emptyBoard = Array(pvpBoardSize).fill(null).map(() => Array(pvpBoardSize).fill(null));
-            renderPvpScene(emptyBoard, 'black', null);
+            if(myPvpColor === 'spectator') {
+                document.getElementById('pvp-playing-actions').style.display = "none"; document.getElementById('pvp-scoring-actions').style.display = "none"; document.getElementById('btn-leave-spectate').style.display = "block";
+            } else {
+                document.getElementById('pvp-playing-actions').style.display = "block"; document.getElementById('pvp-scoring-actions').style.display = "none"; document.getElementById('btn-leave-spectate').style.display = "none";
+            }
+            
+            document.getElementById('btn-pvp-accept').innerText = "Auszählung akzeptieren"; document.getElementById('btn-pvp-accept').style.background = "#28a745"; document.getElementById('pvp-accept-status').innerText = "";
+            document.getElementById('pvp-confirm-area').style.display = "none"; pendingMoveX = -1; pendingMoveY = -1;
+            
+            currentPvpMatch = data.roomId; pvpBoardSize = data.size; pvpCellSize = (600 - padding * 2) / (pvpBoardSize - 1);
+            document.getElementById('pvp-black-name').innerText = `⚫ ${data.avatarBlack} ${data.playerBlack}`; document.getElementById('pvp-white-name').innerText = `⚪ ${data.avatarWhite} ${data.playerWhite}`;
+            
+            if(data.board) {
+                currentPvpBoardState = data.board; currentPvpTurn = data.turn; pvpState = data.state; pvpDeadStones = new Set(data.deadStones || []);
+                document.getElementById('pvp-black-caps').innerText = data.captures.black; document.getElementById('pvp-white-caps').innerText = data.captures.white;
+                document.getElementById('pvp-black-time').innerText = formatTime(data.timers.black); document.getElementById('pvp-white-time').innerText = formatTime(data.timers.white);
+                renderPvpScene(currentPvpBoardState, currentPvpTurn, null);
+            } else {
+                pvpState = 'playing'; pvpDeadStones.clear();
+                document.getElementById('pvp-black-caps').innerText = "0"; document.getElementById('pvp-white-caps').innerText = "0";
+                document.getElementById('pvp-black-time').innerText = "10:00"; document.getElementById('pvp-white-time').innerText = "10:00";
+                let emptyBoard = Array(pvpBoardSize).fill(null).map(() => Array(pvpBoardSize).fill(null));
+                renderPvpScene(emptyBoard, 'black', null);
+            }
         });
+
+        document.getElementById('btn-leave-spectate').addEventListener('click', () => { pvpScreen.style.display = "none"; document.getElementById('room-container').style.display = "none"; menuScreen.style.display = "block"; socket.emit('request_challenges'); });
 
         socket.on('1v1_timer_update', (data) => {
             document.getElementById('pvp-black-time').innerText = formatTime(data.timers.black); document.getElementById('pvp-white-time').innerText = formatTime(data.timers.white);
@@ -300,14 +348,8 @@
 
         function drawPvpBoard() {
             pvpCtx.clearRect(0, 0, 600, 600); pvpCtx.strokeStyle = "#222"; pvpCtx.lineWidth = 1; pvpCtx.beginPath();
-            for (let i = 0; i < pvpBoardSize; i++) {
-                let pos = padding + i * pvpCellSize; pvpCtx.moveTo(pos, padding); pvpCtx.lineTo(pos, padding + (pvpBoardSize - 1) * pvpCellSize); pvpCtx.moveTo(padding, pos); pvpCtx.lineTo(padding + (pvpBoardSize - 1) * pvpCellSize, pos); 
-            }
-            pvpCtx.stroke();
-            let hoshi = [];
-            if(pvpBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}];
-            if(pvpBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}];
-            if(pvpBoardSize === 9) hoshi = [{x:4,y:4}];
+            for (let i = 0; i < pvpBoardSize; i++) { let pos = padding + i * pvpCellSize; pvpCtx.moveTo(pos, padding); pvpCtx.lineTo(pos, padding + (pvpBoardSize - 1) * pvpCellSize); pvpCtx.moveTo(padding, pos); pvpCtx.lineTo(padding + (pvpBoardSize - 1) * pvpCellSize, pos); } pvpCtx.stroke();
+            let hoshi = []; if(pvpBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}]; if(pvpBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}]; if(pvpBoardSize === 9) hoshi = [{x:4,y:4}];
             pvpCtx.fillStyle = "#000"; hoshi.forEach(h => { let px = padding + h.x * pvpCellSize; let py = padding + h.y * pvpCellSize; pvpCtx.beginPath(); pvpCtx.arc(px, py, 4, 0, Math.PI * 2); pvpCtx.fill(); });
         }
 
@@ -317,7 +359,8 @@
             pvpCtx.beginPath(); pvpCtx.arc(cx + 2, cy + 3, r, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(0,0,0,0.4)"; pvpCtx.fill();
             pvpCtx.beginPath(); pvpCtx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = pvpCtx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
             if (color === "black") { gradient.addColorStop(0, "#555"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } 
-            else { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#eee"); gradient.addColorStop(1, "#aaa"); }
+            else if (color === "white") { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#eee"); gradient.addColorStop(1, "#aaa"); }
+            else if (color === "green") { gradient.addColorStop(0, "#00ff00"); gradient.addColorStop(0.7, "#00cc00"); gradient.addColorStop(1, "#008800"); }
             pvpCtx.fillStyle = gradient; pvpCtx.fill();
             if(isLastMove && !isDead) { pvpCtx.beginPath(); pvpCtx.arc(cx, cy, 3, 0, Math.PI * 2); pvpCtx.fillStyle = "red"; pvpCtx.fill(); }
             if(isDead) { pvpCtx.beginPath(); pvpCtx.arc(cx, cy, r*0.4, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(255,0,0,0.8)"; pvpCtx.fill(); }
@@ -331,13 +374,15 @@
                     if(board[x][y]) { let isLast = (lastMove && lastMove.x === x && lastMove.y === y); let isDead = pvpDeadStones.has(`${x},${y}`); drawPvpStone(x, y, board[x][y], isLast, isDead); }
                 }
             }
-            if(pvpState === 'playing' && turn === myPvpColor && pvpHoverX >= 0 && pvpHoverX < pvpBoardSize && pvpHoverY >= 0 && pvpHoverY < pvpBoardSize) {
+            if(pvpState === 'playing' && turn === myPvpColor && pendingMoveX !== -1) {
+                pvpCtx.globalAlpha = 0.8; drawPvpStone(pendingMoveX, pendingMoveY, 'green'); pvpCtx.globalAlpha = 1.0;
+            } else if(pvpState === 'playing' && turn === myPvpColor && pvpHoverX >= 0 && pvpHoverX < pvpBoardSize && pvpHoverY >= 0 && pvpHoverY < pvpBoardSize && pendingMoveX === -1) {
                 if(board[pvpHoverX][pvpHoverY] === null) { pvpCtx.globalAlpha = 0.5; drawPvpStone(pvpHoverX, pvpHoverY, myPvpColor); pvpCtx.globalAlpha = 1.0; }
             }
+            
             if (pvpState === 'playing') {
-                let turnText = (turn === 'black') ? '⚫ Schwarz ist am Zug' : '⚪ Weiß ist am Zug';
-                document.getElementById('pvp-turn-indicator').innerText = turnText;
-                document.getElementById('pvp-turn-indicator').style.color = (turn === myPvpColor) ? '#00ff00' : '#ffaa00';
+                if (myPvpColor === 'spectator') { document.getElementById('pvp-turn-indicator').innerText = `👀 Zuschauer Modus (${turn === 'black' ? 'Schwarz' : 'Weiß'} zieht)`; document.getElementById('pvp-turn-indicator').style.color = "#44aaff"; } 
+                else { let turnText = (turn === 'black') ? '⚫ Schwarz ist am Zug' : '⚪ Weiß ist am Zug'; document.getElementById('pvp-turn-indicator').innerText = turnText; document.getElementById('pvp-turn-indicator').style.color = (turn === myPvpColor) ? '#00ff00' : '#ffaa00'; }
             } else {
                 document.getElementById('pvp-turn-indicator').innerText = "🚩 Phase: Tote Steine markieren"; document.getElementById('pvp-turn-indicator').style.color = "#ffaa00";
             }
@@ -348,20 +393,20 @@
         socket.on('1v1_update_board', (data) => {
             currentPvpBoardState = data.board; currentPvpTurn = data.turn; currentPvpLastMove = data.lastMove;
             document.getElementById('pvp-black-caps').innerText = data.captures.black; document.getElementById('pvp-white-caps').innerText = data.captures.white;
+            pendingMoveX = -1; pendingMoveY = -1; document.getElementById('pvp-confirm-area').style.display = "none";
             SoundFX.play('clack'); renderPvpScene(data.board, data.turn, data.lastMove);
         });
 
-        socket.on('1v1_illegal_move', (msg) => { SoundFX.play('lose'); alert("Nicht erlaubt: " + msg); });
+        socket.on('1v1_illegal_move', (msg) => { SoundFX.play('lose'); alert("Nicht erlaubt: " + msg); pendingMoveX = -1; pendingMoveY = -1; document.getElementById('pvp-confirm-area').style.display = "none"; renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove); });
 
-        socket.on('1v1_scoring_phase', () => { pvpState = 'scoring'; document.getElementById('pvp-playing-actions').style.display = "none"; document.getElementById('pvp-scoring-actions').style.display = "block"; renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove); });
+        socket.on('1v1_scoring_phase', () => { pvpState = 'scoring'; if(myPvpColor !== 'spectator') { document.getElementById('pvp-playing-actions').style.display = "none"; document.getElementById('pvp-scoring-actions').style.display = "block"; } renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove); });
         socket.on('1v1_scoring_update', (data) => {
             pvpDeadStones = new Set(data.deadStones);
-            let iAccepted = data.accepts[myPvpColor]; let enemyAccepted = data.accepts[myPvpColor === 'black' ? 'white' : 'black'];
-            if(iAccepted) { document.getElementById('btn-pvp-accept').innerText = "✅ Bereit"; document.getElementById('btn-pvp-accept').style.background = "#555"; } 
-            else { document.getElementById('btn-pvp-accept').innerText = "Auszählung akzeptieren"; document.getElementById('btn-pvp-accept').style.background = "#28a745"; }
-            if(iAccepted && !enemyAccepted) document.getElementById('pvp-accept-status').innerText = "Warte auf Gegner...";
-            else if(!iAccepted && enemyAccepted) document.getElementById('pvp-accept-status').innerText = "Gegner ist bereit!";
-            else document.getElementById('pvp-accept-status').innerText = "";
+            if(myPvpColor !== 'spectator') {
+                let iAccepted = data.accepts[myPvpColor]; let enemyAccepted = data.accepts[myPvpColor === 'black' ? 'white' : 'black'];
+                if(iAccepted) { document.getElementById('btn-pvp-accept').innerText = "✅ Bereit"; document.getElementById('btn-pvp-accept').style.background = "#555"; } else { document.getElementById('btn-pvp-accept').innerText = "Auszählung akzeptieren"; document.getElementById('btn-pvp-accept').style.background = "#28a745"; }
+                if(iAccepted && !enemyAccepted) document.getElementById('pvp-accept-status').innerText = "Warte auf Gegner..."; else if(!iAccepted && enemyAccepted) document.getElementById('pvp-accept-status').innerText = "Gegner ist bereit!"; else document.getElementById('pvp-accept-status').innerText = "";
+            }
             renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove);
         });
 
@@ -369,41 +414,40 @@
             pvpState = 'playing'; pvpScreen.style.display = "none"; document.getElementById('game-over-screen').style.display = "block";
             document.getElementById('go-reason').innerHTML = data.reason; document.getElementById('podium-container').innerHTML = "";
             let countdown = 15; document.getElementById('lobby-countdown').innerText = countdown;
-            let countInterval = setInterval(() => { countdown--; document.getElementById('lobby-countdown').innerText = countdown; if(countdown <= 0) { clearInterval(countInterval); document.getElementById('game-over-screen').style.display = "none"; menuScreen.style.display = "block"; document.getElementById('room-container').style.display = "none"; } }, 1000);
+            let countInterval = setInterval(() => { countdown--; document.getElementById('lobby-countdown').innerText = countdown; if(countdown <= 0) { clearInterval(countInterval); document.getElementById('game-over-screen').style.display = "none"; menuScreen.style.display = "block"; document.getElementById('room-container').style.display = "none"; socket.emit('request_challenges'); } }, 1000);
         });
 
         pvpCanvas.addEventListener('mousemove', (event) => {
-            if(pvpState !== 'playing') return;
+            if(pvpState !== 'playing' || myPvpColor === 'spectator') return;
             const rect = pvpCanvas.getBoundingClientRect(); const scaleX = pvpCanvas.width / rect.width; const scaleY = pvpCanvas.height / rect.height;
             const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / pvpCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / pvpCellSize);
             if (gridX !== pvpHoverX || gridY !== pvpHoverY) { pvpHoverX = gridX; pvpHoverY = gridY; if(currentPvpBoardState.length > 0) renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove); }
         });
         pvpCanvas.addEventListener('mouseout', () => { pvpHoverX = -1; pvpHoverY = -1; if(currentPvpBoardState.length > 0) renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove); });
         pvpCanvas.addEventListener('click', (event) => {
+            if(myPvpColor === 'spectator') return;
             const rect = pvpCanvas.getBoundingClientRect(); const scaleX = pvpCanvas.width / rect.width; const scaleY = pvpCanvas.height / rect.height;
             const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / pvpCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / pvpCellSize);
+            
             if (gridX >= 0 && gridX < pvpBoardSize && gridY >= 0 && gridY < pvpBoardSize) { 
-                if (pvpState === 'playing' && currentPvpTurn === myPvpColor) { socket.emit('1v1_make_move', { roomId: currentPvpMatch, x: gridX, y: gridY }); } 
+                if (pvpState === 'playing' && currentPvpTurn === myPvpColor && currentPvpBoardState[gridX][gridY] === null) { 
+                    pendingMoveX = gridX; pendingMoveY = gridY; document.getElementById('pvp-confirm-area').style.display = "block"; renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove);
+                } 
                 else if (pvpState === 'scoring') { socket.emit('1v1_toggle_dead', { roomId: currentPvpMatch, x: gridX, y: gridY }); }
             }
         });
+
+        document.getElementById('btn-pvp-confirm-move').addEventListener('click', () => { if(pendingMoveX !== -1) { socket.emit('1v1_make_move', { roomId: currentPvpMatch, x: pendingMoveX, y: pendingMoveY }); } });
         document.getElementById('btn-pvp-pass').addEventListener('click', () => { socket.emit('1v1_pass', currentPvpMatch); });
         document.getElementById('btn-pvp-resign').addEventListener('click', () => { socket.emit('1v1_resign', currentPvpMatch); });
         document.getElementById('btn-pvp-accept').addEventListener('click', () => { socket.emit('1v1_accept_score', currentPvpMatch); });
 
-        // --- CHAT MIT AVATAREN ---
         const chatMessages = document.getElementById('chat-messages'); const chatInput = document.getElementById('chat-input');
         function sendChat(text) { if(text.trim() !== "") { socket.emit('chat_message', { name: myName, avatar: myAvatar, text: text.trim() }); chatInput.value = ""; } }
         document.getElementById('chat-send').addEventListener('click', () => sendChat(chatInput.value)); chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChat(chatInput.value); });
         document.querySelectorAll('.emoji-btn').forEach(btn => { btn.addEventListener('click', () => sendChat(btn.innerText)); });
-        
-        socket.on('chat_message', (data) => { 
-            const div = document.createElement('div'); div.style.marginBottom = "5px"; div.style.wordWrap = "break-word"; 
-            div.innerHTML = `<span style="color:#ffaa00; font-weight:bold;">${data.avatar} ${data.name}:</span> <span style="color:#fff;">${data.text}</span>`; 
-            chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; 
-        });
+        socket.on('chat_message', (data) => { const div = document.createElement('div'); div.style.marginBottom = "5px"; div.style.wordWrap = "break-word"; div.innerHTML = `<span style="color:#ffaa00; font-weight:bold;">${data.avatar} ${data.name}:</span> <span style="color:#fff;">${data.text}</span>`; chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; });
 
-        // --- TSUMEGO LOGIK MIT AVATAREN ---
         socket.on('room_joined', (data) => { menuScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex"; pvpScreen.style.display = "none"; lobbyScreen.style.display = "block"; document.getElementById('game-over-screen').style.display = "none"; amIHost = data.isHost; if (data.roomId === 'public') { document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby"; document.getElementById('room-code-display').style.display = "none"; document.getElementById('host-settings').style.display = "none"; document.getElementById('waiting-msg').style.display = "none"; document.getElementById('start-btn').style.display = "inline-block"; } else { document.getElementById('room-title').innerText = "🔒 Privater Raum"; document.getElementById('room-code-display').style.display = "inline-block"; document.getElementById('the-code').innerText = data.roomId; if (amIHost) { document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; } else { document.getElementById('host-settings').style.display = "none"; document.getElementById('start-btn').style.display = "none"; document.getElementById('waiting-msg').style.display = "block"; } } });
         socket.on('you_are_host', () => { amIHost = true; document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; });
 
@@ -417,14 +461,7 @@
         function drawStone(x, y, color) { if (x < viewMinX || x > viewMaxX || y < viewMinY || y > viewMaxY) return; const cx = padding + (x - viewMinX) * currentCellSize; const cy = padding + (y - viewMinY) * currentCellSize; const r = currentCellSize * 0.46; ctx.beginPath(); ctx.arc(cx + 2, cy + 3, r, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.fill(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r); if (color === "black") { gradient.addColorStop(0, "#555"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } else { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#eee"); gradient.addColorStop(1, "#aaa"); } ctx.fillStyle = gradient; ctx.fill(); }
         function renderScene() { drawBoard(); if (currentPuzzle) { currentPuzzle.setup.forEach(s => drawStone(s.x, s.y, s.c)); } if (myPlacedStone) { drawStone(myPlacedStone.x, myPlacedStone.y, "black"); } if (canClick && hoverX >= viewMinX && hoverX <= viewMaxX && hoverY >= viewMinY && hoverY <= viewMaxY) { let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === hoverX && s.y === hoverY) isOccupied = true; }); if (!isOccupied) { ctx.globalAlpha = 0.5; drawStone(hoverX, hoverY, "black"); ctx.globalAlpha = 1.0; } } if (timeoutSolutions) { timeoutSolutions.forEach(sol => { if (sol.x >= viewMinX && sol.x <= viewMaxX && sol.y >= viewMinY && sol.y <= viewMaxY) { const cx = padding + (sol.x - viewMinX) * currentCellSize; const cy = padding + (sol.y - viewMinY) * currentCellSize; ctx.beginPath(); ctx.arc(cx, cy, currentCellSize * 0.45, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,255,0,0.4)"; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke(); } }); } if (winningHighlight && winningHighlight.x >= viewMinX && winningHighlight.x <= viewMaxX && winningHighlight.y >= viewMinY && winningHighlight.y <= viewMaxY) { const cx = padding + (winningHighlight.x - viewMinX) * currentCellSize; const cy = padding + (winningHighlight.y - viewMinY) * currentCellSize; ctx.beginPath(); ctx.arc(cx, cy, currentCellSize * 0.45, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,150,255,0.5)"; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke(); } }
 
-        socket.on('update_leaderboard', (boardData) => { 
-            const list = document.getElementById('lb-list'); list.innerHTML = ""; lobbyPlayersList.innerHTML = ""; 
-            boardData.forEach((player, index) => { 
-                list.innerHTML += `<div class="lb-row"><span class="lb-rank">${index + 1}.</span><span class="lb-name">${player.avatar} ${player.name}</span><span class="lb-score">${player.score}</span></div>`; 
-                lobbyPlayersList.innerHTML += `<li>${player.avatar} ${player.name}</li>`; 
-            }); 
-        });
-
+        socket.on('update_leaderboard', (boardData) => { const list = document.getElementById('lb-list'); list.innerHTML = ""; lobbyPlayersList.innerHTML = ""; boardData.forEach((player, index) => { list.innerHTML += `<div class="lb-row"><span class="lb-rank">${index + 1}.</span><span class="lb-name">${player.avatar} ${player.name}</span><span class="lb-score">${player.score}</span></div>`; lobbyPlayersList.innerHTML += `<li>${player.avatar} ${player.name}</li>`; }); });
         socket.on('game_starting', () => { lobbyScreen.style.display = "none"; document.getElementById('game-over-screen').style.display = "none"; gameScreen.style.display = "block"; msgLabel.innerText = "Mache dich bereit..."; myScore = 0; scoreLabel.innerText = "Score: 0"; viewMinX = 0; viewMaxX = 18; viewMinY = 0; viewMaxY = 18; activeBoardSize = 19; currentCellSize = (600 - padding * 2) / 18; renderScene(); });
         socket.on('game_already_started', () => { loginScreen.style.display = "none"; menuScreen.style.display = "none"; lobbyScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex"; gameScreen.style.display = "block"; });
         socket.on('new_round', (data) => { canClick = true; currentPuzzle = data.puzzle; roundTimeLimit = data.maxTime; myPlacedStone = null; timeoutSolutions = null; winningHighlight = null; hoverX = -1; hoverY = -1; msgLabel.innerText = data.puzzle.msg; msgLabel.style.color = "#fff"; calculateZoomView(data.puzzle); renderScene(); });
@@ -433,17 +470,7 @@
         socket.on('wrong_guess', () => { msgLabel.innerText = "Daneben! ⏳ 1.5 Sekunden Strafe..."; msgLabel.style.color = "#ff4444"; myPlacedStone = null; SoundFX.play('lose'); renderScene(); setTimeout(() => { if (msgLabel.innerText.includes("Strafe")) { canClick = true; msgLabel.innerText = "Weiter geht's! Versuch es nochmal!"; msgLabel.style.color = "#fff"; } }, 1500); });
         socket.on('round_won_by_other', (data) => { canClick = false; msgLabel.innerText = "Zu langsam! " + data.winnerName + " war schneller!"; msgLabel.style.color = "#44aaff"; SoundFX.play('lose'); winningHighlight = { x: data.x, y: data.y }; renderScene(); });
         socket.on('timeout', (solutions) => { canClick = false; msgLabel.innerText = "ZEIT ABGELAUFEN! 💀 Hier ist die Lösung:"; msgLabel.style.color = "#ff4444"; timeoutSolutions = solutions; SoundFX.play('lose'); renderScene(); });
-        
-        socket.on('game_over', (finalLeaderboard) => { 
-            canClick = false; gameScreen.style.display = "none"; document.getElementById('game-over-screen').style.display = "block"; SoundFX.play('win'); 
-            document.getElementById('go-reason').innerText = "Das sind die Sieger:"; const podiumDiv = document.getElementById('podium-container'); podiumDiv.innerHTML = ""; 
-            if (finalLeaderboard.length > 1) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[1].avatar}<br>${finalLeaderboard[1].name}</div><div class="podium-score">${finalLeaderboard[1].score}</div><div class="podium-place place-2">2.</div></div>`; 
-            if (finalLeaderboard.length > 0) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">👑<br>${finalLeaderboard[0].avatar}<br>${finalLeaderboard[0].name}</div><div class="podium-score">${finalLeaderboard[0].score}</div><div class="podium-place place-1">1.</div></div>`; 
-            if (finalLeaderboard.length > 2) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[2].avatar}<br>${finalLeaderboard[2].name}</div><div class="podium-score">${finalLeaderboard[2].score}</div><div class="podium-place place-3">3.</div></div>`; 
-            
-            let countdown = 8; document.getElementById('lobby-countdown').innerText = countdown; let countInterval = setInterval(() => { countdown--; document.getElementById('lobby-countdown').innerText = countdown; if(countdown <= 0) { clearInterval(countInterval); document.getElementById('game-over-screen').style.display = "none"; lobbyScreen.style.display = "block"; } }, 1000); 
-        });
-
+        socket.on('game_over', (finalLeaderboard) => { canClick = false; gameScreen.style.display = "none"; document.getElementById('game-over-screen').style.display = "block"; SoundFX.play('win'); document.getElementById('go-reason').innerText = "Das sind die Sieger:"; const podiumDiv = document.getElementById('podium-container'); podiumDiv.innerHTML = ""; if (finalLeaderboard.length > 1) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[1].avatar}<br>${finalLeaderboard[1].name}</div><div class="podium-score">${finalLeaderboard[1].score}</div><div class="podium-place place-2">2.</div></div>`; if (finalLeaderboard.length > 0) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">👑<br>${finalLeaderboard[0].avatar}<br>${finalLeaderboard[0].name}</div><div class="podium-score">${finalLeaderboard[0].score}</div><div class="podium-place place-1">1.</div></div>`; if (finalLeaderboard.length > 2) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[2].avatar}<br>${finalLeaderboard[2].name}</div><div class="podium-score">${finalLeaderboard[2].score}</div><div class="podium-place place-3">3.</div></div>`; let countdown = 8; document.getElementById('lobby-countdown').innerText = countdown; let countInterval = setInterval(() => { countdown--; document.getElementById('lobby-countdown').innerText = countdown; if(countdown <= 0) { clearInterval(countInterval); document.getElementById('game-over-screen').style.display = "none"; lobbyScreen.style.display = "block"; } }, 1000); });
         canvas.addEventListener('mousemove', (event) => { if (!canClick) return; const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / currentCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / currentCellSize); const realX = viewMinX + gridX; const realY = viewMinY + gridY; if (realX !== hoverX || realY !== hoverY) { hoverX = realX; hoverY = realY; renderScene(); } });
         canvas.addEventListener('mouseout', () => { hoverX = -1; hoverY = -1; renderScene(); });
         canvas.addEventListener('click', (event) => { if (!canClick) return; const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; lastClickX = (event.clientX - rect.left) * scaleX; lastClickY = (event.clientY - rect.top) * scaleY; const gridX = Math.round((lastClickX - padding) / currentCellSize); const gridY = Math.round((lastClickY - padding) / currentCellSize); const actualX = viewMinX + gridX; const actualY = viewMinY + gridY; if (actualX >= 0 && actualX <= 18 && actualY >= 0 && actualY <= 18) { let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === actualX && s.y === actualY) isOccupied = true; }); if (isOccupied) return; myPlacedStone = { x: actualX, y: actualY }; canClick = false; SoundFX.play('clack'); renderScene(); socket.emit('guess', { x: actualX, y: actualY }); } });
