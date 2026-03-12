@@ -8,8 +8,8 @@
         body { background: #1a1a1a; color: white; font-family: sans-serif; text-align: center; margin: 0; padding-top: 20px; }
         
         #login-screen, #menu-screen { margin-top: 100px; padding: 20px; }
-        #lobby-screen, #game-over-screen { display: none; margin-top: 50px; padding: 20px; } 
-        #game-screen { display: none; padding: 10px; }
+        #lobby-screen, #game-over-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; } 
+        #game-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; }
         #menu-screen { display: none; } 
         
         input, select { font-size: 1.2rem; padding: 10px; border-radius: 5px; border: none; text-align: center; margin-bottom: 10px; max-width: 80%; background: #333; color: white; }
@@ -42,7 +42,6 @@
 
         #game-content { display: flex; justify-content: center; align-items: flex-start; gap: 30px; max-width: 950px; margin: 0 auto 20px auto; flex-wrap: wrap; }
         
-        /* NEU: Skalierungs-Fix für Peters Laptop (max-width: min(600px, 55vh)) */
         #board-container { width: 100%; max-width: min(600px, 55vh); aspect-ratio: 1 / 1; background: radial-gradient(circle, #e6c280, #c29b57); border: 8px solid #3e2723; border-radius: 5px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); cursor: crosshair; position: relative; }
         canvas { width: 100%; height: 100%; display: block; }
 
@@ -64,7 +63,7 @@
         .podium-name { color: #fff; font-size: 1.3rem; text-shadow: 1px 1px 2px #000; word-wrap: break-word; font-weight: bold; margin-bottom: 5px;}
         .podium-score { color: #44aaff; font-size: 1.1rem; text-shadow: 1px 1px 2px #000; margin-bottom: 10px;}
 
-        /* NEU: Chat CSS */
+        /* Chat CSS */
         .emoji-btn { background: #333; border: 2px solid #444; border-radius: 5px; padding: 5px 10px; font-size: 1.3rem; cursor: pointer; transition: transform 0.1s; }
         .emoji-btn:hover { background: #444; transform: scale(1.2); }
     </style>
@@ -93,84 +92,90 @@
         </div>
     </div>
 
-    <div id="lobby-screen">
-        <h2 id="room-title">Wartezimmer</h2>
-        <div id="room-code-display" style="display:none;">Code: <span id="the-code"></span></div> 
+    <div id="room-container" style="display: none; justify-content: center; align-items: flex-start; gap: 30px; max-width: 1250px; margin: 20px auto; padding: 0 10px; flex-wrap: wrap-reverse;">
         
-        <div id="host-settings">
-            <h3 style="margin-top:0; color:#ffaa00;">Raum Einstellungen</h3>
-            <div class="setting-row">
-                <label>Zeit pro Rätsel:</label>
-                <select id="set-time">
-                    <option value="5">5 Sekunden (Hardcore)</option>
-                    <option value="10" selected>10 Sekunden (Normal)</option>
-                    <option value="15">15 Sekunden (Entspannt)</option>
-                    <option value="30">30 Sekunden (Anfänger)</option>
-                </select>
-            </div>
-            <div class="setting-row">
-                <label>Anzahl der Runden:</label>
-                <select id="set-count">
-                    <option value="10">10 Rätsel (Kurz)</option>
-                    <option value="20" selected>20 Rätsel (Mittel)</option>
-                    <option value="all">Alle Rätsel (Endlos)</option>
-                </select>
-            </div>
-        </div>
-        <p id="waiting-msg">Warte auf den Host, um das Spiel zu starten...</p>
-
-        <p>Wer ist alles dabei?</p>
-        <ul id="lobby-players"></ul>
-        <button id="start-btn" style="display:none;">💥 SPIEL STARTEN 💥</button>
-    </div>
-
-    <div id="game-over-screen">
-        <h1 style="color: #ffaa00; font-size: 3rem; margin-bottom: 0;">SPIEL BEENDET!</h1>
-        <h3 style="color: #aaa; margin-top: 5px;">Das sind die Sieger:</h3>
-        
-        <div class="podium" id="podium-container">
-            </div>
-
-        <p>Zurück zur Lobby in <span id="lobby-countdown">8</span> Sekunden...</p>
-    </div>
-
-    <div id="game-screen">
-        <div id="hud">
-            <div class="score" id="score">Score: 0</div>
-            <div class="timer" id="timer">Zeit: 10</div>
-        </div>
-        <div id="timer-container"><div id="timer-bar"></div></div>
-        
-        <p id="msg">Mache dich bereit...</p>
-        
-        <div id="game-content">
-            <div id="board-container">
-                <canvas id="goCanvas" width="600" height="600"></canvas>
-            </div>
+        <div id="global-chat" style="display: flex; width: 100%; max-width: 320px; background: #222; border: 3px solid #333; border-radius: 8px; padding: 10px; flex-direction: column; height: min(600px, 75vh); box-sizing: border-box; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
+            <h3 style="margin: 0 0 10px 0; color: #aaa; text-align: left; font-size: 1.1rem; border-bottom: 1px solid #444; padding-bottom: 5px;">💬 Raum Chat</h3>
+            <div id="chat-messages" style="flex-grow: 1; overflow-y: auto; text-align: left; margin-bottom: 10px; padding: 10px; background: #111; border-radius: 5px; font-size: 1.1rem; border: 1px solid #444; word-wrap: break-word;"></div>
             
-            <div id="leaderboard">
-                <h2>Rangliste</h2>
-                <div id="lb-list"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="global-chat" style="display: none; width: 100%; max-width: 950px; margin: 0 auto 20px auto; background: #222; border: 3px solid #333; border-radius: 8px; padding: 10px; flex-direction: column; height: 250px; box-sizing: border-box; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
-        <div id="chat-messages" style="flex-grow: 1; overflow-y: auto; text-align: left; margin-bottom: 10px; padding: 10px; background: #111; border-radius: 5px; font-size: 1.1rem; border: 1px solid #444;"></div>
-        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-            <div id="chat-emojis" style="display: flex; gap: 5px;">
+            <div style="display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px;">
                 <button class="emoji-btn">🔥</button>
                 <button class="emoji-btn">❤️</button>
                 <button class="emoji-btn">😡</button>
                 <button class="emoji-btn">😂</button>
                 <button class="emoji-btn">👏</button>
             </div>
-            <input type="text" id="chat-input" placeholder="Nachricht..." style="flex-grow: 1; font-size: 1.1rem; padding: 8px; margin: 0; text-align: left;">
-            <button id="chat-send" style="margin: 0; padding: 8px 15px;">▶</button>
+            <div style="display: flex; gap: 5px; width: 100%;">
+                <input type="text" id="chat-input" placeholder="Nachricht..." autocomplete="off" style="flex-grow: 1; font-size: 1.1rem; padding: 8px; margin: 0; text-align: left; min-width: 0;">
+                <button id="chat-send" style="margin: 0; padding: 8px 15px;">▶</button>
+            </div>
         </div>
-    </div>
 
-    <script src="/socket.io/socket.io.js"></script>
+        <div id="main-column" style="flex-grow: 1; width: 100%; max-width: 850px; display: flex; flex-direction: column; align-items: center;">
+            
+            <div id="lobby-screen">
+                <h2 id="room-title" style="margin-top: 0;">Wartezimmer</h2>
+                <div id="room-code-display" style="display:none;">Code: <span id="the-code"></span></div> 
+                
+                <div id="host-settings">
+                    <h3 style="margin-top:0; color:#ffaa00;">Raum Einstellungen</h3>
+                    <div class="setting-row">
+                        <label>Zeit pro Rätsel:</label>
+                        <select id="set-time">
+                            <option value="5">5 Sekunden (Hardcore)</option>
+                            <option value="10" selected>10 Sekunden (Normal)</option>
+                            <option value="15">15 Sekunden (Entspannt)</option>
+                            <option value="30">30 Sekunden (Anfänger)</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <label>Anzahl der Runden:</label>
+                        <select id="set-count">
+                            <option value="10">10 Rätsel (Kurz)</option>
+                            <option value="20" selected>20 Rätsel (Mittel)</option>
+                            <option value="all">Alle Rätsel (Endlos)</option>
+                        </select>
+                    </div>
+                </div>
+                <p id="waiting-msg">Warte auf den Host, um das Spiel zu starten...</p>
+
+                <p>Wer ist alles dabei?</p>
+                <ul id="lobby-players"></ul>
+                <button id="start-btn" style="display:none;">💥 SPIEL STARTEN 💥</button>
+            </div>
+
+            <div id="game-over-screen">
+                <h1 style="color: #ffaa00; font-size: 3rem; margin-bottom: 0; margin-top: 0;">SPIEL BEENDET!</h1>
+                <h3 style="color: #aaa; margin-top: 5px;">Das sind die Sieger:</h3>
+                
+                <div class="podium" id="podium-container"></div>
+
+                <p>Zurück zur Lobby in <span id="lobby-countdown">8</span> Sekunden...</p>
+            </div>
+
+            <div id="game-screen">
+                <div id="hud">
+                    <div class="score" id="score">Score: 0</div>
+                    <div class="timer" id="timer">Zeit: 10</div>
+                </div>
+                <div id="timer-container"><div id="timer-bar"></div></div>
+                
+                <p id="msg">Mache dich bereit...</p>
+                
+                <div id="game-content">
+                    <div id="board-container">
+                        <canvas id="goCanvas" width="600" height="600"></canvas>
+                    </div>
+                    
+                    <div id="leaderboard">
+                        <h2>Rangliste</h2>
+                        <div id="lb-list"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div> <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
         let isMuted = false;
@@ -201,10 +206,11 @@
         document.getElementById('start-btn').addEventListener('click', () => { const settings = { timeLimit: document.getElementById('set-time').value, puzzleCount: document.getElementById('set-count').value }; socket.emit('start_game', settings); });
 
         socket.on('room_joined', (data) => {
-            menuScreen.style.display = "none"; lobbyScreen.style.display = "block"; document.getElementById('game-over-screen').style.display = "none"; amIHost = data.isHost;
-            
-            // NEU: Chat anzeigen, sobald man einem Raum beitritt
-            document.getElementById('global-chat').style.display = "flex";
+            menuScreen.style.display = "none"; 
+            document.getElementById('room-container').style.display = "flex"; // Zeigt Chat + Inhalt
+            lobbyScreen.style.display = "block"; 
+            document.getElementById('game-over-screen').style.display = "none"; 
+            amIHost = data.isHost;
 
             if (data.roomId === 'public') {
                 document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby"; document.getElementById('room-code-display').style.display = "none"; document.getElementById('host-settings').style.display = "none"; document.getElementById('waiting-msg').style.display = "none"; document.getElementById('start-btn').style.display = "inline-block";
@@ -217,7 +223,7 @@
 
         socket.on('you_are_host', () => { amIHost = true; document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; });
 
-        // --- NEU: Chat Logik ---
+        // --- Chat Logik ---
         const chatMessages = document.getElementById('chat-messages');
         const chatInput = document.getElementById('chat-input');
         
@@ -325,7 +331,11 @@
             renderScene();
         });
 
-        socket.on('game_already_started', () => { loginScreen.style.display = "none"; menuScreen.style.display = "none"; lobbyScreen.style.display = "none"; gameScreen.style.display = "block"; });
+        socket.on('game_already_started', () => { 
+            loginScreen.style.display = "none"; menuScreen.style.display = "none"; lobbyScreen.style.display = "none"; 
+            document.getElementById('room-container').style.display = "flex"; 
+            gameScreen.style.display = "block"; 
+        });
 
         socket.on('new_round', (data) => {
             canClick = true; currentPuzzle = data.puzzle; roundTimeLimit = data.maxTime;
