@@ -141,7 +141,6 @@ io.on('connection', (socket) => {
         if (!r.isPlaying) {
             console.log(`🚀 SPIEL IN RAUM [${currentRoom}] WURDE GESTARTET!`);
             
-            // NEU: Vor jedem neuen Spiel die Originalrätsel nehmen und neu durchmischen!
             let freshDeck = [...r.originalPuzzles];
             shuffle(freshDeck);
 
@@ -161,6 +160,15 @@ io.on('connection', (socket) => {
         }
     });
 
+    // NEU: Der Chat-Listener
+    socket.on('chat_message', (msg) => {
+        if (currentRoom && rooms[currentRoom]) {
+            const player = rooms[currentRoom].players[socket.id];
+            const name = player ? player.name : "Zuschauer";
+            io.to(currentRoom).emit('chat_message', { name: name, text: msg });
+        }
+    });
+
     socket.on('guess', (data) => {
         if (!currentRoom || !rooms[currentRoom]) return; let r = rooms[currentRoom];
         const p = r.puzzles[r.currentLevel]; if (!p || !r.isPlaying) return; 
@@ -177,7 +185,6 @@ io.on('connection', (socket) => {
             player.score += totalPoints; 
             socket.emit('correct_guess', { points: totalPoints, combo: player.combo });
             
-            // NEU: Wir senden den anderen Spielern jetzt auch die Koordinaten der Lösung mit!
             socket.to(currentRoom).emit('round_won_by_other', { winnerName: player.name, x: data.x, y: data.y }); 
             
             for (let id in r.players) { if (id !== socket.id) r.players[id].combo = 0; }
@@ -211,7 +218,6 @@ function nextLevel(roomId) {
     clearInterval(r.interval); r.currentLevel++;
     
     if (r.currentLevel >= r.puzzles.length) {
-        // NEU: Am Ende des Spiels schicken wir das sortierte Leaderboard an alle!
         const finalLeaderboard = Object.values(r.players).sort((a, b) => b.score - a.score);
         io.to(roomId).emit('game_over', finalLeaderboard); 
         r.isPlaying = false; 

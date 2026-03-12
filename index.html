@@ -37,13 +37,13 @@
         .score { color: #44aaff; }
         #msg { font-size: 1.2rem; color: #aaa; min-height: 30px; font-weight: bold; margin-bottom: 15px;}
         
-        /* NEU: Der Timer Balken */
         #timer-container { width: 100%; max-width: 600px; background: #333; height: 12px; border-radius: 6px; margin: 0 auto 15px auto; overflow: hidden; border: 2px solid #222; }
         #timer-bar { height: 100%; width: 100%; background: #00ff00; transition: width 1s linear, background-color 0.5s; }
 
         #game-content { display: flex; justify-content: center; align-items: flex-start; gap: 30px; max-width: 950px; margin: 0 auto 20px auto; flex-wrap: wrap; }
         
-        #board-container { width: 100%; max-width: 600px; aspect-ratio: 1 / 1; background: radial-gradient(circle, #e6c280, #c29b57); border: 8px solid #3e2723; border-radius: 5px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); cursor: crosshair; position: relative; }
+        /* NEU: Skalierungs-Fix für Peters Laptop (max-width: min(600px, 55vh)) */
+        #board-container { width: 100%; max-width: min(600px, 55vh); aspect-ratio: 1 / 1; background: radial-gradient(circle, #e6c280, #c29b57); border: 8px solid #3e2723; border-radius: 5px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); cursor: crosshair; position: relative; }
         canvas { width: 100%; height: 100%; display: block; }
 
         #leaderboard { background: #222; border: 3px solid #333; border-radius: 8px; padding: 15px; width: 100%; max-width: 300px; text-align: left; box-shadow: 0 5px 15px rgba(0,0,0,0.5); box-sizing: border-box; }
@@ -56,7 +56,6 @@
         .floating-points { position: absolute; color: #00ff00; font-size: 2.5rem; font-weight: bold; pointer-events: none; text-shadow: 2px 2px 5px #000; animation: floatUp 1s ease-out forwards; z-index: 100; }
         @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-80px) scale(1.5); opacity: 0; } }
 
-        /* NEU: Siegerehrung Podest */
         .podium { display: flex; justify-content: center; align-items: flex-end; gap: 15px; margin: 40px auto; height: 180px; max-width: 500px; }
         .podium-place { width: 100px; text-align: center; border-radius: 10px 10px 0 0; color: #000; font-weight: bold; padding-top: 10px; font-size: 1.5rem; display: flex; flex-direction: column; justify-content: flex-start; box-shadow: inset 0 5px 10px rgba(255,255,255,0.4), 0 -5px 15px rgba(0,0,0,0.5); }
         .place-1 { height: 160px; background: linear-gradient(#ffd700, #b8860b); z-index: 3;}
@@ -64,6 +63,10 @@
         .place-3 { height: 90px; background: linear-gradient(#cd7f32, #8b4513); z-index: 1;}
         .podium-name { color: #fff; font-size: 1.3rem; text-shadow: 1px 1px 2px #000; word-wrap: break-word; font-weight: bold; margin-bottom: 5px;}
         .podium-score { color: #44aaff; font-size: 1.1rem; text-shadow: 1px 1px 2px #000; margin-bottom: 10px;}
+
+        /* NEU: Chat CSS */
+        .emoji-btn { background: #333; border: 2px solid #444; border-radius: 5px; padding: 5px 10px; font-size: 1.3rem; cursor: pointer; transition: transform 0.1s; }
+        .emoji-btn:hover { background: #444; transform: scale(1.2); }
     </style>
 </head>
 <body>
@@ -152,6 +155,21 @@
         </div>
     </div>
 
+    <div id="global-chat" style="display: none; width: 100%; max-width: 950px; margin: 0 auto 20px auto; background: #222; border: 3px solid #333; border-radius: 8px; padding: 10px; flex-direction: column; height: 250px; box-sizing: border-box; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
+        <div id="chat-messages" style="flex-grow: 1; overflow-y: auto; text-align: left; margin-bottom: 10px; padding: 10px; background: #111; border-radius: 5px; font-size: 1.1rem; border: 1px solid #444;"></div>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <div id="chat-emojis" style="display: flex; gap: 5px;">
+                <button class="emoji-btn">🔥</button>
+                <button class="emoji-btn">❤️</button>
+                <button class="emoji-btn">😡</button>
+                <button class="emoji-btn">😂</button>
+                <button class="emoji-btn">👏</button>
+            </div>
+            <input type="text" id="chat-input" placeholder="Nachricht..." style="flex-grow: 1; font-size: 1.1rem; padding: 8px; margin: 0; text-align: left;">
+            <button id="chat-send" style="margin: 0; padding: 8px 15px;">▶</button>
+        </div>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
@@ -184,6 +202,10 @@
 
         socket.on('room_joined', (data) => {
             menuScreen.style.display = "none"; lobbyScreen.style.display = "block"; document.getElementById('game-over-screen').style.display = "none"; amIHost = data.isHost;
+            
+            // NEU: Chat anzeigen, sobald man einem Raum beitritt
+            document.getElementById('global-chat').style.display = "flex";
+
             if (data.roomId === 'public') {
                 document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby"; document.getElementById('room-code-display').style.display = "none"; document.getElementById('host-settings').style.display = "none"; document.getElementById('waiting-msg').style.display = "none"; document.getElementById('start-btn').style.display = "inline-block";
             } else {
@@ -195,12 +217,39 @@
 
         socket.on('you_are_host', () => { amIHost = true; document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; });
 
+        // --- NEU: Chat Logik ---
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        
+        function sendChat(text) {
+            if(text.trim() !== "") {
+                socket.emit('chat_message', text.trim());
+                chatInput.value = "";
+            }
+        }
+        document.getElementById('chat-send').addEventListener('click', () => sendChat(chatInput.value));
+        chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChat(chatInput.value); });
+        
+        document.querySelectorAll('.emoji-btn').forEach(btn => {
+            btn.addEventListener('click', () => sendChat(btn.innerText));
+        });
+
+        socket.on('chat_message', (data) => {
+            const div = document.createElement('div');
+            div.style.marginBottom = "5px";
+            div.style.wordWrap = "break-word";
+            div.innerHTML = `<span style="color:#ffaa00; font-weight:bold;">${data.name}:</span> <span style="color:#fff;">${data.text}</span>`;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+        // -----------------------
+
         const canvas = document.getElementById('goCanvas'); const ctx = canvas.getContext('2d'); const padding = 30; 
         let viewMinX = 0, viewMaxX = 18, viewMinY = 0, viewMaxY = 18; let activeBoardSize = 19; let currentCellSize = (600 - padding * 2) / 18;
         const timerLabel = document.getElementById('timer'); const tBar = document.getElementById('timer-bar'); const msgLabel = document.getElementById('msg'); const scoreLabel = document.getElementById('score'); const lobbyPlayersList = document.getElementById('lobby-players');
         let myScore = 0; let canClick = false; let currentPuzzle = null; let lastClickX = 0; let lastClickY = 0; let hoverX = -1; let hoverY = -1; let myPlacedStone = null; let timeoutSolutions = null;
         let roundTimeLimit = 10; 
-        let winningHighlight = null; // NEU: Speichert die Koordinaten, wenn jemand anders löst!
+        let winningHighlight = null; 
 
         function calculateZoomView(puzzle) {
             let minX = 18, maxX = 0, minY = 18, maxY = 0;
@@ -246,7 +295,6 @@
                 if (!isOccupied) { ctx.globalAlpha = 0.5; drawStone(hoverX, hoverY, "black"); ctx.globalAlpha = 1.0; }
             }
             
-            // Timeout Lösung (Mehrere möglich)
             if (timeoutSolutions) {
                 timeoutSolutions.forEach(sol => {
                     if (sol.x >= viewMinX && sol.x <= viewMaxX && sol.y >= viewMinY && sol.y <= viewMaxY) {
@@ -256,7 +304,6 @@
                 });
             }
 
-            // NEU: Gegner-Gewinner-Lösung (Nur 1 Stein)
             if (winningHighlight && winningHighlight.x >= viewMinX && winningHighlight.x <= viewMaxX && winningHighlight.y >= viewMinY && winningHighlight.y <= viewMaxY) {
                 const cx = padding + (winningHighlight.x - viewMinX) * currentCellSize; const cy = padding + (winningHighlight.y - viewMinY) * currentCellSize;
                 ctx.beginPath(); ctx.arc(cx, cy, currentCellSize * 0.45, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,150,255,0.5)"; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
@@ -287,16 +334,13 @@
             calculateZoomView(data.puzzle); renderScene();
         });
 
-        // NEU: Der Timer updated jetzt auch den Fortschrittsbalken
         socket.on('timer', (timeLeft) => { 
             timerLabel.innerText = "Zeit: " + timeLeft; 
-            
             let pct = (timeLeft / roundTimeLimit) * 100;
             tBar.style.width = pct + "%";
             if (pct > 50) tBar.style.background = "#00ff00";
             else if (pct > 25) tBar.style.background = "#ffaa00";
             else tBar.style.background = "#ff4444";
-
             timerLabel.style.color = timeLeft <= (roundTimeLimit * 0.3) ? "#ff0000" : "#ffaa00";
         });
 
@@ -316,52 +360,27 @@
             setTimeout(() => { if (msgLabel.innerText.includes("Strafe")) { canClick = true; msgLabel.innerText = "Weiter geht's! Versuch es nochmal!"; msgLabel.style.color = "#fff"; } }, 1500); 
         });
 
-        // NEU: Zeigt den Klick des Gewinners an!
         socket.on('round_won_by_other', (data) => { 
             canClick = false; 
             msgLabel.innerText = "Zu langsam! " + data.winnerName + " war schneller!"; 
             msgLabel.style.color = "#44aaff"; 
             SoundFX.play('lose'); 
-            winningHighlight = { x: data.x, y: data.y }; // Speichert die Sieger-Lösung
+            winningHighlight = { x: data.x, y: data.y }; 
             renderScene(); 
         });
 
         socket.on('timeout', (solutions) => { canClick = false; msgLabel.innerText = "ZEIT ABGELAUFEN! 💀 Hier ist die Lösung:"; msgLabel.style.color = "#ff4444"; timeoutSolutions = solutions; SoundFX.play('lose'); renderScene(); });
         
-        // NEU: Epischer Game Over Screen mit Podium
         socket.on('game_over', (finalLeaderboard) => {
-            canClick = false; 
-            gameScreen.style.display = "none";
-            document.getElementById('game-over-screen').style.display = "block";
-            SoundFX.play('win');
+            canClick = false; gameScreen.style.display = "none"; document.getElementById('game-over-screen').style.display = "block"; SoundFX.play('win');
+            const podiumDiv = document.getElementById('podium-container'); podiumDiv.innerHTML = "";
+            if (finalLeaderboard.length > 1) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[1].name}</div><div class="podium-score">${finalLeaderboard[1].score}</div><div class="podium-place place-2">2.</div></div>`;
+            if (finalLeaderboard.length > 0) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">👑<br>${finalLeaderboard[0].name}</div><div class="podium-score">${finalLeaderboard[0].score}</div><div class="podium-place place-1">1.</div></div>`;
+            if (finalLeaderboard.length > 2) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[2].name}</div><div class="podium-score">${finalLeaderboard[2].score}</div><div class="podium-place place-3">3.</div></div>`;
 
-            const podiumDiv = document.getElementById('podium-container');
-            podiumDiv.innerHTML = "";
-            
-            // 2. Platz (Links)
-            if (finalLeaderboard.length > 1) {
-                podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[1].name}</div><div class="podium-score">${finalLeaderboard[1].score}</div><div class="podium-place place-2">2.</div></div>`;
-            }
-            // 1. Platz (Mitte - Krone!)
-            if (finalLeaderboard.length > 0) {
-                podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">👑<br>${finalLeaderboard[0].name}</div><div class="podium-score">${finalLeaderboard[0].score}</div><div class="podium-place place-1">1.</div></div>`;
-            }
-            // 3. Platz (Rechts)
-            if (finalLeaderboard.length > 2) {
-                podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[2].name}</div><div class="podium-score">${finalLeaderboard[2].score}</div><div class="podium-place place-3">3.</div></div>`;
-            }
-
-            // Countdown Timer für die Rückkehr zur Lobby
-            let countdown = 8;
-            document.getElementById('lobby-countdown').innerText = countdown;
-            let countInterval = setInterval(() => {
-                countdown--;
-                document.getElementById('lobby-countdown').innerText = countdown;
-                if(countdown <= 0) {
-                    clearInterval(countInterval);
-                    document.getElementById('game-over-screen').style.display = "none";
-                    lobbyScreen.style.display = "block";
-                }
+            let countdown = 8; document.getElementById('lobby-countdown').innerText = countdown;
+            let countInterval = setInterval(() => { countdown--; document.getElementById('lobby-countdown').innerText = countdown;
+                if(countdown <= 0) { clearInterval(countInterval); document.getElementById('game-over-screen').style.display = "none"; lobbyScreen.style.display = "block"; }
             }, 1000);
         });
 
