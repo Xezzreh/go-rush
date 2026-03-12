@@ -135,29 +135,18 @@
                 const now = this.ctx.currentTime;
                 
                 if (type === 'clack') { 
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(800, now);
-                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
-                    gain.gain.setValueAtTime(1, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
+                    gain.gain.setValueAtTime(1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
                     osc.start(now); osc.stop(now + 0.05);
                 } 
                 else if (type === 'win') { 
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(523.25, now); 
-                    osc.frequency.setValueAtTime(659.25, now + 0.1); 
-                    osc.frequency.setValueAtTime(783.99, now + 0.2); 
-                    gain.gain.setValueAtTime(0, now);
-                    gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(659.25, now + 0.1); osc.frequency.setValueAtTime(783.99, now + 0.2); 
+                    gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(0.3, now + 0.05); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
                     osc.start(now); osc.stop(now + 0.5);
                 }
                 else if (type === 'lose') { 
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(150, now);
-                    osc.frequency.linearRampToValueAtTime(100, now + 0.2);
-                    gain.gain.setValueAtTime(0.2, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(100, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
                     osc.start(now); osc.stop(now + 0.3);
                 }
             }
@@ -172,10 +161,7 @@
         document.getElementById('next-btn').addEventListener('click', () => {
             SoundFX.init(); 
             myName = document.getElementById('username').value.trim();
-            if (myName !== "") {
-                loginScreen.style.display = "none";
-                menuScreen.style.display = "block";
-            }
+            if (myName !== "") { loginScreen.style.display = "none"; menuScreen.style.display = "block"; }
         });
 
         document.getElementById('btn-public').addEventListener('click', () => { socket.emit('join_room', { name: myName, roomId: 'public' }); });
@@ -195,9 +181,15 @@
             }
         });
 
+        // --- CANVAS LOGIK (NEU: AUTO-ZOOM & HOVER) ---
         const canvas = document.getElementById('goCanvas');
         const ctx = canvas.getContext('2d');
-        const size = 19; const padding = 30; const cellSize = (600 - padding * 2) / (size - 1);
+        const padding = 30; 
+        
+        let viewMinX = 0, viewMaxX = 18, viewMinY = 0, viewMaxY = 18;
+        let activeBoardSize = 19;
+        let currentCellSize = (600 - padding * 2) / 18;
+
         const timerLabel = document.getElementById('timer');
         const msgLabel = document.getElementById('msg');
         const scoreLabel = document.getElementById('score');
@@ -205,52 +197,140 @@
 
         let myScore = 0; let canClick = false; let currentPuzzle = null;
         let lastClickX = 0; let lastClickY = 0; 
+        let hoverX = -1; let hoverY = -1;
+        let myPlacedStone = null;
+        let timeoutSolutions = null;
+
+        // Berechnet, auf welchen Bereich wir ranzoomen müssen
+        function calculateZoomView(puzzle) {
+            let minX = 18, maxX = 0, minY = 18, maxY = 0;
+            
+            // Finde die äußersten Steine
+            puzzle.setup.forEach(s => {
+                if (s.x < minX) minX = s.x; if (s.x > maxX) maxX = s.x;
+                if (s.y < minY) minY = s.y; if (s.y > maxY) maxY = s.y;
+            });
+            puzzle.solution.forEach(sol => {
+                if (sol.x < minX) minX = sol.x; if (sol.x > maxX) maxX = sol.x;
+                if (sol.y < minY) minY = sol.y; if (sol.y > maxY) maxY = sol.y;
+            });
+
+            // Etwas "Luft" am Rand lassen (3 Linien)
+            minX = Math.max(0, minX - 3); maxX = Math.min(18, maxX + 3);
+            minY = Math.max(0, minY - 3); maxY = Math.min(18, maxY + 3);
+
+            // Dafür sorgen, dass das Bild quadratisch bleibt (mindestens 9x9 Feld)
+            let neededSize = Math.max(maxX - minX, maxY - minY, 8); 
+            while(maxX - minX < neededSize) {
+                if (minX > 0) minX--;
+                if (maxX - minX < neededSize && maxX < 18) maxX++;
+            }
+            while(maxY - minY < neededSize) {
+                if (minY > 0) minY--;
+                if (maxY - minY < neededSize && maxY < 18) maxY++;
+            }
+
+            viewMinX = minX; viewMaxX = maxX; viewMinY = minY; viewMaxY = maxY;
+            activeBoardSize = (viewMaxX - viewMinX) + 1;
+            currentCellSize = (600 - padding * 2) / (activeBoardSize - 1);
+        }
 
         function drawBoard() {
             ctx.clearRect(0, 0, 600, 600);
             ctx.strokeStyle = "#222"; ctx.lineWidth = 1; ctx.beginPath();
-            for (let i = 0; i < size; i++) {
-                ctx.moveTo(padding + i * cellSize, padding); ctx.lineTo(padding + i * cellSize, 600 - padding);
-                ctx.moveTo(padding, padding + i * cellSize); ctx.lineTo(600 - padding, padding + i * cellSize);
+            
+            for (let i = 0; i < activeBoardSize; i++) {
+                let actualX = viewMinX + i;
+                let actualY = viewMinY + i;
+                let pos = padding + i * currentCellSize;
+                
+                // Vertikale Linien
+                if (actualX >= 0 && actualX <= 18) {
+                    let startY = padding + Math.max(0, 0 - viewMinY) * currentCellSize;
+                    let endY = padding + Math.min(activeBoardSize - 1, 18 - viewMinY) * currentCellSize;
+                    ctx.moveTo(pos, startY); ctx.lineTo(pos, endY);
+                }
+                // Horizontale Linien
+                if (actualY >= 0 && actualY <= 18) {
+                    let startX = padding + Math.max(0, 0 - viewMinX) * currentCellSize;
+                    let endX = padding + Math.min(activeBoardSize - 1, 18 - viewMinX) * currentCellSize;
+                    ctx.moveTo(startX, pos); ctx.lineTo(endX, pos);
+                }
             }
             ctx.stroke();
             
+            // Hoshi Punkte
             const hoshi = [3, 9, 15];
             ctx.fillStyle = "#000";
-            hoshi.forEach(x => {
-                hoshi.forEach(y => {
-                    ctx.beginPath(); ctx.arc(padding + x * cellSize, padding + y * cellSize, 3, 0, Math.PI * 2); ctx.fill();
+            hoshi.forEach(hx => {
+                hoshi.forEach(hy => {
+                    if (hx >= viewMinX && hx <= viewMaxX && hy >= viewMinY && hy <= viewMaxY) {
+                        let px = padding + (hx - viewMinX) * currentCellSize;
+                        let py = padding + (hy - viewMinY) * currentCellSize;
+                        ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2); ctx.fill();
+                    }
                 });
             });
         }
 
         function drawStone(x, y, color) {
-            const cx = padding + x * cellSize;
-            const cy = padding + y * cellSize;
-            const r = cellSize * 0.46; 
+            if (x < viewMinX || x > viewMaxX || y < viewMinY || y > viewMaxY) return;
+            const cx = padding + (x - viewMinX) * currentCellSize;
+            const cy = padding + (y - viewMinY) * currentCellSize;
+            const r = currentCellSize * 0.46; 
 
-            ctx.beginPath();
-            ctx.arc(cx + 2, cy + 3, r, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(0,0,0,0.4)"; 
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(cx + 2, cy + 3, r, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.fill();
 
-            ctx.beginPath();
-            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
             const gradient = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
             if (color === "black") {
-                gradient.addColorStop(0, "#555"); 
-                gradient.addColorStop(0.3, "#111");
-                gradient.addColorStop(1, "#000"); 
+                gradient.addColorStop(0, "#555"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); 
             } else {
-                gradient.addColorStop(0, "#fff"); 
-                gradient.addColorStop(0.7, "#eee");
-                gradient.addColorStop(1, "#aaa"); 
+                gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#eee"); gradient.addColorStop(1, "#aaa"); 
             }
-            ctx.fillStyle = gradient;
-            ctx.fill();
+            ctx.fillStyle = gradient; ctx.fill();
         }
 
-        drawBoard(); 
+        // Die Haupt-Grafik-Funktion (zeichnet alles jeden Frame)
+        function renderScene() {
+            drawBoard();
+            
+            // 1. Die Steine vom Rätsel
+            if (currentPuzzle) {
+                currentPuzzle.setup.forEach(s => drawStone(s.x, s.y, s.c));
+            }
+            
+            // 2. Den Stein, den du gerade geklickt hast
+            if (myPlacedStone) {
+                drawStone(myPlacedStone.x, myPlacedStone.y, "black");
+            }
+            
+            // 3. Den Hover-Geister-Stein!
+            if (canClick && hoverX >= viewMinX && hoverX <= viewMaxX && hoverY >= viewMinY && hoverY <= viewMaxY) {
+                let isOccupied = false;
+                if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === hoverX && s.y === hoverY) isOccupied = true; });
+                
+                if (!isOccupied) {
+                    ctx.globalAlpha = 0.5; // Halbtransparent
+                    drawStone(hoverX, hoverY, "black");
+                    ctx.globalAlpha = 1.0;
+                }
+            }
+            
+            // 4. Lösung anzeigen bei Timeout
+            if (timeoutSolutions) {
+                timeoutSolutions.forEach(sol => {
+                    if (sol.x >= viewMinX && sol.x <= viewMaxX && sol.y >= viewMinY && sol.y <= viewMaxY) {
+                        const cx = padding + (sol.x - viewMinX) * currentCellSize;
+                        const cy = padding + (sol.y - viewMinY) * currentCellSize;
+                        ctx.beginPath(); ctx.arc(cx, cy, currentCellSize * 0.45, 0, Math.PI * 2);
+                        ctx.fillStyle = "rgba(0,255,0,0.4)"; ctx.fill(); 
+                        ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
+                    }
+                });
+            }
+        }
 
         socket.on('update_leaderboard', (boardData) => {
             const list = document.getElementById('lb-list');
@@ -264,7 +344,9 @@
         socket.on('game_starting', () => {
             lobbyScreen.style.display = "none"; gameScreen.style.display = "block";
             msgLabel.innerText = "Mache dich bereit..."; myScore = 0; scoreLabel.innerText = "Score: 0";
-            drawBoard();
+            viewMinX = 0; viewMaxX = 18; viewMinY = 0; viewMaxY = 18;
+            activeBoardSize = 19; currentCellSize = (600 - padding * 2) / 18;
+            renderScene();
         });
 
         socket.on('game_already_started', () => {
@@ -273,9 +355,10 @@
 
         socket.on('new_round', (puzzle) => {
             canClick = true; currentPuzzle = puzzle;
+            myPlacedStone = null; timeoutSolutions = null; hoverX = -1; hoverY = -1;
             msgLabel.innerText = puzzle.msg; msgLabel.style.color = "#fff";
-            drawBoard();
-            puzzle.setup.forEach(s => drawStone(s.x, s.y, s.c));
+            calculateZoomView(puzzle); // NEU: ZOOM BERECHNEN!
+            renderScene();
         });
 
         socket.on('timer', (timeLeft) => { 
@@ -284,63 +367,71 @@
         });
 
         socket.on('correct_guess', (data) => {
-            canClick = false; 
-            myScore += data.points; 
-            scoreLabel.innerText = "Score: " + myScore; 
-            
+            canClick = false; myScore += data.points; scoreLabel.innerText = "Score: " + myScore; 
             let winText = "RICHTIG! +" + data.points + " Punkte!";
-            if (data.combo > 1) {
-                winText += " 🔥 COMBO x" + data.combo;
-            }
-            
-            msgLabel.innerText = winText; 
-            msgLabel.style.color = "#00ff00";
+            if (data.combo > 1) winText += " 🔥 COMBO x" + data.combo;
+            msgLabel.innerText = winText; msgLabel.style.color = "#00ff00";
             SoundFX.play('win'); 
 
-            const boardContainer = document.getElementById('board-container');
             const floatDiv = document.createElement('div');
             floatDiv.className = 'floating-points';
             floatDiv.innerText = "+" + data.points;
             if (data.combo > 1) floatDiv.innerText += " 🔥";
-            
-            floatDiv.style.left = lastClickX + "px";
-            floatDiv.style.top = lastClickY + "px";
-            boardContainer.appendChild(floatDiv);
-
+            floatDiv.style.left = lastClickX + "px"; floatDiv.style.top = lastClickY + "px";
+            document.getElementById('board-container').appendChild(floatDiv);
             setTimeout(() => { floatDiv.remove(); }, 1000);
+            
+            renderScene();
         });
 
         socket.on('wrong_guess', () => {
             msgLabel.innerText = "Daneben! (Combo resettet!)"; msgLabel.style.color = "#ff4444";
-            drawBoard();
-            if (currentPuzzle) currentPuzzle.setup.forEach(s => drawStone(s.x, s.y, s.c));
+            myPlacedStone = null; // Falschen Stein wieder wegnehmen
             SoundFX.play('lose'); 
+            renderScene();
         });
 
         socket.on('round_won_by_other', (winnerName) => {
             canClick = false; msgLabel.innerText = "Zu langsam! " + winnerName + " war schneller!"; msgLabel.style.color = "#ffaa00";
             SoundFX.play('lose');
+            renderScene();
         });
 
-        // NEU: Nimmt ein ARRAY von Lösungen entgegen und zeichnet ALLE!
         socket.on('timeout', (solutions) => {
             canClick = false; msgLabel.innerText = "ZEIT ABGELAUFEN! 💀 Hier ist die Lösung:"; msgLabel.style.color = "#ff4444";
+            timeoutSolutions = solutions;
             SoundFX.play('lose');
-            
-            if (solutions && solutions.length > 0) {
-                solutions.forEach(sol => {
-                    const cx = padding + sol.x * cellSize;
-                    const cy = padding + sol.y * cellSize;
-                    ctx.beginPath(); ctx.arc(cx, cy, cellSize * 0.45, 0, Math.PI * 2);
-                    ctx.fillStyle = "#00ff00"; ctx.fill(); 
-                    ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
-                });
-            }
+            renderScene();
         });
 
         socket.on('game_over', () => {
             canClick = false; msgLabel.innerText = "SPIEL BEENDET! Dein Endstand: " + myScore; msgLabel.style.color = "#00ff00";
             setTimeout(() => { gameScreen.style.display = "none"; lobbyScreen.style.display = "block"; }, 6000);
+        });
+
+        // NEU: Mausbewegung für den Geister-Stein erkennen
+        canvas.addEventListener('mousemove', (event) => {
+            if (!canClick) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / currentCellSize);
+            const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / currentCellSize);
+            
+            const realX = viewMinX + gridX;
+            const realY = viewMinY + gridY;
+            
+            // Nur neu zeichnen, wenn sich das Feld ändert (spart Performance)
+            if (realX !== hoverX || realY !== hoverY) {
+                hoverX = realX; hoverY = realY;
+                renderScene();
+            }
+        });
+
+        // Wenn die Maus das Brett verlässt
+        canvas.addEventListener('mouseout', () => {
+            hoverX = -1; hoverY = -1;
+            renderScene();
         });
 
         canvas.addEventListener('click', (event) => {
@@ -352,12 +443,25 @@
             lastClickX = (event.clientX - rect.left) * scaleX;
             lastClickY = (event.clientY - rect.top) * scaleY;
 
-            const x = Math.round((lastClickX - padding) / cellSize);
-            const y = Math.round((lastClickY - padding) / cellSize);
+            const gridX = Math.round((lastClickX - padding) / currentCellSize);
+            const gridY = Math.round((lastClickY - padding) / currentCellSize);
             
-            drawStone(x, y, "black"); 
-            SoundFX.play('clack'); 
-            socket.emit('guess', { x: x, y: y }); 
+            const actualX = viewMinX + gridX;
+            const actualY = viewMinY + gridY;
+            
+            // Nur reagieren, wenn man wirklich aufs Brett klickt
+            if (actualX >= 0 && actualX <= 18 && actualY >= 0 && actualY <= 18) {
+                // Prüfen ob da schon ein Stein liegt
+                let isOccupied = false;
+                if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === actualX && s.y === actualY) isOccupied = true; });
+                if (isOccupied) return;
+
+                myPlacedStone = { x: actualX, y: actualY };
+                canClick = false; 
+                SoundFX.play('clack'); 
+                renderScene();
+                socket.emit('guess', { x: actualX, y: actualY }); 
+            }
         });
     </script>
 </body>
