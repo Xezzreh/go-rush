@@ -47,7 +47,6 @@
 
         #game-content, #pvp-content { display: flex; justify-content: center; align-items: flex-start; gap: 30px; max-width: 950px; margin: 0 auto 20px auto; flex-wrap: wrap; }
         
-        /* Die Leinwände für BEIDE Modi (Tsumego und 1v1) */
         .board-container { width: 100%; max-width: min(600px, 55vh); aspect-ratio: 1 / 1; background: radial-gradient(circle, #e6c280, #c29b57); border: 8px solid #3e2723; border-radius: 5px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); cursor: crosshair; position: relative; }
         canvas { width: 100%; height: 100%; display: block; }
 
@@ -158,7 +157,7 @@
                         <canvas id="pvpCanvas" width="600" height="600"></canvas>
                     </div>
                     <div id="pvp-sidebar">
-                        <h3 style="margin-top:0;">Spiel-Aktionen</h3>
+                        <h3 style="margin-top:0;">Aktionen</h3>
                         <button id="btn-pvp-pass" style="width: 100%; background: #ffaa00; margin-bottom: 10px;">Passen</button>
                         <button id="btn-pvp-resign" style="width: 100%; background: #ff4444;">Aufgeben</button>
                     </div>
@@ -217,6 +216,7 @@
         let pvpCellSize = 0;
         let pvpHoverX = -1, pvpHoverY = -1;
 
+        // NEU: Nimmt jetzt `data.myColor` vom Server!
         socket.on('1v1_match_started', (data) => {
             matchmakingScreen.style.display = "none";
             document.getElementById('room-container').style.display = "flex";
@@ -228,14 +228,12 @@
             pvpBoardSize = data.size;
             pvpCellSize = (600 - padding * 2) / (pvpBoardSize - 1);
             
-            // Finde heraus wer welche Farbe hat (Server hat demjenigen der gesucht hat schwarz gegeben)
             document.getElementById('pvp-black-name').innerText = `⚫ ${data.playerBlack}`;
             document.getElementById('pvp-white-name').innerText = `⚪ ${data.playerWhite}`;
             
-            // Deine eigene Farbe feststellen
-            myPvpColor = (myName === data.playerBlack) ? 'black' : 'white';
+            // NEU: Farbe kommt sicher vom Server!
+            myPvpColor = data.myColor;
 
-            // Ein leeres Brett generieren
             let emptyBoard = Array(pvpBoardSize).fill(null).map(() => Array(pvpBoardSize).fill(null));
             renderPvpScene(emptyBoard, 'black', null);
         });
@@ -244,12 +242,11 @@
             pvpCtx.clearRect(0, 0, 600, 600); pvpCtx.strokeStyle = "#222"; pvpCtx.lineWidth = 1; pvpCtx.beginPath();
             for (let i = 0; i < pvpBoardSize; i++) {
                 let pos = padding + i * pvpCellSize;
-                pvpCtx.moveTo(pos, padding); pvpCtx.lineTo(pos, padding + (pvpBoardSize - 1) * pvpCellSize); // V
-                pvpCtx.moveTo(padding, pos); pvpCtx.lineTo(padding + (pvpBoardSize - 1) * pvpCellSize, pos); // H
+                pvpCtx.moveTo(pos, padding); pvpCtx.lineTo(pos, padding + (pvpBoardSize - 1) * pvpCellSize); 
+                pvpCtx.moveTo(padding, pos); pvpCtx.lineTo(padding + (pvpBoardSize - 1) * pvpCellSize, pos); 
             }
             pvpCtx.stroke();
             
-            // Hoshi Punkte für 9, 13 und 19
             let hoshi = [];
             if(pvpBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}];
             if(pvpBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}];
@@ -270,14 +267,12 @@
             else { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#eee"); gradient.addColorStop(1, "#aaa"); }
             pvpCtx.fillStyle = gradient; pvpCtx.fill();
             
-            // Roter Punkt für den letzten Zug
             if(isLastMove) { pvpCtx.beginPath(); pvpCtx.arc(cx, cy, 3, 0, Math.PI * 2); pvpCtx.fillStyle = "red"; pvpCtx.fill(); }
         }
 
         function renderPvpScene(board, turn, lastMove) {
             drawPvpBoard();
             
-            // Steine zeichnen
             for(let x=0; x<pvpBoardSize; x++) {
                 for(let y=0; y<pvpBoardSize; y++) {
                     if(board[x][y]) {
@@ -287,39 +282,37 @@
                 }
             }
 
-            // Hover Geister-Stein
             if(turn === myPvpColor && pvpHoverX >= 0 && pvpHoverX < pvpBoardSize && pvpHoverY >= 0 && pvpHoverY < pvpBoardSize) {
                 if(board[pvpHoverX][pvpHoverY] === null) {
                     pvpCtx.globalAlpha = 0.5; drawPvpStone(pvpHoverX, pvpHoverY, myPvpColor); pvpCtx.globalAlpha = 1.0;
                 }
             }
 
-            // UI Update
             let turnText = (turn === 'black') ? '⚫ Schwarz ist am Zug' : '⚪ Weiß ist am Zug';
             document.getElementById('pvp-turn-indicator').innerText = turnText;
             document.getElementById('pvp-turn-indicator').style.color = (turn === myPvpColor) ? '#00ff00' : '#ffaa00';
         }
 
-        // Klicks und Maus vom PvP Brett
-        let currentPvpBoardState = []; // Zwischenspeicher für hover
+        let currentPvpBoardState = []; 
         let currentPvpTurn = 'black';
         let currentPvpLastMove = null;
 
         socket.on('1v1_update_board', (data) => {
-            currentPvpBoardState = data.board;
-            currentPvpTurn = data.turn;
-            currentPvpLastMove = data.lastMove;
-            SoundFX.play('clack');
-            renderPvpScene(data.board, data.turn, data.lastMove);
+            currentPvpBoardState = data.board; currentPvpTurn = data.turn; currentPvpLastMove = data.lastMove;
+            SoundFX.play('clack'); renderPvpScene(data.board, data.turn, data.lastMove);
         });
 
-        socket.on('1v1_illegal_move', () => { SoundFX.play('lose'); alert("Dieser Zug ist illegal (Selbstmord)!"); });
+        // NEU: Fehler-Popup bei verbotenen Zügen (Ko / Selbstmord)
+        socket.on('1v1_illegal_move', (msg) => { 
+            SoundFX.play('lose'); 
+            alert("Nicht erlaubt: " + msg); 
+        });
 
         socket.on('1v1_game_over', (data) => {
             pvpScreen.style.display = "none";
             document.getElementById('game-over-screen').style.display = "block";
             document.getElementById('go-reason').innerText = "Spiel beendet! (" + data.reason + ")";
-            document.getElementById('podium-container').innerHTML = "<h2 style='color:white;'>In diesem Modus müsst ihr selbst ausdiskutieren, wer gewonnen hat (Territorium zählen)!</h2>";
+            document.getElementById('podium-container').innerHTML = "<h3 style='color:white;'>In diesem Modus müsst ihr selbst ausdiskutieren, wer gewonnen hat (Territorium zählen bauen wir als Nächstes!)</h3>";
             
             let countdown = 8; document.getElementById('lobby-countdown').innerText = countdown;
             let countInterval = setInterval(() => { countdown--; document.getElementById('lobby-countdown').innerText = countdown; if(countdown <= 0) { clearInterval(countInterval); document.getElementById('game-over-screen').style.display = "none"; menuScreen.style.display = "block"; document.getElementById('room-container').style.display = "none"; } }, 1000);
@@ -351,7 +344,6 @@
         document.getElementById('chat-send').addEventListener('click', () => sendChat(chatInput.value)); chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChat(chatInput.value); });
         document.querySelectorAll('.emoji-btn').forEach(btn => { btn.addEventListener('click', () => sendChat(btn.innerText)); });
         socket.on('chat_message', (data) => { const div = document.createElement('div'); div.style.marginBottom = "5px"; div.style.wordWrap = "break-word"; div.innerHTML = `<span style="color:#ffaa00; font-weight:bold;">${data.name}:</span> <span style="color:#fff;">${data.text}</span>`; chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; });
-
 
         // --- TSUMEGO LOGIK (Unverändert) ---
         socket.on('room_joined', (data) => {
@@ -387,19 +379,7 @@
         socket.on('wrong_guess', () => { msgLabel.innerText = "Daneben! ⏳ 1.5 Sekunden Strafe..."; msgLabel.style.color = "#ff4444"; myPlacedStone = null; SoundFX.play('lose'); renderScene(); setTimeout(() => { if (msgLabel.innerText.includes("Strafe")) { canClick = true; msgLabel.innerText = "Weiter geht's! Versuch es nochmal!"; msgLabel.style.color = "#fff"; } }, 1500); });
         socket.on('round_won_by_other', (data) => { canClick = false; msgLabel.innerText = "Zu langsam! " + data.winnerName + " war schneller!"; msgLabel.style.color = "#44aaff"; SoundFX.play('lose'); winningHighlight = { x: data.x, y: data.y }; renderScene(); });
         socket.on('timeout', (solutions) => { canClick = false; msgLabel.innerText = "ZEIT ABGELAUFEN! 💀 Hier ist die Lösung:"; msgLabel.style.color = "#ff4444"; timeoutSolutions = solutions; SoundFX.play('lose'); renderScene(); });
-        
-        socket.on('game_over', (finalLeaderboard) => {
-            canClick = false; gameScreen.style.display = "none"; document.getElementById('game-over-screen').style.display = "block"; SoundFX.play('win');
-            document.getElementById('go-reason').innerText = "Das sind die Sieger:";
-            const podiumDiv = document.getElementById('podium-container'); podiumDiv.innerHTML = "";
-            if (finalLeaderboard.length > 1) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[1].name}</div><div class="podium-score">${finalLeaderboard[1].score}</div><div class="podium-place place-2">2.</div></div>`;
-            if (finalLeaderboard.length > 0) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">👑<br>${finalLeaderboard[0].name}</div><div class="podium-score">${finalLeaderboard[0].score}</div><div class="podium-place place-1">1.</div></div>`;
-            if (finalLeaderboard.length > 2) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[2].name}</div><div class="podium-score">${finalLeaderboard[2].score}</div><div class="podium-place place-3">3.</div></div>`;
-
-            let countdown = 8; document.getElementById('lobby-countdown').innerText = countdown;
-            let countInterval = setInterval(() => { countdown--; document.getElementById('lobby-countdown').innerText = countdown; if(countdown <= 0) { clearInterval(countInterval); document.getElementById('game-over-screen').style.display = "none"; lobbyScreen.style.display = "block"; } }, 1000);
-        });
-
+        socket.on('game_over', (finalLeaderboard) => { canClick = false; gameScreen.style.display = "none"; document.getElementById('game-over-screen').style.display = "block"; SoundFX.play('win'); document.getElementById('go-reason').innerText = "Das sind die Sieger:"; const podiumDiv = document.getElementById('podium-container'); podiumDiv.innerHTML = ""; if (finalLeaderboard.length > 1) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[1].name}</div><div class="podium-score">${finalLeaderboard[1].score}</div><div class="podium-place place-2">2.</div></div>`; if (finalLeaderboard.length > 0) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">👑<br>${finalLeaderboard[0].name}</div><div class="podium-score">${finalLeaderboard[0].score}</div><div class="podium-place place-1">1.</div></div>`; if (finalLeaderboard.length > 2) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[2].name}</div><div class="podium-score">${finalLeaderboard[2].score}</div><div class="podium-place place-3">3.</div></div>`; let countdown = 8; document.getElementById('lobby-countdown').innerText = countdown; let countInterval = setInterval(() => { countdown--; document.getElementById('lobby-countdown').innerText = countdown; if(countdown <= 0) { clearInterval(countInterval); document.getElementById('game-over-screen').style.display = "none"; lobbyScreen.style.display = "block"; } }, 1000); });
         canvas.addEventListener('mousemove', (event) => { if (!canClick) return; const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / currentCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / currentCellSize); const realX = viewMinX + gridX; const realY = viewMinY + gridY; if (realX !== hoverX || realY !== hoverY) { hoverX = realX; hoverY = realY; renderScene(); } });
         canvas.addEventListener('mouseout', () => { hoverX = -1; hoverY = -1; renderScene(); });
         canvas.addEventListener('click', (event) => { if (!canClick) return; const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; lastClickX = (event.clientX - rect.left) * scaleX; lastClickY = (event.clientY - rect.top) * scaleY; const gridX = Math.round((lastClickX - padding) / currentCellSize); const gridY = Math.round((lastClickY - padding) / currentCellSize); const actualX = viewMinX + gridX; const actualY = viewMinY + gridY; if (actualX >= 0 && actualX <= 18 && actualY >= 0 && actualY <= 18) { let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === actualX && s.y === actualY) isOccupied = true; }); if (isOccupied) return; myPlacedStone = { x: actualX, y: actualY }; canClick = false; SoundFX.play('clack'); renderScene(); socket.emit('guess', { x: actualX, y: actualY }); } });

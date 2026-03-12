@@ -10,7 +10,7 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
 
-// --- SGF-Übersetzer für Tsumegos ---
+// --- SGF-Übersetzer ---
 function parseSGF(sgfString, msg, solutionsArray) {
     const setup = [];
     const cleanSgf = sgfString.replace(/\s+/g, ''); 
@@ -71,9 +71,7 @@ function loadPuzzles() {
 }
 loadPuzzles();
 
-
 // --- ECHTE GO ENGINE (Für das 1v1) ---
-// Hilfsfunktion: Prüft, ob eine Gruppe Freiheiten hat und löscht sie ggf.
 function checkCaptures(board, x, y, colorTarget) {
     let captured = [];
     let visited = new Set();
@@ -116,11 +114,10 @@ function checkCaptures(board, x, y, colorTarget) {
     return captured;
 }
 
-
 // --- MULTIPLAYER HOTEL (Räume) ---
 const rooms = {};
 const challenges = {}; 
-const active1v1Matches = {}; // NEU: Speichert den Brett-Zustand für 1v1 Spiele
+const active1v1Matches = {}; 
 
 function initRoom(roomId) {
     if (!rooms[roomId]) {
@@ -131,7 +128,6 @@ function initRoom(roomId) {
         };
     }
 }
-
 initRoom('public');
 
 function broadcastLeaderboard(roomId) {
@@ -162,37 +158,33 @@ io.on('connection', (socket) => {
         if (chal && chal.challengerId !== socket.id) { 
             const newRoomId = '1v1_' + Math.random().toString(36).substring(2,8);
             
-            // Leeres Brett vorbereiten
             let emptyBoard = Array(chal.boardSize).fill(null).map(() => Array(chal.boardSize).fill(null));
             
             active1v1Matches[newRoomId] = {
-                id: newRoomId,
-                size: chal.boardSize,
-                board: emptyBoard,
-                turn: 'black', // Schwarz beginnt
-                passes: 0,
+                id: newRoomId, size: chal.boardSize, board: emptyBoard,
+                turn: 'black', passes: 0,
+                history: new Set([JSON.stringify(emptyBoard)]), // NEU: Merkt sich alle Brettpositionen für die Ko-Regel
                 players: {
                     black: { id: chal.challengerId, name: chal.challengerName },
                     white: { id: socket.id, name: acceptorName }
                 }
             };
 
-            // Spieler aus normalen Räumen abmelden
             if(currentRoom && rooms[currentRoom]) {
                 delete rooms[currentRoom].players[socket.id];
                 socket.leave(currentRoom); broadcastLeaderboard(currentRoom);
             }
             
-            // Spieler in den neuen 1v1 Raum packen
             socket.join(newRoomId);
             const opponentSocket = io.sockets.sockets.get(chal.challengerId);
-            if(opponentSocket) {
-                opponentSocket.join(newRoomId);
-            }
+            if(opponentSocket) opponentSocket.join(newRoomId);
 
-            io.to(newRoomId).emit('1v1_match_started', { 
-                roomId: newRoomId, size: chal.boardSize, 
-                playerBlack: chal.challengerName, playerWhite: acceptorName 
+            // NEU: Sagt jedem Client GANZ KLAR, welche Farbe er ist!
+            io.to(chal.challengerId).emit('1v1_match_started', { 
+                roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, playerWhite: acceptorName, myColor: 'black' 
+            });
+            socket.emit('1v1_match_started', { 
+                roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, playerWhite: acceptorName, myColor: 'white' 
             });
             
             delete challenges[challengeId];
@@ -200,46 +192,46 @@ io.on('connection', (socket) => {
         }
     });
 
-    // --- 1v1 GAMEPLAY ---
+    // --- 1v1 GAMEPLAY (Mit echten Regeln) ---
     socket.on('1v1_make_move', (data) => {
         const matchId = data.roomId;
         const match = active1v1Matches[matchId];
         if(!match) return;
 
-        // Ist der Spieler überhaupt dran?
         const myColor = (match.players.black.id === socket.id) ? 'black' : 'white';
         if(match.turn !== myColor) return;
-
-        // Feld frei?
         if(match.board[data.x][data.y] !== null) return;
 
-        // Stein temporär setzen
-        match.board[data.x][data.y] = myColor;
-        match.passes = 0; // Pass-Zähler resetten
+        // Wir arbeiten mit einem Klon des Brettes, um illegale Züge abzufangen, bevor sie endgültig sind
+        let newBoard = match.board.map(row => [...row]);
+        newBoard[data.x][data.y] = myColor;
 
-        // 1. Gegnerische Steine fangen
+        // 1. Gegner fangen
         const enemyColor = (myColor === 'black') ? 'white' : 'black';
-        let capturedStones = checkCaptures(match.board, data.x, data.y, enemyColor);
-        capturedStones.forEach(stone => { match.board[stone.x][stone.y] = null; });
+        let capturedStones = checkCaptures(newBoard, data.x, data.y, enemyColor);
+        capturedStones.forEach(stone => { newBoard[stone.x][stone.y] = null; });
 
-        // 2. Eigene Freiheiten checken (Selbstmord-Regel)
-        let suicideCheck = checkCaptures(match.board, data.x, data.y, myColor);
+        // 2. Selbstmord verhindern
+        let suicideCheck = checkCaptures(newBoard, data.x, data.y, myColor);
         if(suicideCheck.length > 0 && capturedStones.length === 0) {
-            // Zug ist illegal! Stein zurücknehmen
-            match.board[data.x][data.y] = null;
-            socket.emit('1v1_illegal_move');
+            socket.emit('1v1_illegal_move', "Selbstmord ist nicht erlaubt!");
             return;
         }
 
-        // Zug ist gültig! Wechsel den Spieler
+        // 3. Ko-Regel (Wiederholung des Brettes verhindern)
+        let boardString = JSON.stringify(newBoard);
+        if(match.history.has(boardString)) {
+            socket.emit('1v1_illegal_move', "Ko-Regel: Diese Stellung gab es gerade schon!");
+            return;
+        }
+
+        // Wenn alles passt: Zug übernehmen!
+        match.board = newBoard;
+        match.history.add(boardString);
         match.turn = enemyColor;
+        match.passes = 0;
         
-        // Alle im Raum updaten
-        io.to(matchId).emit('1v1_update_board', { 
-            board: match.board, 
-            turn: match.turn,
-            lastMove: {x: data.x, y: data.y}
-        });
+        io.to(matchId).emit('1v1_update_board', { board: match.board, turn: match.turn, lastMove: {x: data.x, y: data.y} });
     });
 
     socket.on('1v1_pass', (matchId) => {
@@ -272,17 +264,13 @@ io.on('connection', (socket) => {
     socket.on('join_room', (data) => {
         const playerName = data.name; const requestedRoom = data.roomId; 
         currentRoom = requestedRoom; initRoom(currentRoom); socket.join(currentRoom); 
-
         let isHost = false;
         if (currentRoom !== 'public' && Object.keys(rooms[currentRoom].players).length === 0) rooms[currentRoom].hostId = socket.id;
         if (rooms[currentRoom].hostId === socket.id) isHost = true;
-
         rooms[currentRoom].players[socket.id] = { name: playerName, score: 0, combo: 0, id: socket.id }; 
         console.log(`${playerName} ist Raum [${currentRoom}] beigetreten! (Host: ${isHost})`);
-        
         socket.emit('room_joined', { roomId: currentRoom, isHost: isHost });
         broadcastLeaderboard(currentRoom); 
-        
         if (rooms[currentRoom].isPlaying) {
             socket.emit('game_already_started');
             if (rooms[currentRoom].currentLevel < rooms[currentRoom].puzzles.length) {
@@ -294,7 +282,6 @@ io.on('connection', (socket) => {
     socket.on('start_game', (settings) => {
         if (!currentRoom || !rooms[currentRoom]) return; let r = rooms[currentRoom];
         if (currentRoom !== 'public' && r.hostId !== socket.id) return;
-
         if (!r.isPlaying) {
             let freshDeck = [...r.originalPuzzles]; shuffle(freshDeck);
             if (settings) {
@@ -323,21 +310,17 @@ io.on('connection', (socket) => {
     socket.on('guess', (data) => {
         if (!currentRoom || !rooms[currentRoom]) return; let r = rooms[currentRoom];
         const p = r.puzzles[r.currentLevel]; if (!p || !r.isPlaying) return; 
-
         let player = r.players[socket.id]; 
         const isCorrect = p.solution.some(sol => sol.x === data.x && sol.y === data.y);
-
         if (isCorrect) {
             player.combo += 1; 
             let basePoints = 100 + (r.timeLeft * (100 / r.settings.timeLimit));
             let comboBonus = (player.combo > 1) ? (player.combo - 1) * 50 : 0; 
             let totalPoints = Math.round(basePoints + comboBonus);
-
             player.score += totalPoints; 
             socket.emit('correct_guess', { points: totalPoints, combo: player.combo });
             socket.to(currentRoom).emit('round_won_by_other', { winnerName: player.name, x: data.x, y: data.y }); 
             for (let id in r.players) { if (id !== socket.id) r.players[id].combo = 0; }
-
             broadcastLeaderboard(currentRoom); nextLevel(currentRoom);
         } else {
             player.combo = 0; socket.emit('wrong_guess');
@@ -374,7 +357,6 @@ function startRound(roomId) {
     r.timeLeft = r.settings.timeLimit; 
     io.to(roomId).emit('new_round', { puzzle: r.puzzles[r.currentLevel], maxTime: r.settings.timeLimit });
     clearInterval(r.interval);
-    
     r.interval = setInterval(() => {
         r.timeLeft--; io.to(roomId).emit('timer', r.timeLeft);
         if (r.timeLeft <= 0) {
