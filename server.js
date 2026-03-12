@@ -140,11 +140,19 @@ io.on('connection', (socket) => {
 
         if (!r.isPlaying) {
             console.log(`🚀 SPIEL IN RAUM [${currentRoom}] WURDE GESTARTET!`);
+            
+            // NEU: Vor jedem neuen Spiel die Originalrätsel nehmen und neu durchmischen!
+            let freshDeck = [...r.originalPuzzles];
+            shuffle(freshDeck);
+
             if (settings) {
                 r.settings.timeLimit = parseInt(settings.timeLimit);
-                let count = settings.puzzleCount === 'all' ? r.originalPuzzles.length : parseInt(settings.puzzleCount);
-                r.puzzles = r.originalPuzzles.slice(0, count);
+                let count = settings.puzzleCount === 'all' ? freshDeck.length : parseInt(settings.puzzleCount);
+                r.puzzles = freshDeck.slice(0, count);
+            } else {
+                r.puzzles = freshDeck;
             }
+
             r.isPlaying = true; r.currentLevel = -1;
             for (let id in r.players) { r.players[id].score = 0; r.players[id].combo = 0; }
             broadcastLeaderboard(currentRoom);
