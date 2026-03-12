@@ -8,7 +8,7 @@
         body { background: #1a1a1a; color: white; font-family: sans-serif; text-align: center; margin: 0; padding-top: 20px; }
         
         #login-screen, #menu-screen { margin-top: 100px; padding: 20px; }
-        #lobby-screen { display: none; margin-top: 50px; padding: 20px; } 
+        #lobby-screen, #game-over-screen { display: none; margin-top: 50px; padding: 20px; } 
         #game-screen { display: none; padding: 10px; }
         #menu-screen { display: none; } 
         
@@ -25,7 +25,6 @@
 
         #room-code-display { font-size: 2rem; color: #ffaa00; background: #333; padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; border: 2px dashed #ffaa00;}
         
-        /* NEU: Das Einstellungs-Menü in der Lobby */
         #host-settings { background: #2a2a2a; border: 2px solid #ffaa00; padding: 15px; border-radius: 8px; margin: 15px auto; max-width: 400px; display: none; }
         .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         #waiting-msg { color: #aaa; font-style: italic; display: none; margin: 20px; }
@@ -33,11 +32,15 @@
         #lobby-players { list-style: none; padding: 0; font-size: 1.5rem; color: #ffcc00; margin: 20px auto; width: 300px; max-width: 90%; background: #222; border-radius: 8px; border: 2px solid #333; padding: 15px; }
         #lobby-players li { border-bottom: 1px dashed #444; padding: 5px 0; }
         
-        #hud { display: flex; justify-content: center; gap: 30px; font-size: 1.8rem; font-weight: bold; margin-bottom: 10px; flex-wrap: wrap; }
+        #hud { display: flex; justify-content: center; align-items: center; gap: 30px; font-size: 1.8rem; font-weight: bold; margin-bottom: 5px; flex-wrap: wrap; }
         .timer { color: #ff4444; }
         .score { color: #44aaff; }
         #msg { font-size: 1.2rem; color: #aaa; min-height: 30px; font-weight: bold; margin-bottom: 15px;}
         
+        /* NEU: Der Timer Balken */
+        #timer-container { width: 100%; max-width: 600px; background: #333; height: 12px; border-radius: 6px; margin: 0 auto 15px auto; overflow: hidden; border: 2px solid #222; }
+        #timer-bar { height: 100%; width: 100%; background: #00ff00; transition: width 1s linear, background-color 0.5s; }
+
         #game-content { display: flex; justify-content: center; align-items: flex-start; gap: 30px; max-width: 950px; margin: 0 auto 20px auto; flex-wrap: wrap; }
         
         #board-container { width: 100%; max-width: 600px; aspect-ratio: 1 / 1; background: radial-gradient(circle, #e6c280, #c29b57); border: 8px solid #3e2723; border-radius: 5px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); cursor: crosshair; position: relative; }
@@ -50,11 +53,17 @@
         .lb-name { flex-grow: 1; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .lb-score { color: #44aaff; font-weight: bold; }
 
-        .floating-points {
-            position: absolute; color: #00ff00; font-size: 2.5rem; font-weight: bold; pointer-events: none;
-            text-shadow: 2px 2px 5px #000; animation: floatUp 1s ease-out forwards; z-index: 100;
-        }
+        .floating-points { position: absolute; color: #00ff00; font-size: 2.5rem; font-weight: bold; pointer-events: none; text-shadow: 2px 2px 5px #000; animation: floatUp 1s ease-out forwards; z-index: 100; }
         @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-80px) scale(1.5); opacity: 0; } }
+
+        /* NEU: Siegerehrung Podest */
+        .podium { display: flex; justify-content: center; align-items: flex-end; gap: 15px; margin: 40px auto; height: 180px; max-width: 500px; }
+        .podium-place { width: 100px; text-align: center; border-radius: 10px 10px 0 0; color: #000; font-weight: bold; padding-top: 10px; font-size: 1.5rem; display: flex; flex-direction: column; justify-content: flex-start; box-shadow: inset 0 5px 10px rgba(255,255,255,0.4), 0 -5px 15px rgba(0,0,0,0.5); }
+        .place-1 { height: 160px; background: linear-gradient(#ffd700, #b8860b); z-index: 3;}
+        .place-2 { height: 120px; background: linear-gradient(#e0e0e0, #a9a9a9); z-index: 2;}
+        .place-3 { height: 90px; background: linear-gradient(#cd7f32, #8b4513); z-index: 1;}
+        .podium-name { color: #fff; font-size: 1.3rem; text-shadow: 1px 1px 2px #000; word-wrap: break-word; font-weight: bold; margin-bottom: 5px;}
+        .podium-score { color: #44aaff; font-size: 1.1rem; text-shadow: 1px 1px 2px #000; margin-bottom: 10px;}
     </style>
 </head>
 <body>
@@ -112,11 +121,23 @@
         <button id="start-btn" style="display:none;">💥 SPIEL STARTEN 💥</button>
     </div>
 
+    <div id="game-over-screen">
+        <h1 style="color: #ffaa00; font-size: 3rem; margin-bottom: 0;">SPIEL BEENDET!</h1>
+        <h3 style="color: #aaa; margin-top: 5px;">Das sind die Sieger:</h3>
+        
+        <div class="podium" id="podium-container">
+            </div>
+
+        <p>Zurück zur Lobby in <span id="lobby-countdown">8</span> Sekunden...</p>
+    </div>
+
     <div id="game-screen">
         <div id="hud">
             <div class="score" id="score">Score: 0</div>
             <div class="timer" id="timer">Zeit: 10</div>
         </div>
+        <div id="timer-container"><div id="timer-bar"></div></div>
+        
         <p id="msg">Mache dich bereit...</p>
         
         <div id="game-content">
@@ -134,7 +155,6 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        
         let isMuted = false;
         const muteBtn = document.getElementById('mute-btn');
         muteBtn.addEventListener('click', () => { isMuted = !isMuted; muteBtn.innerText = isMuted ? "🔇" : "🔊"; });
@@ -147,91 +167,40 @@
                 const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
                 osc.connect(gain); gain.connect(this.ctx.destination); const now = this.ctx.currentTime;
                 
-                if (type === 'clack') { 
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
-                    gain.gain.setValueAtTime(1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
-                    osc.start(now); osc.stop(now + 0.05);
-                } 
-                else if (type === 'win') { 
-                    osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(659.25, now + 0.1); osc.frequency.setValueAtTime(783.99, now + 0.2); 
-                    gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(0.3, now + 0.05); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-                    osc.start(now); osc.stop(now + 0.5);
-                }
-                else if (type === 'lose') { 
-                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(100, now + 0.2);
-                    gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-                    osc.start(now); osc.stop(now + 0.3);
-                }
+                if (type === 'clack') { osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.05); gain.gain.setValueAtTime(1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05); osc.start(now); osc.stop(now + 0.05); } 
+                else if (type === 'win') { osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(659.25, now + 0.1); osc.frequency.setValueAtTime(783.99, now + 0.2); gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(0.3, now + 0.05); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5); osc.start(now); osc.stop(now + 0.5); }
+                else if (type === 'lose') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(100, now + 0.2); gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
             }
         };
 
-        const loginScreen = document.getElementById('login-screen');
-        const menuScreen = document.getElementById('menu-screen');
-        const lobbyScreen = document.getElementById('lobby-screen');
-        const gameScreen = document.getElementById('game-screen');
-        let myName = "";
-        let amIHost = false;
+        const loginScreen = document.getElementById('login-screen'); const menuScreen = document.getElementById('menu-screen'); const lobbyScreen = document.getElementById('lobby-screen'); const gameScreen = document.getElementById('game-screen');
+        let myName = ""; let amIHost = false;
 
-        document.getElementById('next-btn').addEventListener('click', () => {
-            SoundFX.init(); myName = document.getElementById('username').value.trim();
-            if (myName !== "") { loginScreen.style.display = "none"; menuScreen.style.display = "block"; }
-        });
-
+        document.getElementById('next-btn').addEventListener('click', () => { SoundFX.init(); myName = document.getElementById('username').value.trim(); if (myName !== "") { loginScreen.style.display = "none"; menuScreen.style.display = "block"; } });
         document.getElementById('btn-public').addEventListener('click', () => { socket.emit('join_room', { name: myName, roomId: 'public' }); });
         document.getElementById('btn-create-private').addEventListener('click', () => { const randomCode = Math.random().toString(36).substring(2, 6).toUpperCase(); socket.emit('join_room', { name: myName, roomId: randomCode }); });
         document.getElementById('btn-join-private').addEventListener('click', () => { let code = document.getElementById('roomcode-input').value.trim().toUpperCase(); if (code !== "") socket.emit('join_room', { name: myName, roomId: code }); });
-        
-        // NEU: Sendet Einstellungen mit, wenn der Host auf Start drückt!
-        document.getElementById('start-btn').addEventListener('click', () => { 
-            const settings = {
-                timeLimit: document.getElementById('set-time').value,
-                puzzleCount: document.getElementById('set-count').value
-            };
-            socket.emit('start_game', settings); 
-        });
+        document.getElementById('start-btn').addEventListener('click', () => { const settings = { timeLimit: document.getElementById('set-time').value, puzzleCount: document.getElementById('set-count').value }; socket.emit('start_game', settings); });
 
-        // NEU: Empfängt nun auch die Info, ob ich Host bin
         socket.on('room_joined', (data) => {
-            menuScreen.style.display = "none"; lobbyScreen.style.display = "block";
-            amIHost = data.isHost;
-
+            menuScreen.style.display = "none"; lobbyScreen.style.display = "block"; document.getElementById('game-over-screen').style.display = "none"; amIHost = data.isHost;
             if (data.roomId === 'public') {
-                document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby";
-                document.getElementById('room-code-display').style.display = "none";
-                document.getElementById('host-settings').style.display = "none";
-                document.getElementById('waiting-msg').style.display = "none";
-                document.getElementById('start-btn').style.display = "inline-block"; // Jeder darf public starten
+                document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby"; document.getElementById('room-code-display').style.display = "none"; document.getElementById('host-settings').style.display = "none"; document.getElementById('waiting-msg').style.display = "none"; document.getElementById('start-btn').style.display = "inline-block";
             } else {
-                document.getElementById('room-title').innerText = "🔒 Privater Raum";
-                document.getElementById('room-code-display').style.display = "inline-block";
-                document.getElementById('the-code').innerText = data.roomId;
-                
-                // Menü-Logik!
-                if (amIHost) {
-                    document.getElementById('host-settings').style.display = "block";
-                    document.getElementById('start-btn').style.display = "inline-block";
-                    document.getElementById('waiting-msg').style.display = "none";
-                } else {
-                    document.getElementById('host-settings').style.display = "none";
-                    document.getElementById('start-btn').style.display = "none";
-                    document.getElementById('waiting-msg').style.display = "block";
-                }
+                document.getElementById('room-title').innerText = "🔒 Privater Raum"; document.getElementById('room-code-display').style.display = "inline-block"; document.getElementById('the-code').innerText = data.roomId;
+                if (amIHost) { document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; } 
+                else { document.getElementById('host-settings').style.display = "none"; document.getElementById('start-btn').style.display = "none"; document.getElementById('waiting-msg').style.display = "block"; }
             }
         });
 
-        // Falls der alte Host die Lobby verlässt
-        socket.on('you_are_host', () => {
-            amIHost = true;
-            document.getElementById('host-settings').style.display = "block";
-            document.getElementById('start-btn').style.display = "inline-block";
-            document.getElementById('waiting-msg').style.display = "none";
-        });
+        socket.on('you_are_host', () => { amIHost = true; document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; });
 
         const canvas = document.getElementById('goCanvas'); const ctx = canvas.getContext('2d'); const padding = 30; 
         let viewMinX = 0, viewMaxX = 18, viewMinY = 0, viewMaxY = 18; let activeBoardSize = 19; let currentCellSize = (600 - padding * 2) / 18;
-        const timerLabel = document.getElementById('timer'); const msgLabel = document.getElementById('msg'); const scoreLabel = document.getElementById('score'); const lobbyPlayersList = document.getElementById('lobby-players');
+        const timerLabel = document.getElementById('timer'); const tBar = document.getElementById('timer-bar'); const msgLabel = document.getElementById('msg'); const scoreLabel = document.getElementById('score'); const lobbyPlayersList = document.getElementById('lobby-players');
         let myScore = 0; let canClick = false; let currentPuzzle = null; let lastClickX = 0; let lastClickY = 0; let hoverX = -1; let hoverY = -1; let myPlacedStone = null; let timeoutSolutions = null;
-        let roundTimeLimit = 10; // NEU
+        let roundTimeLimit = 10; 
+        let winningHighlight = null; // NEU: Speichert die Koordinaten, wenn jemand anders löst!
 
         function calculateZoomView(puzzle) {
             let minX = 18, maxX = 0, minY = 18, maxY = 0;
@@ -276,6 +245,8 @@
                 let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === hoverX && s.y === hoverY) isOccupied = true; });
                 if (!isOccupied) { ctx.globalAlpha = 0.5; drawStone(hoverX, hoverY, "black"); ctx.globalAlpha = 1.0; }
             }
+            
+            // Timeout Lösung (Mehrere möglich)
             if (timeoutSolutions) {
                 timeoutSolutions.forEach(sol => {
                     if (sol.x >= viewMinX && sol.x <= viewMaxX && sol.y >= viewMinY && sol.y <= viewMaxY) {
@@ -283,6 +254,12 @@
                         ctx.beginPath(); ctx.arc(cx, cy, currentCellSize * 0.45, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,255,0,0.4)"; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
                     }
                 });
+            }
+
+            // NEU: Gegner-Gewinner-Lösung (Nur 1 Stein)
+            if (winningHighlight && winningHighlight.x >= viewMinX && winningHighlight.x <= viewMaxX && winningHighlight.y >= viewMinY && winningHighlight.y <= viewMaxY) {
+                const cx = padding + (winningHighlight.x - viewMinX) * currentCellSize; const cy = padding + (winningHighlight.y - viewMinY) * currentCellSize;
+                ctx.beginPath(); ctx.arc(cx, cy, currentCellSize * 0.45, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,150,255,0.5)"; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
             }
         }
 
@@ -295,7 +272,7 @@
         });
 
         socket.on('game_starting', () => {
-            lobbyScreen.style.display = "none"; gameScreen.style.display = "block";
+            lobbyScreen.style.display = "none"; document.getElementById('game-over-screen').style.display = "none"; gameScreen.style.display = "block";
             msgLabel.innerText = "Mache dich bereit..."; myScore = 0; scoreLabel.innerText = "Score: 0";
             viewMinX = 0; viewMaxX = 18; viewMinY = 0; viewMaxY = 18; activeBoardSize = 19; currentCellSize = (600 - padding * 2) / 18;
             renderScene();
@@ -305,14 +282,21 @@
 
         socket.on('new_round', (data) => {
             canClick = true; currentPuzzle = data.puzzle; roundTimeLimit = data.maxTime;
-            myPlacedStone = null; timeoutSolutions = null; hoverX = -1; hoverY = -1;
+            myPlacedStone = null; timeoutSolutions = null; winningHighlight = null; hoverX = -1; hoverY = -1;
             msgLabel.innerText = data.puzzle.msg; msgLabel.style.color = "#fff";
             calculateZoomView(data.puzzle); renderScene();
         });
 
+        // NEU: Der Timer updated jetzt auch den Fortschrittsbalken
         socket.on('timer', (timeLeft) => { 
             timerLabel.innerText = "Zeit: " + timeLeft; 
-            // Warnfarbe erst bei den letzten 30% der Zeit!
+            
+            let pct = (timeLeft / roundTimeLimit) * 100;
+            tBar.style.width = pct + "%";
+            if (pct > 50) tBar.style.background = "#00ff00";
+            else if (pct > 25) tBar.style.background = "#ffaa00";
+            else tBar.style.background = "#ff4444";
+
             timerLabel.style.color = timeLeft <= (roundTimeLimit * 0.3) ? "#ff0000" : "#ffaa00";
         });
 
@@ -327,29 +311,58 @@
             renderScene();
         });
 
-        // NEU: Die 1.5 Sekunden Strafe bei einem falschen Klick!
         socket.on('wrong_guess', () => {
-            msgLabel.innerText = "Daneben! ⏳ 1.5 Sekunden Strafe..."; 
-            msgLabel.style.color = "#ff4444";
-            myPlacedStone = null; 
-            SoundFX.play('lose'); 
-            renderScene();
-
-            setTimeout(() => {
-                if (msgLabel.innerText.includes("Strafe")) {
-                    canClick = true;
-                    msgLabel.innerText = "Weiter geht's! Versuch es nochmal!";
-                    msgLabel.style.color = "#fff";
-                }
-            }, 1500); 
+            msgLabel.innerText = "Daneben! ⏳ 1.5 Sekunden Strafe..."; msgLabel.style.color = "#ff4444"; myPlacedStone = null; SoundFX.play('lose'); renderScene();
+            setTimeout(() => { if (msgLabel.innerText.includes("Strafe")) { canClick = true; msgLabel.innerText = "Weiter geht's! Versuch es nochmal!"; msgLabel.style.color = "#fff"; } }, 1500); 
         });
 
-        socket.on('round_won_by_other', (winnerName) => { canClick = false; msgLabel.innerText = "Zu langsam! " + winnerName + " war schneller!"; msgLabel.style.color = "#ffaa00"; SoundFX.play('lose'); renderScene(); });
+        // NEU: Zeigt den Klick des Gewinners an!
+        socket.on('round_won_by_other', (data) => { 
+            canClick = false; 
+            msgLabel.innerText = "Zu langsam! " + data.winnerName + " war schneller!"; 
+            msgLabel.style.color = "#44aaff"; 
+            SoundFX.play('lose'); 
+            winningHighlight = { x: data.x, y: data.y }; // Speichert die Sieger-Lösung
+            renderScene(); 
+        });
+
         socket.on('timeout', (solutions) => { canClick = false; msgLabel.innerText = "ZEIT ABGELAUFEN! 💀 Hier ist die Lösung:"; msgLabel.style.color = "#ff4444"; timeoutSolutions = solutions; SoundFX.play('lose'); renderScene(); });
         
-        socket.on('game_over', () => {
-            canClick = false; msgLabel.innerText = "SPIEL BEENDET! Dein Endstand: " + myScore; msgLabel.style.color = "#00ff00";
-            setTimeout(() => { gameScreen.style.display = "none"; lobbyScreen.style.display = "block"; }, 6000);
+        // NEU: Epischer Game Over Screen mit Podium
+        socket.on('game_over', (finalLeaderboard) => {
+            canClick = false; 
+            gameScreen.style.display = "none";
+            document.getElementById('game-over-screen').style.display = "block";
+            SoundFX.play('win');
+
+            const podiumDiv = document.getElementById('podium-container');
+            podiumDiv.innerHTML = "";
+            
+            // 2. Platz (Links)
+            if (finalLeaderboard.length > 1) {
+                podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[1].name}</div><div class="podium-score">${finalLeaderboard[1].score}</div><div class="podium-place place-2">2.</div></div>`;
+            }
+            // 1. Platz (Mitte - Krone!)
+            if (finalLeaderboard.length > 0) {
+                podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">👑<br>${finalLeaderboard[0].name}</div><div class="podium-score">${finalLeaderboard[0].score}</div><div class="podium-place place-1">1.</div></div>`;
+            }
+            // 3. Platz (Rechts)
+            if (finalLeaderboard.length > 2) {
+                podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[2].name}</div><div class="podium-score">${finalLeaderboard[2].score}</div><div class="podium-place place-3">3.</div></div>`;
+            }
+
+            // Countdown Timer für die Rückkehr zur Lobby
+            let countdown = 8;
+            document.getElementById('lobby-countdown').innerText = countdown;
+            let countInterval = setInterval(() => {
+                countdown--;
+                document.getElementById('lobby-countdown').innerText = countdown;
+                if(countdown <= 0) {
+                    clearInterval(countInterval);
+                    document.getElementById('game-over-screen').style.display = "none";
+                    lobbyScreen.style.display = "block";
+                }
+            }, 1000);
         });
 
         canvas.addEventListener('mousemove', (event) => {
