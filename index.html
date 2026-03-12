@@ -131,7 +131,7 @@
                 <h1 style="color: #ffaa00; font-size: 3rem; margin-bottom: 0; margin-top: 0;">SPIEL BEENDET!</h1>
                 <h3 id="go-reason" style="color: #aaa; margin-top: 5px;">Das sind die Sieger:</h3>
                 <div class="podium" id="podium-container"></div>
-                <p>Zurück zur Lobby in <span id="lobby-countdown">8</span> Sekunden...</p>
+                <p style="margin-top: 20px;">Zurück zur Lobby in <span id="lobby-countdown">8</span> Sekunden...</p>
             </div>
 
             <div id="game-screen">
@@ -145,11 +145,18 @@
             </div>
 
             <div id="pvp-screen">
-                <div id="pvp-hud">
-                    <div style="color: #fff;" id="pvp-black-name">⚫ Schwarz</div>
-                    <div style="font-size: 2rem; margin: 0 20px;">vs</div>
-                    <div style="color: #fff;" id="pvp-white-name">⚪ Weiß</div>
+                
+                <div id="pvp-hud" style="display:flex; justify-content:space-between; width:100%; max-width:600px; background:#222; padding:10px; border-radius:8px; border:2px solid #444; margin-bottom:5px; box-sizing:border-box;">
+                    <div style="text-align:left;">
+                        <div style="color:#fff; font-size:1.4rem; font-weight:bold;" id="pvp-black-name">⚫ Schwarz</div>
+                        <div style="color:#aaa; font-size:1.1rem; margin-top:5px;">⏱️ <span id="pvp-black-time" style="color:#00ff00;">10:00</span> &nbsp;|&nbsp; ⚔️ <span id="pvp-black-caps">0</span></div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="color:#fff; font-size:1.4rem; font-weight:bold;" id="pvp-white-name">⚪ Weiß</div>
+                        <div style="color:#aaa; font-size:1.1rem; margin-top:5px;">⚔️ <span id="pvp-white-caps">0</span> &nbsp;|&nbsp; ⏱️ <span id="pvp-white-time" style="color:#00ff00;">10:00</span></div>
+                    </div>
                 </div>
+
                 <h2 id="pvp-turn-indicator" style="color: #ffaa00; margin: 5px 0 15px 0;">Schwarz ist am Zug</h2>
                 
                 <div id="pvp-content">
@@ -158,8 +165,17 @@
                     </div>
                     <div id="pvp-sidebar">
                         <h3 style="margin-top:0;">Aktionen</h3>
-                        <button id="btn-pvp-pass" style="width: 100%; background: #ffaa00; margin-bottom: 10px;">Passen</button>
-                        <button id="btn-pvp-resign" style="width: 100%; background: #ff4444;">Aufgeben</button>
+                        
+                        <div id="pvp-playing-actions">
+                            <button id="btn-pvp-pass" style="width: 100%; background: #ffaa00; margin-bottom: 10px;">Passen</button>
+                            <button id="btn-pvp-resign" style="width: 100%; background: #ff4444;">Aufgeben</button>
+                        </div>
+
+                        <div id="pvp-scoring-actions" style="display:none;">
+                            <p style="font-size:0.9rem; color:#aaa; margin-bottom:15px;">Klicke auf Steine, um sie als tot zu markieren. Wenn alles passt, bestätigen!</p>
+                            <button id="btn-pvp-accept" style="width: 100%; background: #28a745; margin-bottom: 10px;">Auszählung akzeptieren</button>
+                            <p id="pvp-accept-status" style="font-size: 0.9rem; color:#ffaa00;"></p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -194,7 +210,6 @@
         document.getElementById('btn-join-private').addEventListener('click', () => { let code = document.getElementById('roomcode-input').value.trim().toUpperCase(); if (code !== "") socket.emit('join_room', { name: myName, roomId: code }); });
         document.getElementById('start-btn').addEventListener('click', () => { const settings = { timeLimit: document.getElementById('set-time').value, puzzleCount: document.getElementById('set-count').value }; socket.emit('start_game', settings); });
 
-        // --- MATCHMAKING LOGIK ---
         document.getElementById('btn-goto-matchmaking').addEventListener('click', () => { menuScreen.style.display = "none"; matchmakingScreen.style.display = "block"; socket.emit('request_challenges'); });
         document.getElementById('btn-back-to-menu').addEventListener('click', () => { socket.emit('cancel_challenge'); matchmakingScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('btn-create-challenge').style.display = "inline-block"; document.getElementById('btn-cancel-challenge').style.display = "none"; });
         document.getElementById('btn-create-challenge').addEventListener('click', () => { socket.emit('create_challenge', { name: myName, boardSize: document.getElementById('select-boardsize').value }); document.getElementById('btn-create-challenge').style.display = "none"; document.getElementById('btn-cancel-challenge').style.display = "inline-block"; });
@@ -210,154 +225,187 @@
         // --- 1v1 PVP ENGINE ---
         const pvpCanvas = document.getElementById('pvpCanvas');
         const pvpCtx = pvpCanvas.getContext('2d');
-        let currentPvpMatch = null;
-        let myPvpColor = null;
-        let pvpBoardSize = 19;
-        let pvpCellSize = 0;
-        let pvpHoverX = -1, pvpHoverY = -1;
+        let currentPvpMatch = null; let myPvpColor = null; let pvpBoardSize = 19; let pvpCellSize = 0; let pvpHoverX = -1, pvpHoverY = -1;
+        
+        // NEU: Statusvariablen
+        let pvpState = 'playing'; // 'playing' oder 'scoring'
+        let pvpDeadStones = new Set();
 
-        // NEU: Nimmt jetzt `data.myColor` vom Server!
+        function formatTime(seconds) { let m = Math.floor(seconds / 60); let s = seconds % 60; return m + ":" + (s < 10 ? "0" : "") + s; }
+
         socket.on('1v1_match_started', (data) => {
-            matchmakingScreen.style.display = "none";
-            document.getElementById('room-container').style.display = "flex";
-            lobbyScreen.style.display = "none";
-            pvpScreen.style.display = "block";
-            SoundFX.play('win');
-
-            currentPvpMatch = data.roomId;
-            pvpBoardSize = data.size;
-            pvpCellSize = (600 - padding * 2) / (pvpBoardSize - 1);
+            matchmakingScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex";
+            lobbyScreen.style.display = "none"; pvpScreen.style.display = "block"; SoundFX.play('win');
             
-            document.getElementById('pvp-black-name').innerText = `⚫ ${data.playerBlack}`;
-            document.getElementById('pvp-white-name').innerText = `⚪ ${data.playerWhite}`;
+            // Reset UI
+            document.getElementById('pvp-playing-actions').style.display = "block";
+            document.getElementById('pvp-scoring-actions').style.display = "none";
+            document.getElementById('btn-pvp-accept').innerText = "Auszählung akzeptieren";
+            document.getElementById('btn-pvp-accept').style.background = "#28a745";
+            document.getElementById('pvp-accept-status').innerText = "";
             
-            // NEU: Farbe kommt sicher vom Server!
+            pvpState = 'playing';
+            pvpDeadStones.clear();
+            currentPvpMatch = data.roomId; pvpBoardSize = data.size; pvpCellSize = (600 - padding * 2) / (pvpBoardSize - 1);
+            document.getElementById('pvp-black-name').innerText = `⚫ ${data.playerBlack}`; document.getElementById('pvp-white-name').innerText = `⚪ ${data.playerWhite}`;
+            document.getElementById('pvp-black-caps').innerText = "0"; document.getElementById('pvp-white-caps').innerText = "0";
+            document.getElementById('pvp-black-time').innerText = "10:00"; document.getElementById('pvp-white-time').innerText = "10:00";
             myPvpColor = data.myColor;
-
             let emptyBoard = Array(pvpBoardSize).fill(null).map(() => Array(pvpBoardSize).fill(null));
             renderPvpScene(emptyBoard, 'black', null);
+        });
+
+        socket.on('1v1_timer_update', (data) => {
+            document.getElementById('pvp-black-time').innerText = formatTime(data.timers.black); document.getElementById('pvp-white-time').innerText = formatTime(data.timers.white);
+            document.getElementById('pvp-black-time').style.color = data.timers.black < 60 ? "#ff4444" : "#00ff00"; document.getElementById('pvp-white-time').style.color = data.timers.white < 60 ? "#ff4444" : "#00ff00";
         });
 
         function drawPvpBoard() {
             pvpCtx.clearRect(0, 0, 600, 600); pvpCtx.strokeStyle = "#222"; pvpCtx.lineWidth = 1; pvpCtx.beginPath();
             for (let i = 0; i < pvpBoardSize; i++) {
-                let pos = padding + i * pvpCellSize;
-                pvpCtx.moveTo(pos, padding); pvpCtx.lineTo(pos, padding + (pvpBoardSize - 1) * pvpCellSize); 
-                pvpCtx.moveTo(padding, pos); pvpCtx.lineTo(padding + (pvpBoardSize - 1) * pvpCellSize, pos); 
+                let pos = padding + i * pvpCellSize; pvpCtx.moveTo(pos, padding); pvpCtx.lineTo(pos, padding + (pvpBoardSize - 1) * pvpCellSize); pvpCtx.moveTo(padding, pos); pvpCtx.lineTo(padding + (pvpBoardSize - 1) * pvpCellSize, pos); 
             }
             pvpCtx.stroke();
-            
             let hoshi = [];
             if(pvpBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}];
             if(pvpBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}];
             if(pvpBoardSize === 9) hoshi = [{x:4,y:4}];
-            
-            pvpCtx.fillStyle = "#000";
-            hoshi.forEach(h => {
-                let px = padding + h.x * pvpCellSize; let py = padding + h.y * pvpCellSize;
-                pvpCtx.beginPath(); pvpCtx.arc(px, py, 4, 0, Math.PI * 2); pvpCtx.fill();
-            });
+            pvpCtx.fillStyle = "#000"; hoshi.forEach(h => { let px = padding + h.x * pvpCellSize; let py = padding + h.y * pvpCellSize; pvpCtx.beginPath(); pvpCtx.arc(px, py, 4, 0, Math.PI * 2); pvpCtx.fill(); });
         }
 
-        function drawPvpStone(x, y, color, isLastMove=false) {
+        // NEU: `isDead` Parameter hinzugefügt
+        function drawPvpStone(x, y, color, isLastMove=false, isDead=false) {
             const cx = padding + x * pvpCellSize; const cy = padding + y * pvpCellSize; const r = pvpCellSize * 0.46; 
+            
+            // Wenn der Stein tot ist, machen wir ihn halb durchsichtig
+            if(isDead) pvpCtx.globalAlpha = 0.3;
+            else pvpCtx.globalAlpha = 1.0;
+
             pvpCtx.beginPath(); pvpCtx.arc(cx + 2, cy + 3, r, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(0,0,0,0.4)"; pvpCtx.fill();
             pvpCtx.beginPath(); pvpCtx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = pvpCtx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
             if (color === "black") { gradient.addColorStop(0, "#555"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } 
             else { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#eee"); gradient.addColorStop(1, "#aaa"); }
             pvpCtx.fillStyle = gradient; pvpCtx.fill();
             
-            if(isLastMove) { pvpCtx.beginPath(); pvpCtx.arc(cx, cy, 3, 0, Math.PI * 2); pvpCtx.fillStyle = "red"; pvpCtx.fill(); }
+            if(isLastMove && !isDead) { pvpCtx.beginPath(); pvpCtx.arc(cx, cy, 3, 0, Math.PI * 2); pvpCtx.fillStyle = "red"; pvpCtx.fill(); }
+            
+            // Rotes X über tote Steine
+            if(isDead) {
+                pvpCtx.beginPath(); pvpCtx.arc(cx, cy, r*0.4, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(255,0,0,0.8)"; pvpCtx.fill();
+            }
+            pvpCtx.globalAlpha = 1.0;
         }
 
         function renderPvpScene(board, turn, lastMove) {
             drawPvpBoard();
-            
             for(let x=0; x<pvpBoardSize; x++) {
                 for(let y=0; y<pvpBoardSize; y++) {
-                    if(board[x][y]) {
-                        let isLast = (lastMove && lastMove.x === x && lastMove.y === y);
-                        drawPvpStone(x, y, board[x][y], isLast);
+                    if(board[x][y]) { 
+                        let isLast = (lastMove && lastMove.x === x && lastMove.y === y); 
+                        let isDead = pvpDeadStones.has(`${x},${y}`);
+                        drawPvpStone(x, y, board[x][y], isLast, isDead); 
                     }
                 }
             }
-
-            if(turn === myPvpColor && pvpHoverX >= 0 && pvpHoverX < pvpBoardSize && pvpHoverY >= 0 && pvpHoverY < pvpBoardSize) {
-                if(board[pvpHoverX][pvpHoverY] === null) {
-                    pvpCtx.globalAlpha = 0.5; drawPvpStone(pvpHoverX, pvpHoverY, myPvpColor); pvpCtx.globalAlpha = 1.0;
-                }
+            if(pvpState === 'playing' && turn === myPvpColor && pvpHoverX >= 0 && pvpHoverX < pvpBoardSize && pvpHoverY >= 0 && pvpHoverY < pvpBoardSize) {
+                if(board[pvpHoverX][pvpHoverY] === null) { pvpCtx.globalAlpha = 0.5; drawPvpStone(pvpHoverX, pvpHoverY, myPvpColor); pvpCtx.globalAlpha = 1.0; }
             }
-
-            let turnText = (turn === 'black') ? '⚫ Schwarz ist am Zug' : '⚪ Weiß ist am Zug';
-            document.getElementById('pvp-turn-indicator').innerText = turnText;
-            document.getElementById('pvp-turn-indicator').style.color = (turn === myPvpColor) ? '#00ff00' : '#ffaa00';
+            
+            if (pvpState === 'playing') {
+                let turnText = (turn === 'black') ? '⚫ Schwarz ist am Zug' : '⚪ Weiß ist am Zug';
+                document.getElementById('pvp-turn-indicator').innerText = turnText;
+                document.getElementById('pvp-turn-indicator').style.color = (turn === myPvpColor) ? '#00ff00' : '#ffaa00';
+            } else {
+                document.getElementById('pvp-turn-indicator').innerText = "🚩 Phase: Tote Steine markieren";
+                document.getElementById('pvp-turn-indicator').style.color = "#ffaa00";
+            }
         }
 
-        let currentPvpBoardState = []; 
-        let currentPvpTurn = 'black';
-        let currentPvpLastMove = null;
+        let currentPvpBoardState = []; let currentPvpTurn = 'black'; let currentPvpLastMove = null;
 
         socket.on('1v1_update_board', (data) => {
             currentPvpBoardState = data.board; currentPvpTurn = data.turn; currentPvpLastMove = data.lastMove;
+            document.getElementById('pvp-black-caps').innerText = data.captures.black; document.getElementById('pvp-white-caps').innerText = data.captures.white;
             SoundFX.play('clack'); renderPvpScene(data.board, data.turn, data.lastMove);
         });
 
-        // NEU: Fehler-Popup bei verbotenen Zügen (Ko / Selbstmord)
-        socket.on('1v1_illegal_move', (msg) => { 
-            SoundFX.play('lose'); 
-            alert("Nicht erlaubt: " + msg); 
+        socket.on('1v1_illegal_move', (msg) => { SoundFX.play('lose'); alert("Nicht erlaubt: " + msg); });
+
+        // NEU: Umschalten in den Auszähl-Modus
+        socket.on('1v1_scoring_phase', () => {
+            pvpState = 'scoring';
+            document.getElementById('pvp-playing-actions').style.display = "none";
+            document.getElementById('pvp-scoring-actions').style.display = "block";
+            renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove);
+        });
+
+        // NEU: Wenn jemand Steine markiert oder akzeptiert
+        socket.on('1v1_scoring_update', (data) => {
+            pvpDeadStones = new Set(data.deadStones);
+            
+            let iAccepted = data.accepts[myPvpColor];
+            let enemyAccepted = data.accepts[myPvpColor === 'black' ? 'white' : 'black'];
+            
+            if(iAccepted) {
+                document.getElementById('btn-pvp-accept').innerText = "✅ Bereit";
+                document.getElementById('btn-pvp-accept').style.background = "#555";
+            } else {
+                document.getElementById('btn-pvp-accept').innerText = "Auszählung akzeptieren";
+                document.getElementById('btn-pvp-accept').style.background = "#28a745";
+            }
+
+            if(iAccepted && !enemyAccepted) document.getElementById('pvp-accept-status').innerText = "Warte auf Gegner...";
+            else if(!iAccepted && enemyAccepted) document.getElementById('pvp-accept-status').innerText = "Gegner ist bereit!";
+            else document.getElementById('pvp-accept-status').innerText = "";
+
+            renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove);
         });
 
         socket.on('1v1_game_over', (data) => {
-            pvpScreen.style.display = "none";
-            document.getElementById('game-over-screen').style.display = "block";
-            document.getElementById('go-reason').innerText = "Spiel beendet! (" + data.reason + ")";
-            document.getElementById('podium-container').innerHTML = "<h3 style='color:white;'>In diesem Modus müsst ihr selbst ausdiskutieren, wer gewonnen hat (Territorium zählen bauen wir als Nächstes!)</h3>";
+            pvpState = 'playing'; // Reset
+            pvpScreen.style.display = "none"; document.getElementById('game-over-screen').style.display = "block";
+            document.getElementById('go-reason').innerHTML = data.reason;
+            document.getElementById('podium-container').innerHTML = "";
             
-            let countdown = 8; document.getElementById('lobby-countdown').innerText = countdown;
+            let countdown = 15; document.getElementById('lobby-countdown').innerText = countdown;
             let countInterval = setInterval(() => { countdown--; document.getElementById('lobby-countdown').innerText = countdown; if(countdown <= 0) { clearInterval(countInterval); document.getElementById('game-over-screen').style.display = "none"; menuScreen.style.display = "block"; document.getElementById('room-container').style.display = "none"; } }, 1000);
         });
 
         pvpCanvas.addEventListener('mousemove', (event) => {
+            if(pvpState !== 'playing') return;
             const rect = pvpCanvas.getBoundingClientRect(); const scaleX = pvpCanvas.width / rect.width; const scaleY = pvpCanvas.height / rect.height;
             const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / pvpCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / pvpCellSize);
             if (gridX !== pvpHoverX || gridY !== pvpHoverY) { pvpHoverX = gridX; pvpHoverY = gridY; if(currentPvpBoardState.length > 0) renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove); }
         });
-
         pvpCanvas.addEventListener('mouseout', () => { pvpHoverX = -1; pvpHoverY = -1; if(currentPvpBoardState.length > 0) renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove); });
 
         pvpCanvas.addEventListener('click', (event) => {
-            if (currentPvpTurn !== myPvpColor) return;
             const rect = pvpCanvas.getBoundingClientRect(); const scaleX = pvpCanvas.width / rect.width; const scaleY = pvpCanvas.height / rect.height;
             const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / pvpCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / pvpCellSize);
-            if (gridX >= 0 && gridX < pvpBoardSize && gridY >= 0 && gridY < pvpBoardSize) {
-                socket.emit('1v1_make_move', { roomId: currentPvpMatch, x: gridX, y: gridY });
+            
+            if (gridX >= 0 && gridX < pvpBoardSize && gridY >= 0 && gridY < pvpBoardSize) { 
+                if (pvpState === 'playing' && currentPvpTurn === myPvpColor) {
+                    socket.emit('1v1_make_move', { roomId: currentPvpMatch, x: gridX, y: gridY }); 
+                } else if (pvpState === 'scoring') {
+                    // Steine als tot markieren
+                    socket.emit('1v1_toggle_dead', { roomId: currentPvpMatch, x: gridX, y: gridY });
+                }
             }
         });
 
         document.getElementById('btn-pvp-pass').addEventListener('click', () => { socket.emit('1v1_pass', currentPvpMatch); });
         document.getElementById('btn-pvp-resign').addEventListener('click', () => { socket.emit('1v1_resign', currentPvpMatch); });
+        // NEU: Akzeptieren Button
+        document.getElementById('btn-pvp-accept').addEventListener('click', () => { socket.emit('1v1_accept_score', currentPvpMatch); });
 
-        // --- CHAT ---
         const chatMessages = document.getElementById('chat-messages'); const chatInput = document.getElementById('chat-input');
         function sendChat(text) { if(text.trim() !== "") { socket.emit('chat_message', text.trim()); chatInput.value = ""; } }
         document.getElementById('chat-send').addEventListener('click', () => sendChat(chatInput.value)); chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChat(chatInput.value); });
         document.querySelectorAll('.emoji-btn').forEach(btn => { btn.addEventListener('click', () => sendChat(btn.innerText)); });
         socket.on('chat_message', (data) => { const div = document.createElement('div'); div.style.marginBottom = "5px"; div.style.wordWrap = "break-word"; div.innerHTML = `<span style="color:#ffaa00; font-weight:bold;">${data.name}:</span> <span style="color:#fff;">${data.text}</span>`; chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; });
 
-        // --- TSUMEGO LOGIK (Unverändert) ---
-        socket.on('room_joined', (data) => {
-            menuScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex"; pvpScreen.style.display = "none";
-            lobbyScreen.style.display = "block"; document.getElementById('game-over-screen').style.display = "none"; amIHost = data.isHost;
-            if (data.roomId === 'public') {
-                document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby"; document.getElementById('room-code-display').style.display = "none"; document.getElementById('host-settings').style.display = "none"; document.getElementById('waiting-msg').style.display = "none"; document.getElementById('start-btn').style.display = "inline-block";
-            } else {
-                document.getElementById('room-title').innerText = "🔒 Privater Raum"; document.getElementById('room-code-display').style.display = "inline-block"; document.getElementById('the-code').innerText = data.roomId;
-                if (amIHost) { document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; } 
-                else { document.getElementById('host-settings').style.display = "none"; document.getElementById('start-btn').style.display = "none"; document.getElementById('waiting-msg').style.display = "block"; }
-            }
-        });
-
+        // --- TSUMEGO LOGIK ---
+        socket.on('room_joined', (data) => { menuScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex"; pvpScreen.style.display = "none"; lobbyScreen.style.display = "block"; document.getElementById('game-over-screen').style.display = "none"; amIHost = data.isHost; if (data.roomId === 'public') { document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby"; document.getElementById('room-code-display').style.display = "none"; document.getElementById('host-settings').style.display = "none"; document.getElementById('waiting-msg').style.display = "none"; document.getElementById('start-btn').style.display = "inline-block"; } else { document.getElementById('room-title').innerText = "🔒 Privater Raum"; document.getElementById('room-code-display').style.display = "inline-block"; document.getElementById('the-code').innerText = data.roomId; if (amIHost) { document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; } else { document.getElementById('host-settings').style.display = "none"; document.getElementById('start-btn').style.display = "none"; document.getElementById('waiting-msg').style.display = "block"; } } });
         socket.on('you_are_host', () => { amIHost = true; document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; });
 
         const canvas = document.getElementById('goCanvas'); const ctx = canvas.getContext('2d'); const padding = 30; 
