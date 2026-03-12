@@ -8,11 +8,11 @@
         body { background: #1a1a1a; color: white; font-family: sans-serif; text-align: center; margin: 0; padding-top: 20px; }
         
         #login-screen, #menu-screen { margin-top: 100px; padding: 20px; }
-        #lobby-screen { display: none; margin-top: 80px; padding: 20px; } 
+        #lobby-screen { display: none; margin-top: 50px; padding: 20px; } 
         #game-screen { display: none; padding: 10px; }
         #menu-screen { display: none; } 
         
-        input { font-size: 1.5rem; padding: 10px; border-radius: 5px; border: none; text-align: center; margin-bottom: 10px; max-width: 80%; }
+        input, select { font-size: 1.2rem; padding: 10px; border-radius: 5px; border: none; text-align: center; margin-bottom: 10px; max-width: 80%; background: #333; color: white; }
         button { font-size: 1.2rem; padding: 10px 20px; margin: 5px; cursor: pointer; background: #44aaff; color: white; border: none; border-radius: 5px; font-weight: bold; transition: transform 0.1s; }
         button:hover { background: #3388cc; transform: scale(1.05); } 
         button:active { transform: scale(0.95); } 
@@ -24,6 +24,12 @@
         #mute-btn { background: #333; font-size: 1rem; padding: 5px 10px; }
 
         #room-code-display { font-size: 2rem; color: #ffaa00; background: #333; padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; border: 2px dashed #ffaa00;}
+        
+        /* NEU: Das Einstellungs-Menü in der Lobby */
+        #host-settings { background: #2a2a2a; border: 2px solid #ffaa00; padding: 15px; border-radius: 8px; margin: 15px auto; max-width: 400px; display: none; }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        #waiting-msg { color: #aaa; font-style: italic; display: none; margin: 20px; }
+
         #lobby-players { list-style: none; padding: 0; font-size: 1.5rem; color: #ffcc00; margin: 20px auto; width: 300px; max-width: 90%; background: #222; border-radius: 8px; border: 2px solid #333; padding: 15px; }
         #lobby-players li { border-bottom: 1px dashed #444; padding: 5px 0; }
         
@@ -45,19 +51,10 @@
         .lb-score { color: #44aaff; font-weight: bold; }
 
         .floating-points {
-            position: absolute;
-            color: #00ff00;
-            font-size: 2.5rem;
-            font-weight: bold;
-            pointer-events: none;
-            text-shadow: 2px 2px 5px #000;
-            animation: floatUp 1s ease-out forwards;
-            z-index: 100;
+            position: absolute; color: #00ff00; font-size: 2.5rem; font-weight: bold; pointer-events: none;
+            text-shadow: 2px 2px 5px #000; animation: floatUp 1s ease-out forwards; z-index: 100;
         }
-        @keyframes floatUp {
-            0% { transform: translateY(0) scale(1); opacity: 1; }
-            100% { transform: translateY(-80px) scale(1.5); opacity: 0; }
-        }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-80px) scale(1.5); opacity: 0; } }
     </style>
 </head>
 <body>
@@ -87,9 +84,32 @@
     <div id="lobby-screen">
         <h2 id="room-title">Wartezimmer</h2>
         <div id="room-code-display" style="display:none;">Code: <span id="the-code"></span></div> 
+        
+        <div id="host-settings">
+            <h3 style="margin-top:0; color:#ffaa00;">Raum Einstellungen</h3>
+            <div class="setting-row">
+                <label>Zeit pro Rätsel:</label>
+                <select id="set-time">
+                    <option value="5">5 Sekunden (Hardcore)</option>
+                    <option value="10" selected>10 Sekunden (Normal)</option>
+                    <option value="15">15 Sekunden (Entspannt)</option>
+                    <option value="30">30 Sekunden (Anfänger)</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <label>Anzahl der Runden:</label>
+                <select id="set-count">
+                    <option value="10">10 Rätsel (Kurz)</option>
+                    <option value="20" selected>20 Rätsel (Mittel)</option>
+                    <option value="all">Alle Rätsel (Endlos)</option>
+                </select>
+            </div>
+        </div>
+        <p id="waiting-msg">Warte auf den Host, um das Spiel zu starten...</p>
+
         <p>Wer ist alles dabei?</p>
         <ul id="lobby-players"></ul>
-        <button id="start-btn">💥 SPIEL STARTEN 💥</button>
+        <button id="start-btn" style="display:none;">💥 SPIEL STARTEN 💥</button>
     </div>
 
     <div id="game-screen">
@@ -117,22 +137,15 @@
         
         let isMuted = false;
         const muteBtn = document.getElementById('mute-btn');
-        muteBtn.addEventListener('click', () => {
-            isMuted = !isMuted;
-            muteBtn.innerText = isMuted ? "🔇" : "🔊";
-        });
+        muteBtn.addEventListener('click', () => { isMuted = !isMuted; muteBtn.innerText = isMuted ? "🔇" : "🔊"; });
 
         const SoundFX = {
             ctx: null,
-            init() {
-                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-            },
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
             play(type) {
                 if (!this.ctx || isMuted) return; 
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.connect(gain); gain.connect(this.ctx.destination);
-                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.connect(gain); gain.connect(this.ctx.destination); const now = this.ctx.currentTime;
                 
                 if (type === 'clack') { 
                     osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
@@ -157,184 +170,124 @@
         const lobbyScreen = document.getElementById('lobby-screen');
         const gameScreen = document.getElementById('game-screen');
         let myName = "";
+        let amIHost = false;
 
         document.getElementById('next-btn').addEventListener('click', () => {
-            SoundFX.init(); 
-            myName = document.getElementById('username').value.trim();
+            SoundFX.init(); myName = document.getElementById('username').value.trim();
             if (myName !== "") { loginScreen.style.display = "none"; menuScreen.style.display = "block"; }
         });
 
         document.getElementById('btn-public').addEventListener('click', () => { socket.emit('join_room', { name: myName, roomId: 'public' }); });
         document.getElementById('btn-create-private').addEventListener('click', () => { const randomCode = Math.random().toString(36).substring(2, 6).toUpperCase(); socket.emit('join_room', { name: myName, roomId: randomCode }); });
         document.getElementById('btn-join-private').addEventListener('click', () => { let code = document.getElementById('roomcode-input').value.trim().toUpperCase(); if (code !== "") socket.emit('join_room', { name: myName, roomId: code }); });
-        document.getElementById('start-btn').addEventListener('click', () => { socket.emit('start_game'); });
+        
+        // NEU: Sendet Einstellungen mit, wenn der Host auf Start drückt!
+        document.getElementById('start-btn').addEventListener('click', () => { 
+            const settings = {
+                timeLimit: document.getElementById('set-time').value,
+                puzzleCount: document.getElementById('set-count').value
+            };
+            socket.emit('start_game', settings); 
+        });
 
-        socket.on('room_joined', (roomId) => {
+        // NEU: Empfängt nun auch die Info, ob ich Host bin
+        socket.on('room_joined', (data) => {
             menuScreen.style.display = "none"; lobbyScreen.style.display = "block";
-            if (roomId === 'public') {
+            amIHost = data.isHost;
+
+            if (data.roomId === 'public') {
                 document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby";
                 document.getElementById('room-code-display').style.display = "none";
+                document.getElementById('host-settings').style.display = "none";
+                document.getElementById('waiting-msg').style.display = "none";
+                document.getElementById('start-btn').style.display = "inline-block"; // Jeder darf public starten
             } else {
                 document.getElementById('room-title').innerText = "🔒 Privater Raum";
                 document.getElementById('room-code-display').style.display = "inline-block";
-                document.getElementById('the-code').innerText = roomId;
+                document.getElementById('the-code').innerText = data.roomId;
+                
+                // Menü-Logik!
+                if (amIHost) {
+                    document.getElementById('host-settings').style.display = "block";
+                    document.getElementById('start-btn').style.display = "inline-block";
+                    document.getElementById('waiting-msg').style.display = "none";
+                } else {
+                    document.getElementById('host-settings').style.display = "none";
+                    document.getElementById('start-btn').style.display = "none";
+                    document.getElementById('waiting-msg').style.display = "block";
+                }
             }
         });
 
-        // --- CANVAS LOGIK (NEU: AUTO-ZOOM & HOVER) ---
-        const canvas = document.getElementById('goCanvas');
-        const ctx = canvas.getContext('2d');
-        const padding = 30; 
-        
-        let viewMinX = 0, viewMaxX = 18, viewMinY = 0, viewMaxY = 18;
-        let activeBoardSize = 19;
-        let currentCellSize = (600 - padding * 2) / 18;
+        // Falls der alte Host die Lobby verlässt
+        socket.on('you_are_host', () => {
+            amIHost = true;
+            document.getElementById('host-settings').style.display = "block";
+            document.getElementById('start-btn').style.display = "inline-block";
+            document.getElementById('waiting-msg').style.display = "none";
+        });
 
-        const timerLabel = document.getElementById('timer');
-        const msgLabel = document.getElementById('msg');
-        const scoreLabel = document.getElementById('score');
-        const lobbyPlayersList = document.getElementById('lobby-players');
+        const canvas = document.getElementById('goCanvas'); const ctx = canvas.getContext('2d'); const padding = 30; 
+        let viewMinX = 0, viewMaxX = 18, viewMinY = 0, viewMaxY = 18; let activeBoardSize = 19; let currentCellSize = (600 - padding * 2) / 18;
+        const timerLabel = document.getElementById('timer'); const msgLabel = document.getElementById('msg'); const scoreLabel = document.getElementById('score'); const lobbyPlayersList = document.getElementById('lobby-players');
+        let myScore = 0; let canClick = false; let currentPuzzle = null; let lastClickX = 0; let lastClickY = 0; let hoverX = -1; let hoverY = -1; let myPlacedStone = null; let timeoutSolutions = null;
+        let roundTimeLimit = 10; // NEU
 
-        let myScore = 0; let canClick = false; let currentPuzzle = null;
-        let lastClickX = 0; let lastClickY = 0; 
-        let hoverX = -1; let hoverY = -1;
-        let myPlacedStone = null;
-        let timeoutSolutions = null;
-
-        // Berechnet, auf welchen Bereich wir ranzoomen müssen
         function calculateZoomView(puzzle) {
             let minX = 18, maxX = 0, minY = 18, maxY = 0;
-            
-            // Finde die äußersten Steine
-            puzzle.setup.forEach(s => {
-                if (s.x < minX) minX = s.x; if (s.x > maxX) maxX = s.x;
-                if (s.y < minY) minY = s.y; if (s.y > maxY) maxY = s.y;
-            });
-            puzzle.solution.forEach(sol => {
-                if (sol.x < minX) minX = sol.x; if (sol.x > maxX) maxX = sol.x;
-                if (sol.y < minY) minY = sol.y; if (sol.y > maxY) maxY = sol.y;
-            });
-
-            // Etwas "Luft" am Rand lassen (3 Linien)
-            minX = Math.max(0, minX - 3); maxX = Math.min(18, maxX + 3);
-            minY = Math.max(0, minY - 3); maxY = Math.min(18, maxY + 3);
-
-            // Dafür sorgen, dass das Bild quadratisch bleibt (mindestens 9x9 Feld)
+            puzzle.setup.forEach(s => { if (s.x < minX) minX = s.x; if (s.x > maxX) maxX = s.x; if (s.y < minY) minY = s.y; if (s.y > maxY) maxY = s.y; });
+            puzzle.solution.forEach(sol => { if (sol.x < minX) minX = sol.x; if (sol.x > maxX) maxX = sol.x; if (sol.y < minY) minY = sol.y; if (sol.y > maxY) maxY = sol.y; });
+            minX = Math.max(0, minX - 3); maxX = Math.min(18, maxX + 3); minY = Math.max(0, minY - 3); maxY = Math.min(18, maxY + 3);
             let neededSize = Math.max(maxX - minX, maxY - minY, 8); 
-            while(maxX - minX < neededSize) {
-                if (minX > 0) minX--;
-                if (maxX - minX < neededSize && maxX < 18) maxX++;
-            }
-            while(maxY - minY < neededSize) {
-                if (minY > 0) minY--;
-                if (maxY - minY < neededSize && maxY < 18) maxY++;
-            }
-
-            viewMinX = minX; viewMaxX = maxX; viewMinY = minY; viewMaxY = maxY;
-            activeBoardSize = (viewMaxX - viewMinX) + 1;
-            currentCellSize = (600 - padding * 2) / (activeBoardSize - 1);
+            while(maxX - minX < neededSize) { if (minX > 0) minX--; if (maxX - minX < neededSize && maxX < 18) maxX++; }
+            while(maxY - minY < neededSize) { if (minY > 0) minY--; if (maxY - minY < neededSize && maxY < 18) maxY++; }
+            viewMinX = minX; viewMaxX = maxX; viewMinY = minY; viewMaxY = maxY; activeBoardSize = (viewMaxX - viewMinX) + 1; currentCellSize = (600 - padding * 2) / (activeBoardSize - 1);
         }
 
         function drawBoard() {
-            ctx.clearRect(0, 0, 600, 600);
-            ctx.strokeStyle = "#222"; ctx.lineWidth = 1; ctx.beginPath();
-            
+            ctx.clearRect(0, 0, 600, 600); ctx.strokeStyle = "#222"; ctx.lineWidth = 1; ctx.beginPath();
             for (let i = 0; i < activeBoardSize; i++) {
-                let actualX = viewMinX + i;
-                let actualY = viewMinY + i;
-                let pos = padding + i * currentCellSize;
-                
-                // Vertikale Linien
-                if (actualX >= 0 && actualX <= 18) {
-                    let startY = padding + Math.max(0, 0 - viewMinY) * currentCellSize;
-                    let endY = padding + Math.min(activeBoardSize - 1, 18 - viewMinY) * currentCellSize;
-                    ctx.moveTo(pos, startY); ctx.lineTo(pos, endY);
-                }
-                // Horizontale Linien
-                if (actualY >= 0 && actualY <= 18) {
-                    let startX = padding + Math.max(0, 0 - viewMinX) * currentCellSize;
-                    let endX = padding + Math.min(activeBoardSize - 1, 18 - viewMinX) * currentCellSize;
-                    ctx.moveTo(startX, pos); ctx.lineTo(endX, pos);
-                }
+                let actualX = viewMinX + i; let actualY = viewMinY + i; let pos = padding + i * currentCellSize;
+                if (actualX >= 0 && actualX <= 18) { let startY = padding + Math.max(0, 0 - viewMinY) * currentCellSize; let endY = padding + Math.min(activeBoardSize - 1, 18 - viewMinY) * currentCellSize; ctx.moveTo(pos, startY); ctx.lineTo(pos, endY); }
+                if (actualY >= 0 && actualY <= 18) { let startX = padding + Math.max(0, 0 - viewMinX) * currentCellSize; let endX = padding + Math.min(activeBoardSize - 1, 18 - viewMinX) * currentCellSize; ctx.moveTo(startX, pos); ctx.lineTo(endX, pos); }
             }
             ctx.stroke();
-            
-            // Hoshi Punkte
-            const hoshi = [3, 9, 15];
-            ctx.fillStyle = "#000";
-            hoshi.forEach(hx => {
-                hoshi.forEach(hy => {
-                    if (hx >= viewMinX && hx <= viewMaxX && hy >= viewMinY && hy <= viewMaxY) {
-                        let px = padding + (hx - viewMinX) * currentCellSize;
-                        let py = padding + (hy - viewMinY) * currentCellSize;
-                        ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2); ctx.fill();
-                    }
-                });
-            });
+            const hoshi = [3, 9, 15]; ctx.fillStyle = "#000";
+            hoshi.forEach(hx => { hoshi.forEach(hy => { if (hx >= viewMinX && hx <= viewMaxX && hy >= viewMinY && hy <= viewMaxY) {
+                let px = padding + (hx - viewMinX) * currentCellSize; let py = padding + (hy - viewMinY) * currentCellSize; ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2); ctx.fill();
+            }});});
         }
 
         function drawStone(x, y, color) {
             if (x < viewMinX || x > viewMaxX || y < viewMinY || y > viewMaxY) return;
-            const cx = padding + (x - viewMinX) * currentCellSize;
-            const cy = padding + (y - viewMinY) * currentCellSize;
-            const r = currentCellSize * 0.46; 
-
-            ctx.beginPath(); ctx.arc(cx + 2, cy + 3, r, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.fill();
-
-            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            const gradient = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
-            if (color === "black") {
-                gradient.addColorStop(0, "#555"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); 
-            } else {
-                gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#eee"); gradient.addColorStop(1, "#aaa"); 
-            }
+            const cx = padding + (x - viewMinX) * currentCellSize; const cy = padding + (y - viewMinY) * currentCellSize; const r = currentCellSize * 0.46; 
+            ctx.beginPath(); ctx.arc(cx + 2, cy + 3, r, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.fill();
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
+            if (color === "black") { gradient.addColorStop(0, "#555"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } 
+            else { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#eee"); gradient.addColorStop(1, "#aaa"); }
             ctx.fillStyle = gradient; ctx.fill();
         }
 
-        // Die Haupt-Grafik-Funktion (zeichnet alles jeden Frame)
         function renderScene() {
             drawBoard();
-            
-            // 1. Die Steine vom Rätsel
-            if (currentPuzzle) {
-                currentPuzzle.setup.forEach(s => drawStone(s.x, s.y, s.c));
-            }
-            
-            // 2. Den Stein, den du gerade geklickt hast
-            if (myPlacedStone) {
-                drawStone(myPlacedStone.x, myPlacedStone.y, "black");
-            }
-            
-            // 3. Den Hover-Geister-Stein!
+            if (currentPuzzle) { currentPuzzle.setup.forEach(s => drawStone(s.x, s.y, s.c)); }
+            if (myPlacedStone) { drawStone(myPlacedStone.x, myPlacedStone.y, "black"); }
             if (canClick && hoverX >= viewMinX && hoverX <= viewMaxX && hoverY >= viewMinY && hoverY <= viewMaxY) {
-                let isOccupied = false;
-                if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === hoverX && s.y === hoverY) isOccupied = true; });
-                
-                if (!isOccupied) {
-                    ctx.globalAlpha = 0.5; // Halbtransparent
-                    drawStone(hoverX, hoverY, "black");
-                    ctx.globalAlpha = 1.0;
-                }
+                let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === hoverX && s.y === hoverY) isOccupied = true; });
+                if (!isOccupied) { ctx.globalAlpha = 0.5; drawStone(hoverX, hoverY, "black"); ctx.globalAlpha = 1.0; }
             }
-            
-            // 4. Lösung anzeigen bei Timeout
             if (timeoutSolutions) {
                 timeoutSolutions.forEach(sol => {
                     if (sol.x >= viewMinX && sol.x <= viewMaxX && sol.y >= viewMinY && sol.y <= viewMaxY) {
-                        const cx = padding + (sol.x - viewMinX) * currentCellSize;
-                        const cy = padding + (sol.y - viewMinY) * currentCellSize;
-                        ctx.beginPath(); ctx.arc(cx, cy, currentCellSize * 0.45, 0, Math.PI * 2);
-                        ctx.fillStyle = "rgba(0,255,0,0.4)"; ctx.fill(); 
-                        ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
+                        const cx = padding + (sol.x - viewMinX) * currentCellSize; const cy = padding + (sol.y - viewMinY) * currentCellSize;
+                        ctx.beginPath(); ctx.arc(cx, cy, currentCellSize * 0.45, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,255,0,0.4)"; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
                     }
                 });
             }
         }
 
         socket.on('update_leaderboard', (boardData) => {
-            const list = document.getElementById('lb-list');
-            list.innerHTML = ""; lobbyPlayersList.innerHTML = "";
+            const list = document.getElementById('lb-list'); list.innerHTML = ""; lobbyPlayersList.innerHTML = "";
             boardData.forEach((player, index) => {
                 list.innerHTML += `<div class="lb-row"><span class="lb-rank">${index + 1}.</span><span class="lb-name">${player.name}</span><span class="lb-score">${player.score}</span></div>`;
                 lobbyPlayersList.innerHTML += `<li>${player.name}</li>`;
@@ -344,123 +297,63 @@
         socket.on('game_starting', () => {
             lobbyScreen.style.display = "none"; gameScreen.style.display = "block";
             msgLabel.innerText = "Mache dich bereit..."; myScore = 0; scoreLabel.innerText = "Score: 0";
-            viewMinX = 0; viewMaxX = 18; viewMinY = 0; viewMaxY = 18;
-            activeBoardSize = 19; currentCellSize = (600 - padding * 2) / 18;
+            viewMinX = 0; viewMaxX = 18; viewMinY = 0; viewMaxY = 18; activeBoardSize = 19; currentCellSize = (600 - padding * 2) / 18;
             renderScene();
         });
 
-        socket.on('game_already_started', () => {
-            loginScreen.style.display = "none"; menuScreen.style.display = "none"; lobbyScreen.style.display = "none"; gameScreen.style.display = "block";
-        });
+        socket.on('game_already_started', () => { loginScreen.style.display = "none"; menuScreen.style.display = "none"; lobbyScreen.style.display = "none"; gameScreen.style.display = "block"; });
 
-        socket.on('new_round', (puzzle) => {
-            canClick = true; currentPuzzle = puzzle;
+        // NEU: Nimmt jetzt auch die maximale Zeit mit entgegen
+        socket.on('new_round', (data) => {
+            canClick = true; currentPuzzle = data.puzzle; roundTimeLimit = data.maxTime;
             myPlacedStone = null; timeoutSolutions = null; hoverX = -1; hoverY = -1;
-            msgLabel.innerText = puzzle.msg; msgLabel.style.color = "#fff";
-            calculateZoomView(puzzle); // NEU: ZOOM BERECHNEN!
-            renderScene();
+            msgLabel.innerText = data.puzzle.msg; msgLabel.style.color = "#fff";
+            calculateZoomView(data.puzzle); renderScene();
         });
 
         socket.on('timer', (timeLeft) => { 
             timerLabel.innerText = "Zeit: " + timeLeft; 
-            timerLabel.style.color = timeLeft <= 3 ? "#ff0000" : "#ffaa00";
+            // Warnfarbe erst bei den letzten 30% der Zeit!
+            timerLabel.style.color = timeLeft <= (roundTimeLimit * 0.3) ? "#ff0000" : "#ffaa00";
         });
 
         socket.on('correct_guess', (data) => {
             canClick = false; myScore += data.points; scoreLabel.innerText = "Score: " + myScore; 
-            let winText = "RICHTIG! +" + data.points + " Punkte!";
-            if (data.combo > 1) winText += " 🔥 COMBO x" + data.combo;
-            msgLabel.innerText = winText; msgLabel.style.color = "#00ff00";
-            SoundFX.play('win'); 
+            let winText = "RICHTIG! +" + data.points + " Punkte!"; if (data.combo > 1) winText += " 🔥 COMBO x" + data.combo;
+            msgLabel.innerText = winText; msgLabel.style.color = "#00ff00"; SoundFX.play('win'); 
 
-            const floatDiv = document.createElement('div');
-            floatDiv.className = 'floating-points';
-            floatDiv.innerText = "+" + data.points;
-            if (data.combo > 1) floatDiv.innerText += " 🔥";
-            floatDiv.style.left = lastClickX + "px"; floatDiv.style.top = lastClickY + "px";
-            document.getElementById('board-container').appendChild(floatDiv);
-            setTimeout(() => { floatDiv.remove(); }, 1000);
-            
+            const floatDiv = document.createElement('div'); floatDiv.className = 'floating-points'; floatDiv.innerText = "+" + data.points;
+            if (data.combo > 1) floatDiv.innerText += " 🔥"; floatDiv.style.left = lastClickX + "px"; floatDiv.style.top = lastClickY + "px";
+            document.getElementById('board-container').appendChild(floatDiv); setTimeout(() => { floatDiv.remove(); }, 1000);
             renderScene();
         });
 
-        socket.on('wrong_guess', () => {
-            msgLabel.innerText = "Daneben! (Combo resettet!)"; msgLabel.style.color = "#ff4444";
-            myPlacedStone = null; // Falschen Stein wieder wegnehmen
-            SoundFX.play('lose'); 
-            renderScene();
-        });
-
-        socket.on('round_won_by_other', (winnerName) => {
-            canClick = false; msgLabel.innerText = "Zu langsam! " + winnerName + " war schneller!"; msgLabel.style.color = "#ffaa00";
-            SoundFX.play('lose');
-            renderScene();
-        });
-
-        socket.on('timeout', (solutions) => {
-            canClick = false; msgLabel.innerText = "ZEIT ABGELAUFEN! 💀 Hier ist die Lösung:"; msgLabel.style.color = "#ff4444";
-            timeoutSolutions = solutions;
-            SoundFX.play('lose');
-            renderScene();
-        });
-
+        socket.on('wrong_guess', () => { msgLabel.innerText = "Daneben! (Combo resettet!)"; msgLabel.style.color = "#ff4444"; myPlacedStone = null; SoundFX.play('lose'); renderScene(); });
+        socket.on('round_won_by_other', (winnerName) => { canClick = false; msgLabel.innerText = "Zu langsam! " + winnerName + " war schneller!"; msgLabel.style.color = "#ffaa00"; SoundFX.play('lose'); renderScene(); });
+        socket.on('timeout', (solutions) => { canClick = false; msgLabel.innerText = "ZEIT ABGELAUFEN! 💀 Hier ist die Lösung:"; msgLabel.style.color = "#ff4444"; timeoutSolutions = solutions; SoundFX.play('lose'); renderScene(); });
+        
         socket.on('game_over', () => {
             canClick = false; msgLabel.innerText = "SPIEL BEENDET! Dein Endstand: " + myScore; msgLabel.style.color = "#00ff00";
             setTimeout(() => { gameScreen.style.display = "none"; lobbyScreen.style.display = "block"; }, 6000);
         });
 
-        // NEU: Mausbewegung für den Geister-Stein erkennen
         canvas.addEventListener('mousemove', (event) => {
-            if (!canClick) return;
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / currentCellSize);
-            const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / currentCellSize);
-            
-            const realX = viewMinX + gridX;
-            const realY = viewMinY + gridY;
-            
-            // Nur neu zeichnen, wenn sich das Feld ändert (spart Performance)
-            if (realX !== hoverX || realY !== hoverY) {
-                hoverX = realX; hoverY = realY;
-                renderScene();
-            }
+            if (!canClick) return; const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height;
+            const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / currentCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / currentCellSize);
+            const realX = viewMinX + gridX; const realY = viewMinY + gridY;
+            if (realX !== hoverX || realY !== hoverY) { hoverX = realX; hoverY = realY; renderScene(); }
         });
 
-        // Wenn die Maus das Brett verlässt
-        canvas.addEventListener('mouseout', () => {
-            hoverX = -1; hoverY = -1;
-            renderScene();
-        });
+        canvas.addEventListener('mouseout', () => { hoverX = -1; hoverY = -1; renderScene(); });
 
         canvas.addEventListener('click', (event) => {
-            if (!canClick) return;
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            
-            lastClickX = (event.clientX - rect.left) * scaleX;
-            lastClickY = (event.clientY - rect.top) * scaleY;
-
-            const gridX = Math.round((lastClickX - padding) / currentCellSize);
-            const gridY = Math.round((lastClickY - padding) / currentCellSize);
-            
-            const actualX = viewMinX + gridX;
-            const actualY = viewMinY + gridY;
-            
-            // Nur reagieren, wenn man wirklich aufs Brett klickt
+            if (!canClick) return; const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height;
+            lastClickX = (event.clientX - rect.left) * scaleX; lastClickY = (event.clientY - rect.top) * scaleY;
+            const gridX = Math.round((lastClickX - padding) / currentCellSize); const gridY = Math.round((lastClickY - padding) / currentCellSize);
+            const actualX = viewMinX + gridX; const actualY = viewMinY + gridY;
             if (actualX >= 0 && actualX <= 18 && actualY >= 0 && actualY <= 18) {
-                // Prüfen ob da schon ein Stein liegt
-                let isOccupied = false;
-                if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === actualX && s.y === actualY) isOccupied = true; });
-                if (isOccupied) return;
-
-                myPlacedStone = { x: actualX, y: actualY };
-                canClick = false; 
-                SoundFX.play('clack'); 
-                renderScene();
-                socket.emit('guess', { x: actualX, y: actualY }); 
+                let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === actualX && s.y === actualY) isOccupied = true; }); if (isOccupied) return;
+                myPlacedStone = { x: actualX, y: actualY }; canClick = false; SoundFX.play('clack'); renderScene(); socket.emit('guess', { x: actualX, y: actualY }); 
             }
         });
     </script>

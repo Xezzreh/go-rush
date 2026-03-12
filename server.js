@@ -10,7 +10,7 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
 
-// --- SGF-Übersetzer (NEU: Akzeptiert ein Array von Lösungen) ---
+// --- SGF-Übersetzer ---
 function parseSGF(sgfString, msg, solutionsArray) {
     const setup = [];
     const cleanSgf = sgfString.replace(/\s+/g, ''); 
@@ -35,7 +35,6 @@ function parseSGF(sgfString, msg, solutionsArray) {
         });
     }
 
-    // NEU: Wandelt alle Text-Koordinaten in ein Array aus x/y-Punkten um
     const solutionCoords = solutionsArray.map(sol => ({
         x: sol.toLowerCase().charCodeAt(0) - 97, 
         y: sol.toLowerCase().charCodeAt(1) - 97
@@ -44,7 +43,7 @@ function parseSGF(sgfString, msg, solutionsArray) {
     return {
         msg: msg, 
         setup: setup,
-        solution: solutionCoords // Ist jetzt eine Liste [{x,y}, {x,y}, ...]
+        solution: solutionCoords
     };
 }
 
@@ -74,12 +73,10 @@ function loadPuzzles() {
             let msg = file.replace('.sgf', '').replace(/_/g, ' '); 
             if (sgfParts.length > 1) msg += ` (#${index + 1})`;
             
-            // Finde den ersten Haupt-Zug
             const firstMoveMatch = cleanPart.match(/;[BW]\[([a-zA-Z]{2})\]/);
             if (firstMoveMatch) {
-                let solutions = [firstMoveMatch[1]]; // Der erste Zug ist immer richtig
+                let solutions = [firstMoveMatch[1]]; 
                 
-                // NEU: Suche nach weiteren Lösungs-Variationen (Ästen, die mit (;B oder (;W starten)
                 const altMatches = cleanPart.match(/\(\s*;[BW]\[([a-zA-Z]{2})\]/g);
                 if (altMatches) {
                     altMatches.forEach(m => {
@@ -88,12 +85,10 @@ function loadPuzzles() {
                     });
                 }
                 
-                // Duplikate entfernen (falls Hauptzug und Variation gleich sind)
                 solutions = [...new Set(solutions)];
-
                 const setupPart = cleanPart.split(/;[BW]\[/)[0] + ")";
-                
                 const parsedPuzzle = parseSGF(setupPart, msg, solutions);
+                
                 if (parsedPuzzle.setup.length > 0) {
                     globalPuzzles.push(parsedPuzzle);
                 }
@@ -102,7 +97,6 @@ function loadPuzzles() {
     });
 
     if (globalPuzzles.length === 0) {
-        // Fallback bekommt jetzt auch ein Array als Lösung
         globalPuzzles.push(parseSGF("(;GM[1]FF[4]SZ[19]AB[dd]AW[pp];B[qq])", "Fallback", ["qq"]));
     }
     console.log(`🚀 BEREIT: ${globalPuzzles.length} Level in der Datenbank!`);
@@ -122,9 +116,11 @@ function initRoom(roomId) {
             players: {},
             isPlaying: false,
             currentLevel: 0,
-            timeLeft: 10,
+            hostId: null, // NEU: Merkt sich, wer der Boss ist
+            settings: { timeLimit: 10, puzzleCount: roomPuzzles.length }, // NEU: Die Raum-Einstellungen
             interval: null,
-            puzzles: roomPuzzles
+            puzzles: roomPuzzles,
+            originalPuzzles: roomPuzzles // Behält alle Rätsel als Backup
         };
     }
 }
@@ -145,14 +141,24 @@ io.on('connection', (socket) => {
         const requestedRoom = data.roomId; 
 
         currentRoom = requestedRoom;
+        const isNewRoom = !rooms[currentRoom]; 
         initRoom(currentRoom); 
         
         socket.join(currentRoom); 
 
-        rooms[currentRoom].players[socket.id] = { name: playerName, score: 0, combo: 0 }; 
-        console.log(`${playerName} ist Raum [${currentRoom}] beigetreten!`);
+        // NEU: Der erste Spieler im Raum wird der Host (außer im Public Room)
+        let isHost = false;
+        if (currentRoom !== 'public' && Object.keys(rooms[currentRoom].players).length === 0) {
+            rooms[currentRoom].hostId = socket.id;
+        }
+        if (rooms[currentRoom].hostId === socket.id) {
+            isHost = true;
+        }
+
+        rooms[currentRoom].players[socket.id] = { name: playerName, score: 0, combo: 0, id: socket.id }; 
+        console.log(`${playerName} ist Raum [${currentRoom}] beigetreten! (Host: ${isHost})`);
         
-        socket.emit('room_joined', currentRoom);
+        socket.emit('room_joined', { roomId: currentRoom, isHost: isHost });
         broadcastLeaderboard(currentRoom); 
         
         if (rooms[currentRoom].isPlaying) {
@@ -163,12 +169,25 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('start_game', () => {
+    // NEU: Nimmt jetzt die Einstellungen vom Host entgegen
+    socket.on('start_game', (settings) => {
         if (!currentRoom || !rooms[currentRoom]) return;
         let r = rooms[currentRoom];
 
+        // Nur der Host darf starten (oder jeder im Public Room)
+        if (currentRoom !== 'public' && r.hostId !== socket.id) return;
+
         if (!r.isPlaying) {
             console.log(`🚀 SPIEL IN RAUM [${currentRoom}] WURDE GESTARTET!`);
+            
+            // Einstellungen übernehmen
+            if (settings) {
+                r.settings.timeLimit = parseInt(settings.timeLimit);
+                let count = settings.puzzleCount === 'all' ? r.originalPuzzles.length : parseInt(settings.puzzleCount);
+                // Schneidet die Liste auf die gewünschte Anzahl ab
+                r.puzzles = r.originalPuzzles.slice(0, count);
+            }
+
             r.isPlaying = true;
             r.currentLevel = -1;
             for (let id in r.players) {
@@ -189,15 +208,15 @@ io.on('connection', (socket) => {
 
         let player = r.players[socket.id]; 
 
-        // NEU: Prüfe, ob der Klick in JEDER der möglichen Lösungen enthalten ist!
         const isCorrect = p.solution.some(sol => sol.x === data.x && sol.y === data.y);
 
         if (isCorrect) {
             player.combo += 1; 
             
-            let basePoints = 100 + (r.timeLeft * 10);
+            // NEU: Punkte skalieren mit dem eingestellten Zeitlimit (kürzere Zeit = mehr Punkte pro Sekunde)
+            let basePoints = 100 + (r.timeLeft * (100 / r.settings.timeLimit));
             let comboBonus = (player.combo > 1) ? (player.combo - 1) * 50 : 0; 
-            let totalPoints = basePoints + comboBonus;
+            let totalPoints = Math.round(basePoints + comboBonus);
 
             player.score += totalPoints; 
             
@@ -221,10 +240,17 @@ io.on('connection', (socket) => {
             delete rooms[currentRoom].players[socket.id];
             broadcastLeaderboard(currentRoom); 
             
-            if (currentRoom !== 'public' && Object.keys(rooms[currentRoom].players).length === 0) {
+            const remainingPlayers = Object.keys(rooms[currentRoom].players);
+            
+            if (currentRoom !== 'public' && remainingPlayers.length === 0) {
                 clearInterval(rooms[currentRoom].interval);
                 delete rooms[currentRoom];
-                console.log(`🗑️ Raum [${currentRoom}] wurde gelöscht, da er leer ist.`);
+                console.log(`🗑️ Raum [${currentRoom}] wurde gelöscht.`);
+            } 
+            // NEU: Wenn der Host geht, wird der nächste Spieler zum Host
+            else if (currentRoom !== 'public' && rooms[currentRoom].hostId === socket.id) {
+                rooms[currentRoom].hostId = remainingPlayers[0];
+                io.to(remainingPlayers[0]).emit('you_are_host');
             }
         }
     });
@@ -248,8 +274,8 @@ function startRound(roomId) {
     let r = rooms[roomId];
     if (!r) return;
 
-    r.timeLeft = 10;
-    io.to(roomId).emit('new_round', r.puzzles[r.currentLevel]);
+    r.timeLeft = r.settings.timeLimit; // NEU: Nutzt die Host-Zeit!
+    io.to(roomId).emit('new_round', { puzzle: r.puzzles[r.currentLevel], maxTime: r.settings.timeLimit });
     clearInterval(r.interval);
     
     r.interval = setInterval(() => {
