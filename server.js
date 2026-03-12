@@ -102,7 +102,6 @@ function checkCaptures(board, x, y, colorTarget) {
     return captured;
 }
 
-// NEU: Holt alle Steine der gleichen Farbe, die miteinander verbunden sind (für die Tot-Markierung)
 function getGroupOfColor(board, startX, startY) {
     let color = board[startX][startY];
     if (!color) return [];
@@ -124,28 +123,22 @@ function getGroupOfColor(board, startX, startY) {
     return group;
 }
 
-// JAPANISCHE ZÄHLUNG (Inklusive manuell markierter toter Steine)
 function calculateJapaneseScore(board, captures, deadStonesSet) {
     let size = board.length;
     let blackTerritory = 0;
     let whiteTerritory = 0;
     let finalCaptures = { black: captures.black, white: captures.white };
 
-    // Kopie des Brettes erstellen
     let scoreBoard = board.map(row => [...row]);
-
-    // Tote Steine vom Brett nehmen und zu Gefangenen machen
     deadStonesSet.forEach(pos => {
         let [x, y] = pos.split(',').map(Number);
         let color = scoreBoard[x][y];
-        if (color === 'black') finalCaptures.white++; // Weiß fängt Schwarz
-        if (color === 'white') finalCaptures.black++; // Schwarz fängt Weiß
-        scoreBoard[x][y] = null; // Vom Brett entfernen
+        if (color === 'black') finalCaptures.white++; 
+        if (color === 'white') finalCaptures.black++; 
+        scoreBoard[x][y] = null; 
     });
 
     let visited = Array(size).fill(0).map(() => Array(size).fill(false));
-
-    // Flood Fill für das leere Gebiet
     for (let x = 0; x < size; x++) {
         for (let y = 0; y < size; y++) {
             if (scoreBoard[x][y] === null && !visited[x][y]) {
@@ -212,8 +205,8 @@ setInterval(() => {
             io.to(matchId).emit('1v1_timer_update', { timers: match.timers, turn: match.turn });
 
             if (match.timers[match.turn] <= 0) {
-                let winnerName = match.players[match.turn === 'black' ? 'white' : 'black'].name;
-                io.to(matchId).emit('1v1_game_over', { reason: `⏱️ Zeit abgelaufen! ${winnerName} gewinnt.` });
+                let winner = match.players[match.turn === 'black' ? 'white' : 'black'];
+                io.to(matchId).emit('1v1_game_over', { reason: `⏱️ Zeit abgelaufen! ${winner.avatar} ${winner.name} gewinnt.` });
                 delete active1v1Matches[matchId];
             }
         }
@@ -223,11 +216,19 @@ setInterval(() => {
 io.on('connection', (socket) => {
     let currentRoom = null; 
 
+    // --- NEU: Avatare werden jetzt überall mitgespeichert! ---
+
     socket.on('request_challenges', () => { socket.emit('update_challenges', Object.values(challenges)); });
-    socket.on('create_challenge', (data) => { const challengeId = 'chal_' + socket.id; challenges[challengeId] = { id: challengeId, challengerId: socket.id, challengerName: data.name, boardSize: parseInt(data.boardSize) }; io.emit('update_challenges', Object.values(challenges)); });
+    
+    socket.on('create_challenge', (data) => { 
+        const challengeId = 'chal_' + socket.id; 
+        challenges[challengeId] = { id: challengeId, challengerId: socket.id, challengerName: data.name, challengerAvatar: data.avatar, boardSize: parseInt(data.boardSize) }; 
+        io.emit('update_challenges', Object.values(challenges)); 
+    });
+    
     socket.on('cancel_challenge', () => { const challengeId = 'chal_' + socket.id; if (challenges[challengeId]) { delete challenges[challengeId]; io.emit('update_challenges', Object.values(challenges)); } });
 
-    socket.on('accept_challenge', (challengeId, acceptorName) => {
+    socket.on('accept_challenge', (challengeId, acceptorData) => {
         const chal = challenges[challengeId];
         if (chal && chal.challengerId !== socket.id) { 
             const newRoomId = '1v1_' + Math.random().toString(36).substring(2,8);
@@ -235,13 +236,16 @@ io.on('connection', (socket) => {
             
             active1v1Matches[newRoomId] = {
                 id: newRoomId, size: chal.boardSize, board: emptyBoard, turn: 'black', passes: 0,
-                state: 'playing', // 'playing' oder 'scoring'
+                state: 'playing', 
                 deadStones: new Set(),
                 accepts: { black: false, white: false },
                 history: new Set([JSON.stringify(emptyBoard)]),
                 timers: { black: 600, white: 600 }, 
                 captures: { black: 0, white: 0 },   
-                players: { black: { id: chal.challengerId, name: chal.challengerName }, white: { id: socket.id, name: acceptorName } }
+                players: { 
+                    black: { id: chal.challengerId, name: chal.challengerName, avatar: chal.challengerAvatar }, 
+                    white: { id: socket.id, name: acceptorData.name, avatar: acceptorData.avatar } 
+                }
             };
 
             if(currentRoom && rooms[currentRoom]) { delete rooms[currentRoom].players[socket.id]; socket.leave(currentRoom); broadcastLeaderboard(currentRoom); }
@@ -249,8 +253,8 @@ io.on('connection', (socket) => {
             const opponentSocket = io.sockets.sockets.get(chal.challengerId);
             if(opponentSocket) opponentSocket.join(newRoomId);
 
-            io.to(chal.challengerId).emit('1v1_match_started', { roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, playerWhite: acceptorName, myColor: 'black' });
-            socket.emit('1v1_match_started', { roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, playerWhite: acceptorName, myColor: 'white' });
+            io.to(chal.challengerId).emit('1v1_match_started', { roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, avatarBlack: chal.challengerAvatar, playerWhite: acceptorData.name, avatarWhite: acceptorData.avatar, myColor: 'black' });
+            socket.emit('1v1_match_started', { roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, avatarBlack: chal.challengerAvatar, playerWhite: acceptorData.name, avatarWhite: acceptorData.avatar, myColor: 'white' });
             
             delete challenges[challengeId]; io.emit('update_challenges', Object.values(challenges));
         }
@@ -293,7 +297,6 @@ io.on('connection', (socket) => {
         match.turn = (myColor === 'black') ? 'white' : 'black';
 
         if(match.passes >= 2) {
-            // NEU: Wechsel in die Scoring Phase!
             match.state = 'scoring';
             io.to(matchId).emit('1v1_scoring_phase');
         } else {
@@ -301,31 +304,23 @@ io.on('connection', (socket) => {
         }
     });
 
-    // NEU: Tote Steine markieren
     socket.on('1v1_toggle_dead', (data) => {
         const matchId = data.roomId; const match = active1v1Matches[matchId];
         if(!match || match.state !== 'scoring') return;
-        if(match.board[data.x][data.y] === null) return; // Nichts zu markieren
+        if(match.board[data.x][data.y] === null) return; 
 
-        // Finde die ganze Gruppe
         let group = getGroupOfColor(match.board, data.x, data.y);
-        
-        // Check, ob der erste Stein der Gruppe schon tot markiert ist
         let isDead = match.deadStones.has(`${data.x},${data.y}`);
 
         group.forEach(stone => {
-            if(isDead) match.deadStones.delete(`${stone.x},${stone.y}`); // Wiederbeleben
-            else match.deadStones.add(`${stone.x},${stone.y}`); // Töten
+            if(isDead) match.deadStones.delete(`${stone.x},${stone.y}`); 
+            else match.deadStones.add(`${stone.x},${stone.y}`); 
         });
 
-        // Zustand zurücksetzen, da das Brett verändert wurde
-        match.accepts.black = false;
-        match.accepts.white = false;
-
+        match.accepts.black = false; match.accepts.white = false;
         io.to(matchId).emit('1v1_scoring_update', { deadStones: Array.from(match.deadStones), accepts: match.accepts });
     });
 
-    // NEU: Auszählen akzeptieren
     socket.on('1v1_accept_score', (matchId) => {
         const match = active1v1Matches[matchId];
         if(!match || match.state !== 'scoring') return;
@@ -335,14 +330,13 @@ io.on('connection', (socket) => {
 
         io.to(matchId).emit('1v1_scoring_update', { deadStones: Array.from(match.deadStones), accepts: match.accepts });
 
-        // Wenn beide akzeptiert haben: FEUERWERK!
         if(match.accepts.black && match.accepts.white) {
             let finalScore = calculateJapaneseScore(match.board, match.captures, match.deadStones);
-            let winner = finalScore.blackTotal > finalScore.whiteTotal ? match.players.black.name : match.players.white.name;
+            let winnerPlayer = finalScore.blackTotal > finalScore.whiteTotal ? match.players.black : match.players.white;
             let diff = Math.abs(finalScore.blackTotal - finalScore.whiteTotal);
             
             io.to(matchId).emit('1v1_game_over', { 
-                reason: `Beide Spieler haben die Zählung akzeptiert.<br>🏆 <b>${winner} gewinnt</b> mit ${diff} Punkten Vorsprung!<br><br>
+                reason: `Beide Spieler haben die Zählung akzeptiert.<br>🏆 <b>${winnerPlayer.avatar} ${winnerPlayer.name} gewinnt</b> mit ${diff} Punkten Vorsprung!<br><br>
                 <div style='font-size:1.1rem; color:#ccc; margin-top: 15px; text-align: left; background: #111; padding: 10px; border-radius: 8px;'>
                 <b>Japanische Zählung:</b><br>
                 ⚫ Schwarz: ${finalScore.blackTotal} Punkte <br><span style='font-size:0.9rem;'>(${finalScore.blackTerr} Gebiet + ${finalScore.blackCaps} Gefangene)</span><br><br>
@@ -355,31 +349,40 @@ io.on('connection', (socket) => {
 
     socket.on('1v1_resign', (matchId) => {
         const match = active1v1Matches[matchId]; if(!match) return;
-        const loser = (match.players.black.id === socket.id) ? match.players.black.name : match.players.white.name;
-        io.to(matchId).emit('1v1_game_over', { reason: `🏳️ ${loser} hat aufgegeben.` });
+        const loser = (match.players.black.id === socket.id) ? match.players.black : match.players.white;
+        io.to(matchId).emit('1v1_game_over', { reason: `🏳️ ${loser.avatar} ${loser.name} hat aufgegeben.` });
         delete active1v1Matches[matchId];
     });
 
-    // --- TSUMEGO RUSH LOGIK (Unverändert) ---
+    // --- TSUMEGO RUSH LOGIK ---
     socket.on('join_room', (data) => {
-        const playerName = data.name; const requestedRoom = data.roomId; 
+        const playerName = data.name; const playerAvatar = data.avatar; const requestedRoom = data.roomId; 
         currentRoom = requestedRoom; initRoom(currentRoom); socket.join(currentRoom); 
         let isHost = false; if (currentRoom !== 'public' && Object.keys(rooms[currentRoom].players).length === 0) rooms[currentRoom].hostId = socket.id;
         if (rooms[currentRoom].hostId === socket.id) isHost = true;
-        rooms[currentRoom].players[socket.id] = { name: playerName, score: 0, combo: 0, id: socket.id }; 
+        // Speichere den Avatar mit ab!
+        rooms[currentRoom].players[socket.id] = { name: playerName, avatar: playerAvatar, score: 0, combo: 0, id: socket.id }; 
         socket.emit('room_joined', { roomId: currentRoom, isHost: isHost }); broadcastLeaderboard(currentRoom); 
         if (rooms[currentRoom].isPlaying) { socket.emit('game_already_started'); if (rooms[currentRoom].currentLevel < rooms[currentRoom].puzzles.length) { socket.emit('new_round', { puzzle: rooms[currentRoom].puzzles[rooms[currentRoom].currentLevel], maxTime: rooms[currentRoom].settings.timeLimit }); } }
     });
+    
     socket.on('start_game', (settings) => {
         if (!currentRoom || !rooms[currentRoom]) return; let r = rooms[currentRoom]; if (currentRoom !== 'public' && r.hostId !== socket.id) return;
         if (!r.isPlaying) { let freshDeck = [...r.originalPuzzles]; shuffle(freshDeck); if (settings) { r.settings.timeLimit = parseInt(settings.timeLimit); let count = settings.puzzleCount === 'all' ? freshDeck.length : parseInt(settings.puzzleCount); r.puzzles = freshDeck.slice(0, count); } else { r.puzzles = freshDeck; } r.isPlaying = true; r.currentLevel = -1; for (let id in r.players) { r.players[id].score = 0; r.players[id].combo = 0; } broadcastLeaderboard(currentRoom); io.to(currentRoom).emit('game_starting'); setTimeout(() => nextLevel(currentRoom), 1000); }
     });
-    socket.on('chat_message', (msg) => { if (currentRoom && rooms[currentRoom]) { const player = rooms[currentRoom].players[socket.id]; const name = player ? player.name : "Zuschauer"; io.to(currentRoom).emit('chat_message', { name: name, text: msg }); } });
+
+    // NEU: Nimmt Name UND Avatar direkt vom Client für den Chat
+    socket.on('chat_message', (data) => { 
+        let targetRoom = Array.from(socket.rooms).find(r => r !== socket.id);
+        if(targetRoom) io.to(targetRoom).emit('chat_message', data);
+    });
+
     socket.on('guess', (data) => {
         if (!currentRoom || !rooms[currentRoom]) return; let r = rooms[currentRoom]; const p = r.puzzles[r.currentLevel]; if (!p || !r.isPlaying) return; let player = r.players[socket.id]; const isCorrect = p.solution.some(sol => sol.x === data.x && sol.y === data.y);
         if (isCorrect) { player.combo += 1; let basePoints = 100 + (r.timeLeft * (100 / r.settings.timeLimit)); let comboBonus = (player.combo > 1) ? (player.combo - 1) * 50 : 0; let totalPoints = Math.round(basePoints + comboBonus); player.score += totalPoints; socket.emit('correct_guess', { points: totalPoints, combo: player.combo }); socket.to(currentRoom).emit('round_won_by_other', { winnerName: player.name, x: data.x, y: data.y }); for (let id in r.players) { if (id !== socket.id) r.players[id].combo = 0; } broadcastLeaderboard(currentRoom); nextLevel(currentRoom); } 
         else { player.combo = 0; socket.emit('wrong_guess'); }
     });
+
     socket.on('disconnect', () => {
         const chalId = 'chal_' + socket.id; if (challenges[chalId]) { delete challenges[chalId]; io.emit('update_challenges', Object.values(challenges)); }
         if(currentRoom && rooms[currentRoom] && rooms[currentRoom].players[socket.id]) { delete rooms[currentRoom].players[socket.id]; broadcastLeaderboard(currentRoom); const remainingPlayers = Object.keys(rooms[currentRoom].players); if (currentRoom !== 'public' && remainingPlayers.length === 0) { clearInterval(rooms[currentRoom].interval); delete rooms[currentRoom]; } else if (currentRoom !== 'public' && rooms[currentRoom].hostId === socket.id) { rooms[currentRoom].hostId = remainingPlayers[0]; io.to(remainingPlayers[0]).emit('you_are_host'); } }
