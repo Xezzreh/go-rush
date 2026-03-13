@@ -4,89 +4,159 @@
     <meta charset="UTF-8">
     <title>Go-Rush Multiplayer</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚫</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    
     <style>
-        body { background: #1a1a1a; color: white; font-family: sans-serif; text-align: center; margin: 0; padding-top: 20px; }
-        
-        #login-screen, #menu-screen { margin-top: 100px; padding: 20px; }
-        #lobby-screen, #game-over-screen, #matchmaking-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; } 
-        #game-screen, #pvp-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; }
+        /* Animierter Hintergrund & Schriftart */
+        body { 
+            background: linear-gradient(135deg, #0f1016 0%, #1a1a2e 50%, #0f1016 100%);
+            background-size: 200% 200%;
+            animation: gradientBG 15s ease infinite;
+            color: white; 
+            font-family: 'Nunito', sans-serif; 
+            text-align: center; 
+            margin: 0; 
+            padding-top: 20px; 
+            min-height: 100vh;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Weiche Einblend-Animation für alle Screens */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #login-screen, #menu-screen { margin-top: 100px; padding: 20px; animation: fadeIn 0.4s ease-out; }
+        #lobby-screen, #game-over-screen, #matchmaking-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; animation: fadeIn 0.4s ease-out; } 
+        #game-screen, #pvp-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; animation: fadeIn 0.4s ease-out; }
         #menu-screen { display: none; } 
         
-        input, select { font-size: 1.2rem; padding: 10px; border-radius: 5px; border: none; text-align: center; margin-bottom: 10px; max-width: 80%; background: #333; color: white; }
-        button { font-size: 1.2rem; padding: 10px 20px; margin: 5px; cursor: pointer; background: #44aaff; color: white; border: none; border-radius: 5px; font-weight: bold; transition: transform 0.1s; }
-        button:hover { background: #3388cc; transform: scale(1.05); } 
-        button:active { transform: scale(0.95); } 
+        /* Styling für Eingabefelder */
+        input, select { 
+            font-family: 'Nunito', sans-serif; font-size: 1.2rem; padding: 12px; 
+            border-radius: 8px; border: 2px solid #444; text-align: center; 
+            margin-bottom: 10px; max-width: 80%; background: rgba(30,30,30,0.8); 
+            color: white; outline: none; transition: border 0.3s, box-shadow 0.3s;
+        }
+        input:focus, select:focus { border: 2px solid #ffaa00; box-shadow: 0 0 10px rgba(255, 170, 0, 0.3); }
+
+        /* Bessere Buttons mit Schatten und Glow */
+        button { 
+            font-family: 'Nunito', sans-serif; font-size: 1.2rem; padding: 12px 24px; 
+            margin: 5px; cursor: pointer; background: #44aaff; color: white; 
+            border: none; border-radius: 8px; font-weight: 700; 
+            transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        button:hover { background: #3388cc; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(68, 170, 255, 0.4); } 
+        button:active { transform: translateY(1px); box-shadow: 0 2px 10px rgba(0,0,0,0.3); } 
+        button:disabled { background: #555; cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.7;}
         
+        .btn-public { background: #28a745; } .btn-public:hover { background: #218838; box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4); }
+        .btn-private { background: #ffaa00; } .btn-private:hover { background: #e69500; box-shadow: 0 6px 20px rgba(255, 170, 0, 0.4); }
+        .btn-1v1 { background: #9932cc; } .btn-1v1:hover { background: #8a2be2; box-shadow: 0 6px 20px rgba(153, 50, 204, 0.4); }
+
+        /* Avatare */
         .avatar-options { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; font-size: 2.5rem; cursor: pointer; flex-wrap: wrap; }
-        .avatar-option { opacity: 0.5; transition: transform 0.2s, opacity 0.2s; padding: 5px; border-radius: 10px; border: 2px solid transparent; }
-        .avatar-option:hover { transform: scale(1.2); opacity: 0.8;}
-        .avatar-option.selected { opacity: 1; border: 2px solid #ffaa00; background: #333; transform: scale(1.1);}
+        .avatar-option { opacity: 0.4; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); padding: 5px; border-radius: 12px; border: 2px solid transparent; }
+        .avatar-option:hover { transform: scale(1.2); opacity: 0.8; }
+        .avatar-option.selected { opacity: 1; border: 2px solid #ffaa00; background: rgba(255, 170, 0, 0.1); transform: scale(1.1); box-shadow: 0 0 15px rgba(255, 170, 0, 0.3);}
 
-        .btn-public { background: #28a745; } .btn-public:hover { background: #218838; }
-        .btn-private { background: #ffaa00; } .btn-private:hover { background: #e69500; }
-        .btn-1v1 { background: #9932cc; } .btn-1v1:hover { background: #8a2be2; }
+        #top-bar { position: absolute; top: 10px; left: 10px; display: flex; gap: 10px; z-index: 1000; }
+        .top-btn { background: rgba(50,50,50,0.8); font-size: 1rem; padding: 8px 12px; backdrop-filter: blur(5px); }
 
-        #top-bar { position: absolute; top: 10px; left: 10px; display: flex; gap: 5px; }
-        .top-btn { background: #333; font-size: 1rem; padding: 5px 10px; }
+        /* Glassmorphismus für Cards und Panels */
+        .glass-panel {
+            background: rgba(30, 30, 35, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
 
-        #room-code-display { font-size: 2rem; color: #ffaa00; background: #333; padding: 10px; border-radius: 5px; display: inline-block; margin-bottom: 10px; border: 2px dashed #ffaa00;}
-        #host-settings { background: #2a2a2a; border: 2px solid #ffaa00; padding: 15px; border-radius: 8px; margin: 15px auto; max-width: 400px; display: none; }
+        #room-code-display { font-size: 2rem; color: #ffaa00; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 8px; display: inline-block; margin-bottom: 10px; border: 2px dashed #ffaa00; letter-spacing: 2px;}
+        #host-settings { padding: 20px; margin: 15px auto; max-width: 400px; display: none; }
         .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         #waiting-msg { color: #aaa; font-style: italic; display: none; margin: 20px; }
 
-        #lobby-players { list-style: none; padding: 0; font-size: 1.5rem; color: #ffcc00; margin: 20px auto; width: 300px; max-width: 90%; background: #222; border-radius: 8px; border: 2px solid #333; padding: 15px; }
-        #lobby-players li { border-bottom: 1px dashed #444; padding: 5px 0; }
+        #lobby-players { list-style: none; padding: 0; font-size: 1.5rem; color: #ffcc00; margin: 20px auto; width: 300px; max-width: 90%; padding: 15px; }
+        #lobby-players li { border-bottom: 1px dashed rgba(255,255,255,0.1); padding: 8px 0; }
+        #lobby-players li:last-child { border-bottom: none; }
         
-        .challenge-card { background: #222; border: 2px solid #9932cc; border-radius: 8px; padding: 15px; margin: 10px auto; max-width: 400px; display: flex; justify-content: space-between; align-items: center; }
+        .challenge-card { padding: 15px; margin: 10px auto; max-width: 400px; display: flex; justify-content: space-between; align-items: center; border: 2px solid rgba(153, 50, 204, 0.5); transition: transform 0.2s;}
+        .challenge-card:hover { transform: translateY(-2px); border-color: rgba(153, 50, 204, 1); }
         .challenge-info { text-align: left; }
         .challenge-info h3 { margin: 0 0 5px 0; color: #fff; }
-        .challenge-info span { color: #aaa; font-size: 1rem; }
+        .challenge-info span { color: #aaa; font-size: 0.9rem; }
 
-        #hud, #pvp-hud { display: flex; justify-content: center; align-items: center; gap: 30px; font-size: 1.8rem; font-weight: bold; margin-bottom: 5px; flex-wrap: wrap; }
+        #hud, #pvp-hud { display: flex; justify-content: center; align-items: center; gap: 30px; font-size: 1.8rem; font-weight: 900; margin-bottom: 5px; flex-wrap: wrap; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         .timer { color: #ff4444; }
         .score { color: #44aaff; }
-        #msg { font-size: 1.2rem; color: #aaa; min-height: 30px; font-weight: bold; margin-bottom: 15px;}
+        #msg { font-size: 1.3rem; color: #aaa; min-height: 35px; font-weight: 700; margin-bottom: 15px;}
         
-        #timer-container { width: 100%; max-width: 600px; background: #333; height: 12px; border-radius: 6px; margin: 0 auto 15px auto; overflow: hidden; border: 2px solid #222; }
-        #timer-bar { height: 100%; width: 100%; background: #00ff00; transition: width 1s linear, background-color 0.5s; }
+        #timer-container { width: 100%; max-width: 600px; background: rgba(0,0,0,0.5); height: 14px; border-radius: 7px; margin: 0 auto 15px auto; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: inset 0 2px 5px rgba(0,0,0,0.5); }
+        #timer-bar { height: 100%; width: 100%; background: linear-gradient(90deg, #00ff00, #00cc00); transition: width 1s linear, background 0.5s; }
 
         #game-content, #pvp-content { display: flex; justify-content: center; align-items: flex-start; gap: 30px; max-width: 950px; margin: 0 auto 20px auto; flex-wrap: wrap; }
         
-        .board-container { width: 100%; max-width: min(600px, 55vh); aspect-ratio: 1 / 1; background: radial-gradient(circle, #e6c280, #c29b57); border: 8px solid #3e2723; border-radius: 5px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); cursor: crosshair; position: relative; }
+        /* Das Holzbrett */
+        .board-container { 
+            width: 100%; max-width: min(600px, 55vh); aspect-ratio: 1 / 1; 
+            background: radial-gradient(circle at 30% 30%, #ebd29f, #c29b57); 
+            border: 8px solid #3e2723; border-radius: 6px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.2); 
+            cursor: crosshair; position: relative; 
+        }
         canvas { width: 100%; height: 100%; display: block; }
 
-        #leaderboard, #pvp-sidebar { background: #222; border: 3px solid #333; border-radius: 8px; padding: 15px; width: 100%; max-width: 300px; text-align: left; box-shadow: 0 5px 15px rgba(0,0,0,0.5); box-sizing: border-box; }
-        #leaderboard h2 { margin-top: 0; color: #ffcc00; text-align: center; font-size: 1.5rem; border-bottom: 2px solid #333; padding-bottom: 10px; }
-        .lb-row { display: flex; justify-content: space-between; font-size: 1.2rem; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px dashed #444; }
-        .lb-rank { color: #888; width: 30px; }
-        .lb-name { flex-grow: 1; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .lb-score { color: #44aaff; font-weight: bold; }
+        #leaderboard, #pvp-sidebar { padding: 20px; width: 100%; max-width: 300px; text-align: left; box-sizing: border-box; }
+        #leaderboard h2 { margin-top: 0; color: #ffcc00; text-align: center; font-size: 1.5rem; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .lb-row { display: flex; justify-content: space-between; font-size: 1.2rem; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed rgba(255,255,255,0.1); }
+        .lb-rank { color: #888; width: 30px; font-weight: 900;}
+        .lb-name { flex-grow: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lb-score { color: #44aaff; font-weight: 900; }
 
-        .floating-points { position: absolute; color: #00ff00; font-size: 2.5rem; font-weight: bold; pointer-events: none; text-shadow: 2px 2px 5px #000; animation: floatUp 1s ease-out forwards; z-index: 100; }
-        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-80px) scale(1.5); opacity: 0; } }
+        .floating-points { position: absolute; color: #00ff00; font-size: 2.5rem; font-weight: 900; pointer-events: none; text-shadow: 0 4px 8px rgba(0,0,0,0.8); animation: floatUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; z-index: 100; }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20% { transform: translateY(-20px) scale(1.2); opacity: 1; } 100% { transform: translateY(-80px) scale(1); opacity: 0; } }
 
-        .podium { display: flex; justify-content: center; align-items: flex-end; gap: 15px; margin: 40px auto; height: 180px; max-width: 500px; }
-        .podium-place { width: 100px; text-align: center; border-radius: 10px 10px 0 0; color: #000; font-weight: bold; padding-top: 10px; font-size: 1.5rem; display: flex; flex-direction: column; justify-content: flex-start; box-shadow: inset 0 5px 10px rgba(255,255,255,0.4), 0 -5px 15px rgba(0,0,0,0.5); }
-        .place-1 { height: 160px; background: linear-gradient(#ffd700, #b8860b); z-index: 3;}
-        .place-2 { height: 120px; background: linear-gradient(#e0e0e0, #a9a9a9); z-index: 2;}
-        .place-3 { height: 90px; background: linear-gradient(#cd7f32, #8b4513); z-index: 1;}
-        .podium-name { color: #fff; font-size: 1.3rem; text-shadow: 1px 1px 2px #000; word-wrap: break-word; font-weight: bold; margin-bottom: 5px;}
-        .podium-score { color: #44aaff; font-size: 1.1rem; text-shadow: 1px 1px 2px #000; margin-bottom: 10px;}
+        .podium { display: flex; justify-content: center; align-items: flex-end; gap: 15px; margin: 40px auto; height: 200px; max-width: 500px; }
+        .podium-place { width: 110px; text-align: center; border-radius: 12px 12px 0 0; color: #000; font-weight: 900; padding-top: 15px; font-size: 1.8rem; display: flex; flex-direction: column; justify-content: flex-start; box-shadow: inset 0 8px 15px rgba(255,255,255,0.4), 0 -5px 20px rgba(0,0,0,0.5); transition: transform 0.5s;}
+        .place-1 { height: 180px; background: linear-gradient(180deg, #ffe066 0%, #f5af19 100%); z-index: 3; animation: popUp 0.6s ease-out;}
+        .place-2 { height: 130px; background: linear-gradient(180deg, #e0e0e0 0%, #9e9e9e 100%); z-index: 2; animation: popUp 0.8s ease-out;}
+        .place-3 { height: 100px; background: linear-gradient(180deg, #e69d67 0%, #a6602e 100%); z-index: 1; animation: popUp 1s ease-out;}
+        
+        @keyframes popUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1;} }
 
-        .emoji-btn { background: #333; border: 2px solid #444; border-radius: 5px; padding: 5px 10px; font-size: 1.3rem; cursor: pointer; transition: transform 0.1s; }
-        .emoji-btn:hover { background: #444; transform: scale(1.2); }
+        .podium-name { color: #fff; font-size: 1.4rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8); word-wrap: break-word; font-weight: 700; margin-bottom: 5px;}
+        .podium-score { color: #44aaff; font-size: 1.2rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8); margin-bottom: 10px; font-weight: 900;}
+
+        /* Wunderschöne Scrollbars */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; transition: background 0.3s;}
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 170, 0, 0.6); }
+
+        .emoji-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 8px 12px; font-size: 1.4rem; cursor: pointer; transition: transform 0.1s, background 0.2s; box-shadow: none;}
+        .emoji-btn:hover { background: rgba(255,255,255,0.15); transform: scale(1.15) rotate(5deg); }
     </style>
 </head>
 <body>
 
     <div id="top-bar">
-        <button class="top-btn" id="mute-btn">🔊</button>
-        <button class="top-btn" id="profile-btn" style="display:none;">👤 Profil ändern</button> 
+        <button class="top-btn glass-panel" id="mute-btn">🔊</button>
+        <button class="top-btn glass-panel" id="profile-btn" style="display:none;">👤 Profil</button> 
     </div>
 
     <div id="login-screen">
-        <h1>Willkommen bei Go-Rush!</h1>
-        <p style="color: #aaa; margin-bottom: 10px;">Wähle deinen Avatar:</p>
+        <h1 style="font-size: 3rem; margin-bottom: 10px; background: -webkit-linear-gradient(#fff, #aaa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Go-Rush!</h1>
+        <p style="color: #aaa; margin-bottom: 15px; font-size: 1.2rem;">Wähle deinen Avatar</p>
         <div class="avatar-options" id="avatar-selection">
             <div class="avatar-option selected">🦊</div>
             <div class="avatar-option">🐼</div>
@@ -98,119 +168,137 @@
             <div class="avatar-option">🦉</div>
         </div>
         <input type="text" id="username" placeholder="Dein Spielername..." autocomplete="off"><br>
-        <button id="next-btn">Weiter</button>
+        <button id="next-btn" style="padding: 15px 40px; font-size: 1.4rem; margin-top: 10px;">Los geht's</button>
     </div>
 
     <div id="menu-screen">
-        <h2>Spielmodus wählen</h2>
-        <button class="btn-1v1" id="btn-goto-matchmaking" style="padding: 15px 30px; font-size: 1.5rem; margin-bottom: 20px;">⚔️ 1v1 Online spielen</button><br>
-        <button class="btn-public" id="btn-public">🌍 Öffentlich spielen</button><br><br>
-        <div style="background: #222; padding: 20px; display: inline-block; border-radius: 8px; border: 2px solid #444; max-width: 90%;">
-            <button class="btn-private" id="btn-create-private">🔒 Privaten Raum erstellen</button><br><h3>ODER</h3>
-            <input type="text" id="roomcode-input" placeholder="Raumcode..." style="width: 150px;"><br><button id="btn-join-private">Raum beitreten</button>
+        <h2 style="font-size: 2rem; color: #fff;">Spielmodus wählen</h2>
+        <button class="btn-1v1" id="btn-goto-matchmaking" style="padding: 20px 40px; font-size: 1.6rem; margin-bottom: 25px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2);">⚔️ 1v1 Online spielen</button><br>
+        <button class="btn-public" id="btn-public">🌍 Öffentlicher Tsumego-Rush</button><br><br>
+        
+        <div class="glass-panel" style="padding: 25px; display: inline-block; max-width: 90%;">
+            <button class="btn-private" id="btn-create-private">🔒 Privaten Raum erstellen</button>
+            <h3 style="color:#aaa; font-weight: 400;">oder mit Code beitreten</h3>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <input type="text" id="roomcode-input" placeholder="CODE..." style="width: 100px; margin: 0; font-weight: bold; text-transform: uppercase;">
+                <button id="btn-join-private" style="margin: 0;">Beitreten</button>
+            </div>
         </div>
     </div>
 
     <div id="matchmaking-screen">
         <div style="display: flex; justify-content: space-between; align-items: center; max-width: 900px; margin: 0 auto;">
-            <h1 style="color: #9932cc; margin-top: 0;">Das Schwarze Brett</h1>
-            <button id="btn-back-to-menu" style="background: #555; padding: 8px 15px; font-size: 1rem;">Zurück zum Menü</button>
+            <h1 style="color: #c973ff; margin-top: 0;">Das Schwarze Brett</h1>
+            <button class="glass-panel" id="btn-back-to-menu" style="background: rgba(0,0,0,0.5); padding: 10px 20px; font-size: 1rem;">Zurück zum Menü</button>
         </div>
-        <p style="color: #aaa; max-width: 900px; margin: 0 auto 20px auto; text-align: left;">Suche dir einen Gegner oder schau laufenden Spielen zu!</p>
+        <p style="color: #aaa; max-width: 900px; margin: 0 auto 25px auto; text-align: left; font-size: 1.1rem;">Suche dir einen Gegner oder schau laufenden Spielen zu!</p>
         
-        <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; max-width: 900px; margin: 0 auto;">
-            
+        <div style="display: flex; justify-content: center; gap: 25px; flex-wrap: wrap; max-width: 900px; margin: 0 auto;">
             <div style="flex: 1; min-width: 300px;">
-                <div style="background: #2a2a2a; border: 2px dashed #555; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                    <h3>Neue Herausforderung stellen</h3>
-                    <select id="select-boardsize"><option value="9">9x9 Brett (Schnell)</option><option value="13">13x13 Brett (Mittel)</option><option value="19" selected>19x19 Brett (Klassisch)</option></select><br>
-                    <button class="btn-1v1" id="btn-create-challenge">Suchen 🔎</button>
-                    <button id="btn-cancel-challenge" style="display:none; background: #ff4444;">Suche abbrechen</button>
+                <div class="glass-panel" style="padding: 20px; margin-bottom: 25px;">
+                    <h3 style="margin-top:0;">Herausforderung stellen</h3>
+                    <select id="select-boardsize" style="width: 100%; max-width: none;">
+                        <option value="9">9x9 Brett (Schnell)</option>
+                        <option value="13">13x13 Brett (Mittel)</option>
+                        <option value="19" selected>19x19 Brett (Klassisch)</option>
+                    </select><br>
+                    <button class="btn-1v1" id="btn-create-challenge" style="width: 100%; margin: 5px 0 0 0;">Gegner suchen 🔎</button>
+                    <button id="btn-cancel-challenge" style="display:none; background: #ff4444; width: 100%; margin: 5px 0 0 0;">Suche abbrechen</button>
                 </div>
-                <h3>Offene Herausforderungen:</h3>
-                <div id="challenge-list"><p style="color: #666;">Aktuell sucht niemand nach einem Spiel.</p></div>
+                <h3 style="text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Offene Herausforderungen:</h3>
+                <div id="challenge-list"><p style="color: #666; font-style: italic;">Aktuell sucht niemand nach einem Spiel.</p></div>
             </div>
 
-            <div style="flex: 1; min-width: 300px; background: #1a1a1a; border: 2px solid #333; padding: 15px; border-radius: 8px;">
-                <h3 style="margin-top:0;">Laufende Spiele (Zuschauen):</h3>
-                <div id="active-matches-list"><p style="color: #666;">Aktuell laufen keine Spiele.</p></div>
+            <div class="glass-panel" style="flex: 1; min-width: 300px; padding: 20px;">
+                <h3 style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Live Spiele (Zuschauen):</h3>
+                <div id="active-matches-list"><p style="color: #666; font-style: italic;">Aktuell laufen keine Spiele.</p></div>
             </div>
-
         </div>
     </div>
 
     <div id="room-container" style="display: none; justify-content: center; align-items: flex-start; gap: 30px; max-width: 1250px; margin: 20px auto; padding: 0 10px; flex-wrap: wrap-reverse;">
         
-        <div id="global-chat" style="display: flex; width: 100%; max-width: 320px; background: #222; border: 3px solid #333; border-radius: 8px; padding: 10px; flex-direction: column; height: min(600px, 75vh); box-sizing: border-box; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
-            <h3 style="margin: 0 0 10px 0; color: #aaa; text-align: left; font-size: 1.1rem; border-bottom: 1px solid #444; padding-bottom: 5px;">💬 Raum Chat</h3>
-            <div id="chat-messages" style="flex-grow: 1; overflow-y: auto; text-align: left; margin-bottom: 10px; padding: 10px; background: #111; border-radius: 5px; font-size: 1.1rem; border: 1px solid #444; word-wrap: break-word;"></div>
-            <div style="display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px;"><button class="emoji-btn">🔥</button><button class="emoji-btn">❤️</button><button class="emoji-btn">😡</button><button class="emoji-btn">😂</button><button class="emoji-btn">👏</button></div>
-            <div style="display: flex; gap: 5px; width: 100%;"><input type="text" id="chat-input" placeholder="Nachricht..." autocomplete="off" style="flex-grow: 1; font-size: 1.1rem; padding: 8px; margin: 0; text-align: left; min-width: 0;"><button id="chat-send" style="margin: 0; padding: 8px 15px;">▶</button></div>
+        <div id="global-chat" class="glass-panel" style="display: flex; width: 100%; max-width: 320px; padding: 15px; flex-direction: column; height: min(600px, 75vh); box-sizing: border-box;">
+            <h3 style="margin: 0 0 15px 0; color: #fff; text-align: left; font-size: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">💬 Raum Chat</h3>
+            <div id="chat-messages" style="flex-grow: 1; overflow-y: auto; text-align: left; margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; font-size: 1.1rem; word-wrap: break-word;"></div>
+            <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 15px;">
+                <button class="emoji-btn">🔥</button><button class="emoji-btn">❤️</button><button class="emoji-btn">😡</button><button class="emoji-btn">😂</button><button class="emoji-btn">👏</button>
+            </div>
+            <div style="display: flex; gap: 8px; width: 100%;">
+                <input type="text" id="chat-input" placeholder="Nachricht..." autocomplete="off" style="flex-grow: 1; font-size: 1.1rem; padding: 10px; margin: 0; text-align: left; min-width: 0; border: none; background: rgba(255,255,255,0.1);">
+                <button id="chat-send" style="margin: 0; padding: 10px 20px; border-radius: 8px;">▶</button>
+            </div>
         </div>
 
         <div id="main-column" style="flex-grow: 1; width: 100%; max-width: 850px; display: flex; flex-direction: column; align-items: center;">
             
-            <div id="lobby-screen">
-                <h2 id="room-title" style="margin-top: 0;">Wartezimmer</h2>
+            <div id="lobby-screen" class="glass-panel" style="width: 100%;">
+                <h2 id="room-title" style="margin-top: 0; font-size: 2rem;">Wartezimmer</h2>
                 <div id="room-code-display" style="display:none;">Code: <span id="the-code"></span></div> 
-                <div id="host-settings"><h3 style="margin-top:0; color:#ffaa00;">Raum Einstellungen</h3><div class="setting-row"><label>Zeit pro Rätsel:</label><select id="set-time"><option value="5">5s</option><option value="10" selected>10s</option><option value="15">15s</option><option value="30">30s</option></select></div><div class="setting-row"><label>Anzahl Runden:</label><select id="set-count"><option value="10">10</option><option value="20" selected>20</option><option value="all">Alle</option></select></div></div>
+                <div id="host-settings" class="glass-panel" style="background: rgba(0,0,0,0.3); border: 1px solid #ffaa00;">
+                    <h3 style="margin-top:0; color:#ffaa00;">Raum Einstellungen</h3>
+                    <div class="setting-row"><label>Zeit pro Rätsel:</label><select id="set-time" style="margin:0;"><option value="5">5s</option><option value="10" selected>10s</option><option value="15">15s</option><option value="30">30s</option></select></div>
+                    <div class="setting-row" style="margin-top:15px;"><label>Anzahl Runden:</label><select id="set-count" style="margin:0;"><option value="10">10</option><option value="20" selected>20</option><option value="all">Alle</option></select></div>
+                </div>
                 <p id="waiting-msg">Warte auf den Host...</p>
-                <p>Wer ist alles dabei?</p><ul id="lobby-players"></ul><button id="start-btn" style="display:none;">💥 SPIEL STARTEN 💥</button>
+                <h3 style="margin-top: 30px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom:10px;">Mitspieler:</h3>
+                <ul id="lobby-players"></ul>
+                <button id="start-btn" style="display:none; padding: 15px 40px; font-size: 1.5rem; margin-top: 20px;">💥 SPIEL STARTEN 💥</button>
             </div>
 
-            <div id="game-over-screen">
-                <h1 style="color: #ffaa00; font-size: 3rem; margin-bottom: 0; margin-top: 0;">SPIEL BEENDET!</h1>
-                <h3 id="go-reason" style="color: #aaa; margin-top: 5px;">Das sind die Sieger:</h3>
+            <div id="game-over-screen" style="width: 100%;">
+                <h1 style="color: #ffaa00; font-size: 4rem; margin-bottom: 0; margin-top: 0; text-shadow: 0 4px 10px rgba(0,0,0,0.5);">SPIEL BEENDET!</h1>
+                <h3 id="go-reason" style="color: #fff; margin-top: 10px; font-size: 1.5rem; font-weight: 400;">Das sind die Sieger:</h3>
                 <div class="podium" id="podium-container"></div>
-                <p style="margin-top: 20px;">Zurück zur Lobby in <span id="lobby-countdown">8</span> Sekunden...</p>
+                <p style="margin-top: 40px; color: #aaa; font-style: italic;">Zurück zur Lobby in <span id="lobby-countdown">8</span> Sekunden...</p>
             </div>
 
-            <div id="game-screen">
+            <div id="game-screen" style="width: 100%;">
                 <div id="hud"><div class="score" id="score">Score: 0</div><div class="timer" id="timer">Zeit: 10</div></div>
                 <div id="timer-container"><div id="timer-bar"></div></div>
                 <p id="msg">Mache dich bereit...</p>
                 <div id="game-content">
                     <div class="board-container"><canvas id="goCanvas" width="600" height="600"></canvas></div>
-                    <div id="leaderboard"><h2>Rangliste</h2><div id="lb-list"></div></div>
+                    <div id="leaderboard" class="glass-panel"><h2>Rangliste</h2><div id="lb-list"></div></div>
                 </div>
             </div>
 
-            <div id="pvp-screen">
-                <div id="pvp-hud" style="display:flex; justify-content:space-between; width:100%; max-width:600px; background:#222; padding:10px; border-radius:8px; border:2px solid #444; margin-bottom:5px; box-sizing:border-box;">
+            <div id="pvp-screen" style="width: 100%;">
+                <div id="pvp-hud" class="glass-panel" style="display:flex; justify-content:space-between; width:100%; max-width:600px; padding:15px 25px; margin-bottom:15px; box-sizing:border-box;">
                     <div style="text-align:left;">
-                        <div style="color:#fff; font-size:1.4rem; font-weight:bold;" id="pvp-black-name">⚫ Schwarz</div>
-                        <div style="color:#aaa; font-size:1.1rem; margin-top:5px;">⏱️ <span id="pvp-black-time" style="color:#00ff00;">10:00</span> &nbsp;|&nbsp; ⚔️ <span id="pvp-black-caps">0</span></div>
+                        <div style="color:#fff; font-size:1.5rem; font-weight:900; text-shadow: 0 2px 4px rgba(0,0,0,0.8);" id="pvp-black-name">⚫ Schwarz</div>
+                        <div style="color:#ddd; font-size:1.2rem; margin-top:5px; font-weight:700;">⏱️ <span id="pvp-black-time" style="color:#00ff00;">10:00</span> &nbsp;|&nbsp; ⚔️ <span id="pvp-black-caps">0</span></div>
                     </div>
                     <div style="text-align:right;">
-                        <div style="color:#fff; font-size:1.4rem; font-weight:bold;" id="pvp-white-name">⚪ Weiß</div>
-                        <div style="color:#aaa; font-size:1.1rem; margin-top:5px;">⚔️ <span id="pvp-white-caps">0</span> &nbsp;|&nbsp; ⏱️ <span id="pvp-white-time" style="color:#00ff00;">10:00</span></div>
+                        <div style="color:#fff; font-size:1.5rem; font-weight:900; text-shadow: 0 2px 4px rgba(0,0,0,0.8);" id="pvp-white-name">⚪ Weiß</div>
+                        <div style="color:#ddd; font-size:1.2rem; margin-top:5px; font-weight:700;">⚔️ <span id="pvp-white-caps">0</span> &nbsp;|&nbsp; ⏱️ <span id="pvp-white-time" style="color:#00ff00;">10:00</span></div>
                     </div>
                 </div>
 
-                <h2 id="pvp-turn-indicator" style="color: #ffaa00; margin: 5px 0 15px 0;">Schwarz ist am Zug</h2>
+                <h2 id="pvp-turn-indicator" style="color: #ffaa00; margin: 0 0 20px 0; font-size: 2rem; text-shadow: 0 2px 5px rgba(0,0,0,0.5);">Schwarz ist am Zug</h2>
                 
                 <div id="pvp-content">
                     <div class="board-container">
                         <canvas id="pvpCanvas" width="600" height="600"></canvas>
                     </div>
-                    <div id="pvp-sidebar">
+                    <div id="pvp-sidebar" class="glass-panel">
                         
-                        <div id="pvp-confirm-area" style="display:none; margin-bottom: 20px; padding: 10px; background: #333; border-radius: 8px; border: 2px dashed #44aaff;">
-                            <p style="margin-top:0; font-size: 0.9rem; color: #44aaff;">Zug markiert!</p>
-                            <button id="btn-pvp-confirm-move" style="width: 100%; background: #44aaff; color: white; padding: 15px; font-size: 1.4rem;">👆 HIER SETZEN</button>
+                        <div id="pvp-confirm-area" style="display:none; margin-bottom: 25px; padding: 15px; background: rgba(68, 170, 255, 0.1); border-radius: 12px; border: 2px dashed #44aaff;">
+                            <p style="margin-top:0; font-size: 1rem; color: #44aaff; font-weight: bold;">Zugvorschau platziert!</p>
+                            <button id="btn-pvp-confirm-move" style="width: 100%; margin:0; background: #44aaff; color: white; padding: 15px; font-size: 1.4rem; box-shadow: 0 0 15px rgba(68, 170, 255, 0.4);">👆 HIER SETZEN</button>
                         </div>
 
-                        <h3 style="margin-top:0;">Aktionen</h3>
+                        <h3 style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Spiel-Aktionen</h3>
                         <div id="pvp-playing-actions">
-                            <button id="btn-pvp-pass" style="width: 100%; background: #ffaa00; margin-bottom: 10px;">Passen</button>
-                            <button id="btn-pvp-resign" style="width: 100%; background: #ff4444;">Aufgeben</button>
+                            <button id="btn-pvp-pass" style="width: 100%; margin: 0 0 15px 0; background: #ffaa00; color: #000;">Gepasst</button>
+                            <button id="btn-pvp-resign" style="width: 100%; margin: 0; background: transparent; border: 2px solid #ff4444; color: #ff4444; box-shadow: none;">Aufgeben</button>
                         </div>
                         <div id="pvp-scoring-actions" style="display:none;">
-                            <p style="font-size:0.9rem; color:#aaa; margin-bottom:15px;">Klicke auf Steine, um sie als tot zu markieren. Wenn alles passt, bestätigen!</p>
-                            <button id="btn-pvp-accept" style="width: 100%; background: #28a745; margin-bottom: 10px;">Auszählung akzeptieren</button>
-                            <p id="pvp-accept-status" style="font-size: 0.9rem; color:#ffaa00;"></p>
+                            <p style="font-size:1rem; color:#ddd; margin-bottom:15px; line-height: 1.4;">Klicke auf Steine auf dem Brett, um sie als tot zu markieren. Wenn alles sauber ist, bestätigen!</p>
+                            <button id="btn-pvp-accept" style="width: 100%; margin: 0 0 10px 0; background: #28a745; padding: 15px; font-size: 1.2rem;">Zählung akzeptieren</button>
+                            <p id="pvp-accept-status" style="font-size: 1rem; font-weight: bold; color:#ffaa00; margin:0;"></p>
                         </div>
-                        <button id="btn-leave-spectate" style="display:none; width: 100%; background: #555; margin-top: 10px;">Zuschauen beenden</button>
+                        <button id="btn-leave-spectate" style="display:none; width: 100%; margin: 0; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px);">Zuschauen beenden</button>
                     </div>
                 </div>
             </div>
@@ -272,6 +360,7 @@
         document.getElementById('btn-join-private').addEventListener('click', () => { let code = document.getElementById('roomcode-input').value.trim().toUpperCase(); if (code !== "") socket.emit('join_room', { name: myName, avatar: myAvatar, roomId: code }); });
         document.getElementById('start-btn').addEventListener('click', () => { const settings = { timeLimit: document.getElementById('set-time').value, puzzleCount: document.getElementById('set-count').value }; socket.emit('start_game', settings); });
 
+        // --- MATCHMAKING & ZUSCHAUER LOGIK ---
         document.getElementById('btn-goto-matchmaking').addEventListener('click', () => { menuScreen.style.display = "none"; matchmakingScreen.style.display = "block"; socket.emit('request_challenges'); });
         document.getElementById('btn-back-to-menu').addEventListener('click', () => { socket.emit('cancel_challenge'); matchmakingScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('btn-create-challenge').style.display = "inline-block"; document.getElementById('btn-cancel-challenge').style.display = "none"; });
         document.getElementById('btn-create-challenge').addEventListener('click', () => { socket.emit('create_challenge', { name: myName, avatar: myAvatar, boardSize: document.getElementById('select-boardsize').value }); document.getElementById('btn-create-challenge').style.display = "none"; document.getElementById('btn-cancel-challenge').style.display = "inline-block"; });
@@ -279,22 +368,22 @@
         
         socket.on('update_challenges', (data) => {
             const cList = document.getElementById('challenge-list'); cList.innerHTML = "";
-            if(data.challenges.length === 0) { cList.innerHTML = '<p style="color: #666;">Aktuell sucht niemand.</p>'; } 
+            if(data.challenges.length === 0) { cList.innerHTML = '<p style="color: #666; font-style: italic;">Aktuell sucht niemand.</p>'; } 
             else { 
                 data.challenges.forEach(c => { 
                     const isMe = (c.challengerId === socket.id); 
-                    const btnHtml = isMe ? `<button disabled style="background:#555;">Deine Suche</button>` : `<button onclick="acceptChallenge('${c.id}')" style="background:#28a745;">Annehmen</button>`; 
-                    cList.innerHTML += `<div class="challenge-card"><div class="challenge-info"><h3 style="margin-bottom:5px;">${c.challengerAvatar} ${c.challengerName}</h3><span>Brettgröße: ${c.boardSize}x${c.boardSize}</span></div><div>${btnHtml}</div></div>`; 
+                    const btnHtml = isMe ? `<button disabled style="background:rgba(255,255,255,0.1); color:#aaa; box-shadow:none;">Deine Suche</button>` : `<button onclick="acceptChallenge('${c.id}')" style="background:#28a745;">Annehmen</button>`; 
+                    cList.innerHTML += `<div class="challenge-card glass-panel"><div class="challenge-info"><h3 style="margin-bottom:5px;">${c.challengerAvatar} ${c.challengerName}</h3><span>Brettgröße: ${c.boardSize}x${c.boardSize}</span></div><div>${btnHtml}</div></div>`; 
                 }); 
             }
             
             const mList = document.getElementById('active-matches-list'); mList.innerHTML = "";
-            if(data.activeMatches.length === 0) { mList.innerHTML = '<p style="color: #666;">Aktuell laufen keine Spiele.</p>'; }
+            if(data.activeMatches.length === 0) { mList.innerHTML = '<p style="color: #666; font-style: italic;">Aktuell laufen keine Spiele.</p>'; }
             else {
                 data.activeMatches.forEach(m => {
                     const isMyGame = (m.playerBlack.id === socket.id || m.playerWhite.id === socket.id);
                     if(isMyGame) return; 
-                    mList.innerHTML += `<div class="challenge-card" style="border-color:#44aaff;"><div class="challenge-info"><h3 style="font-size:1.1rem; margin-bottom:5px;">${m.playerBlack.avatar} ${m.playerBlack.name} <br><span style="color:#aaa; font-size:0.9rem;">vs</span><br> ${m.playerWhite.avatar} ${m.playerWhite.name}</h3><span>Brett: ${m.size}x${m.size}</span></div><div><button onclick="spectateMatch('${m.id}')" style="background:#44aaff;">Zuschauen 👀</button></div></div>`;
+                    mList.innerHTML += `<div class="challenge-card glass-panel" style="border-color:rgba(68, 170, 255, 0.5);"><div class="challenge-info"><h3 style="font-size:1.1rem; margin-bottom:5px;">${m.playerBlack.avatar} ${m.playerBlack.name} <br><span style="color:#aaa; font-size:0.9rem; font-weight:400;">vs</span><br> ${m.playerWhite.avatar} ${m.playerWhite.name}</h3><span>Brett: ${m.size}x${m.size}</span></div><div><button onclick="spectateMatch('${m.id}')" style="background:#44aaff; border-radius: 8px;">👀 Zuschauen</button></div></div>`;
                 });
             }
         });
@@ -347,20 +436,20 @@
         });
 
         function drawPvpBoard() {
-            pvpCtx.clearRect(0, 0, 600, 600); pvpCtx.strokeStyle = "#222"; pvpCtx.lineWidth = 1; pvpCtx.beginPath();
+            pvpCtx.clearRect(0, 0, 600, 600); pvpCtx.strokeStyle = "rgba(0,0,0,0.6)"; pvpCtx.lineWidth = 1.5; pvpCtx.beginPath();
             for (let i = 0; i < pvpBoardSize; i++) { let pos = padding + i * pvpCellSize; pvpCtx.moveTo(pos, padding); pvpCtx.lineTo(pos, padding + (pvpBoardSize - 1) * pvpCellSize); pvpCtx.moveTo(padding, pos); pvpCtx.lineTo(padding + (pvpBoardSize - 1) * pvpCellSize, pos); } pvpCtx.stroke();
             let hoshi = []; if(pvpBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}]; if(pvpBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}]; if(pvpBoardSize === 9) hoshi = [{x:4,y:4}];
-            pvpCtx.fillStyle = "#000"; hoshi.forEach(h => { let px = padding + h.x * pvpCellSize; let py = padding + h.y * pvpCellSize; pvpCtx.beginPath(); pvpCtx.arc(px, py, 4, 0, Math.PI * 2); pvpCtx.fill(); });
+            pvpCtx.fillStyle = "#000"; hoshi.forEach(h => { let px = padding + h.x * pvpCellSize; let py = padding + h.y * pvpCellSize; pvpCtx.beginPath(); pvpCtx.arc(px, py, 4.5, 0, Math.PI * 2); pvpCtx.fill(); });
         }
 
         function drawPvpStone(x, y, color, isLastMove=false, isDead=false) {
             const cx = padding + x * pvpCellSize; const cy = padding + y * pvpCellSize; const r = pvpCellSize * 0.46; 
             if(isDead) pvpCtx.globalAlpha = 0.3; else pvpCtx.globalAlpha = 1.0;
-            pvpCtx.beginPath(); pvpCtx.arc(cx + 2, cy + 3, r, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(0,0,0,0.4)"; pvpCtx.fill();
+            pvpCtx.beginPath(); pvpCtx.arc(cx + 2, cy + 4, r, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(0,0,0,0.5)"; pvpCtx.fill(); // Schatten
             pvpCtx.beginPath(); pvpCtx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = pvpCtx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
             if (color === "black") { gradient.addColorStop(0, "#555"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } 
             else if (color === "white") { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#eee"); gradient.addColorStop(1, "#aaa"); }
-            else if (color === "green") { gradient.addColorStop(0, "#00ff00"); gradient.addColorStop(0.7, "#00cc00"); gradient.addColorStop(1, "#008800"); }
+            else if (color === "green") { gradient.addColorStop(0, "#44aaff"); gradient.addColorStop(0.7, "#2288ff"); gradient.addColorStop(1, "#0055cc"); } // Vorschau ist jetzt Blau
             pvpCtx.fillStyle = gradient; pvpCtx.fill();
             if(isLastMove && !isDead) { pvpCtx.beginPath(); pvpCtx.arc(cx, cy, 3, 0, Math.PI * 2); pvpCtx.fillStyle = "red"; pvpCtx.fill(); }
             if(isDead) { pvpCtx.beginPath(); pvpCtx.arc(cx, cy, r*0.4, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(255,0,0,0.8)"; pvpCtx.fill(); }
@@ -404,7 +493,7 @@
             pvpDeadStones = new Set(data.deadStones);
             if(myPvpColor !== 'spectator') {
                 let iAccepted = data.accepts[myPvpColor]; let enemyAccepted = data.accepts[myPvpColor === 'black' ? 'white' : 'black'];
-                if(iAccepted) { document.getElementById('btn-pvp-accept').innerText = "✅ Bereit"; document.getElementById('btn-pvp-accept').style.background = "#555"; } else { document.getElementById('btn-pvp-accept').innerText = "Auszählung akzeptieren"; document.getElementById('btn-pvp-accept').style.background = "#28a745"; }
+                if(iAccepted) { document.getElementById('btn-pvp-accept').innerText = "✅ Bereit"; document.getElementById('btn-pvp-accept').style.background = "rgba(255,255,255,0.2)"; } else { document.getElementById('btn-pvp-accept').innerText = "Auszählung akzeptieren"; document.getElementById('btn-pvp-accept').style.background = "#28a745"; }
                 if(iAccepted && !enemyAccepted) document.getElementById('pvp-accept-status').innerText = "Warte auf Gegner..."; else if(!iAccepted && enemyAccepted) document.getElementById('pvp-accept-status').innerText = "Gegner ist bereit!"; else document.getElementById('pvp-accept-status').innerText = "";
             }
             renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove);
@@ -448,6 +537,7 @@
         document.querySelectorAll('.emoji-btn').forEach(btn => { btn.addEventListener('click', () => sendChat(btn.innerText)); });
         socket.on('chat_message', (data) => { const div = document.createElement('div'); div.style.marginBottom = "5px"; div.style.wordWrap = "break-word"; div.innerHTML = `<span style="color:#ffaa00; font-weight:bold;">${data.avatar} ${data.name}:</span> <span style="color:#fff;">${data.text}</span>`; chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; });
 
+        // --- TSUMEGO LOGIK ---
         socket.on('room_joined', (data) => { menuScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex"; pvpScreen.style.display = "none"; lobbyScreen.style.display = "block"; document.getElementById('game-over-screen').style.display = "none"; amIHost = data.isHost; if (data.roomId === 'public') { document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby"; document.getElementById('room-code-display').style.display = "none"; document.getElementById('host-settings').style.display = "none"; document.getElementById('waiting-msg').style.display = "none"; document.getElementById('start-btn').style.display = "inline-block"; } else { document.getElementById('room-title').innerText = "🔒 Privater Raum"; document.getElementById('room-code-display').style.display = "inline-block"; document.getElementById('the-code').innerText = data.roomId; if (amIHost) { document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; } else { document.getElementById('host-settings').style.display = "none"; document.getElementById('start-btn').style.display = "none"; document.getElementById('waiting-msg').style.display = "block"; } } });
         socket.on('you_are_host', () => { amIHost = true; document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; });
 
@@ -457,8 +547,8 @@
         let myScore = 0; let canClick = false; let currentPuzzle = null; let lastClickX = 0; let lastClickY = 0; let hoverX = -1; let hoverY = -1; let myPlacedStone = null; let timeoutSolutions = null; let roundTimeLimit = 10; let winningHighlight = null; 
 
         function calculateZoomView(puzzle) { let minX = 18, maxX = 0, minY = 18, maxY = 0; puzzle.setup.forEach(s => { if (s.x < minX) minX = s.x; if (s.x > maxX) maxX = s.x; if (s.y < minY) minY = s.y; if (s.y > maxY) maxY = s.y; }); puzzle.solution.forEach(sol => { if (sol.x < minX) minX = sol.x; if (sol.x > maxX) maxX = sol.x; if (sol.y < minY) minY = sol.y; if (sol.y > maxY) maxY = sol.y; }); minX = Math.max(0, minX - 3); maxX = Math.min(18, maxX + 3); minY = Math.max(0, minY - 3); maxY = Math.min(18, maxY + 3); let neededSize = Math.max(maxX - minX, maxY - minY, 8); while(maxX - minX < neededSize) { if (minX > 0) minX--; if (maxX - minX < neededSize && maxX < 18) maxX++; } while(maxY - minY < neededSize) { if (minY > 0) minY--; if (maxY - minY < neededSize && maxY < 18) maxY++; } viewMinX = minX; viewMaxX = maxX; viewMinY = minY; viewMaxY = maxY; activeBoardSize = (viewMaxX - viewMinX) + 1; currentCellSize = (600 - padding * 2) / (activeBoardSize - 1); }
-        function drawBoard() { ctx.clearRect(0, 0, 600, 600); ctx.strokeStyle = "#222"; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < activeBoardSize; i++) { let actualX = viewMinX + i; let actualY = viewMinY + i; let pos = padding + i * currentCellSize; if (actualX >= 0 && actualX <= 18) { let startY = padding + Math.max(0, 0 - viewMinY) * currentCellSize; let endY = padding + Math.min(activeBoardSize - 1, 18 - viewMinY) * currentCellSize; ctx.moveTo(pos, startY); ctx.lineTo(pos, endY); } if (actualY >= 0 && actualY <= 18) { let startX = padding + Math.max(0, 0 - viewMinX) * currentCellSize; let endX = padding + Math.min(activeBoardSize - 1, 18 - viewMinX) * currentCellSize; ctx.moveTo(startX, pos); ctx.lineTo(endX, pos); } } ctx.stroke(); const hoshi = [3, 9, 15]; ctx.fillStyle = "#000"; hoshi.forEach(hx => { hoshi.forEach(hy => { if (hx >= viewMinX && hx <= viewMaxX && hy >= viewMinY && hy <= viewMaxY) { let px = padding + (hx - viewMinX) * currentCellSize; let py = padding + (hy - viewMinY) * currentCellSize; ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI * 2); ctx.fill(); }});}); }
-        function drawStone(x, y, color) { if (x < viewMinX || x > viewMaxX || y < viewMinY || y > viewMaxY) return; const cx = padding + (x - viewMinX) * currentCellSize; const cy = padding + (y - viewMinY) * currentCellSize; const r = currentCellSize * 0.46; ctx.beginPath(); ctx.arc(cx + 2, cy + 3, r, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.fill(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r); if (color === "black") { gradient.addColorStop(0, "#555"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } else { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#eee"); gradient.addColorStop(1, "#aaa"); } ctx.fillStyle = gradient; ctx.fill(); }
+        function drawBoard() { ctx.clearRect(0, 0, 600, 600); ctx.strokeStyle = "rgba(0,0,0,0.6)"; ctx.lineWidth = 1.5; ctx.beginPath(); for (let i = 0; i < activeBoardSize; i++) { let actualX = viewMinX + i; let actualY = viewMinY + i; let pos = padding + i * currentCellSize; if (actualX >= 0 && actualX <= 18) { let startY = padding + Math.max(0, 0 - viewMinY) * currentCellSize; let endY = padding + Math.min(activeBoardSize - 1, 18 - viewMinY) * currentCellSize; ctx.moveTo(pos, startY); ctx.lineTo(pos, endY); } if (actualY >= 0 && actualY <= 18) { let startX = padding + Math.max(0, 0 - viewMinX) * currentCellSize; let endX = padding + Math.min(activeBoardSize - 1, 18 - viewMinX) * currentCellSize; ctx.moveTo(startX, pos); ctx.lineTo(endX, pos); } } ctx.stroke(); const hoshi = [3, 9, 15]; ctx.fillStyle = "#000"; hoshi.forEach(hx => { hoshi.forEach(hy => { if (hx >= viewMinX && hx <= viewMaxX && hy >= viewMinY && hy <= viewMaxY) { let px = padding + (hx - viewMinX) * currentCellSize; let py = padding + (hy - viewMinY) * currentCellSize; ctx.beginPath(); ctx.arc(px, py, 4.5, 0, Math.PI * 2); ctx.fill(); }});}); }
+        function drawStone(x, y, color) { if (x < viewMinX || x > viewMaxX || y < viewMinY || y > viewMaxY) return; const cx = padding + (x - viewMinX) * currentCellSize; const cy = padding + (y - viewMinY) * currentCellSize; const r = currentCellSize * 0.46; ctx.beginPath(); ctx.arc(cx + 2, cy + 4, r, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fill(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r); if (color === "black") { gradient.addColorStop(0, "#555"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } else { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#eee"); gradient.addColorStop(1, "#aaa"); } ctx.fillStyle = gradient; ctx.fill(); }
         function renderScene() { drawBoard(); if (currentPuzzle) { currentPuzzle.setup.forEach(s => drawStone(s.x, s.y, s.c)); } if (myPlacedStone) { drawStone(myPlacedStone.x, myPlacedStone.y, "black"); } if (canClick && hoverX >= viewMinX && hoverX <= viewMaxX && hoverY >= viewMinY && hoverY <= viewMaxY) { let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === hoverX && s.y === hoverY) isOccupied = true; }); if (!isOccupied) { ctx.globalAlpha = 0.5; drawStone(hoverX, hoverY, "black"); ctx.globalAlpha = 1.0; } } if (timeoutSolutions) { timeoutSolutions.forEach(sol => { if (sol.x >= viewMinX && sol.x <= viewMaxX && sol.y >= viewMinY && sol.y <= viewMaxY) { const cx = padding + (sol.x - viewMinX) * currentCellSize; const cy = padding + (sol.y - viewMinY) * currentCellSize; ctx.beginPath(); ctx.arc(cx, cy, currentCellSize * 0.45, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,255,0,0.4)"; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke(); } }); } if (winningHighlight && winningHighlight.x >= viewMinX && winningHighlight.x <= viewMaxX && winningHighlight.y >= viewMinY && winningHighlight.y <= viewMaxY) { const cx = padding + (winningHighlight.x - viewMinX) * currentCellSize; const cy = padding + (winningHighlight.y - viewMinY) * currentCellSize; ctx.beginPath(); ctx.arc(cx, cy, currentCellSize * 0.45, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,150,255,0.5)"; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke(); } }
 
         socket.on('update_leaderboard', (boardData) => { const list = document.getElementById('lb-list'); list.innerHTML = ""; lobbyPlayersList.innerHTML = ""; boardData.forEach((player, index) => { list.innerHTML += `<div class="lb-row"><span class="lb-rank">${index + 1}.</span><span class="lb-name">${player.avatar} ${player.name}</span><span class="lb-score">${player.score}</span></div>`; lobbyPlayersList.innerHTML += `<li>${player.avatar} ${player.name}</li>`; }); });
