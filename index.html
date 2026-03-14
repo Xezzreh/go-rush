@@ -9,47 +9,21 @@
     
     <style>
         body { 
-            background: linear-gradient(135deg, #0f1016 0%, #1a1a2e 50%, #0f1016 100%);
-            background-size: 200% 200%;
-            animation: gradientBG 15s ease infinite;
-            color: white; 
-            font-family: 'Nunito', sans-serif; 
-            text-align: center; 
-            margin: 0; 
-            padding-top: 20px; 
-            min-height: 100vh;
+            background: linear-gradient(135deg, #0f1016 0%, #1a1a2e 50%, #0f1016 100%); background-size: 200% 200%; animation: gradientBG 15s ease infinite;
+            color: white; font-family: 'Nunito', sans-serif; text-align: center; margin: 0; padding-top: 20px; min-height: 100vh;
         }
-
-        @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
         #login-screen, #menu-screen { margin-top: 100px; padding: 20px; animation: fadeIn 0.4s ease-out; }
-        #lobby-screen, #game-over-screen, #matchmaking-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; animation: fadeIn 0.4s ease-out; } 
+        #lobby-screen, #game-over-screen, #matchmaking-screen, #analysis-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; animation: fadeIn 0.4s ease-out; } 
         #game-screen, #pvp-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; animation: fadeIn 0.4s ease-out; }
         #menu-screen { display: none; } 
         
-        input, select { 
-            font-family: 'Nunito', sans-serif; font-size: 1.2rem; padding: 12px; 
-            border-radius: 8px; border: 2px solid #444; text-align: center; 
-            margin-bottom: 10px; max-width: 80%; background: rgba(30,30,30,0.8); 
-            color: white; outline: none; transition: border 0.3s, box-shadow 0.3s;
-        }
+        input, select { font-family: 'Nunito', sans-serif; font-size: 1.2rem; padding: 12px; border-radius: 8px; border: 2px solid #444; text-align: center; margin-bottom: 10px; max-width: 80%; background: rgba(30,30,30,0.8); color: white; outline: none; transition: border 0.3s, box-shadow 0.3s; }
         input:focus, select:focus { border: 2px solid #ffaa00; box-shadow: 0 0 10px rgba(255, 170, 0, 0.3); }
 
-        button { 
-            font-family: 'Nunito', sans-serif; font-size: 1.2rem; padding: 12px 24px; 
-            margin: 5px; cursor: pointer; background: #44aaff; color: white; 
-            border: none; border-radius: 8px; font-weight: 700; 
-            transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
+        button { font-family: 'Nunito', sans-serif; font-size: 1.2rem; padding: 12px 24px; margin: 5px; cursor: pointer; background: #44aaff; color: white; border: none; border-radius: 8px; font-weight: 700; transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         button:hover { background: #3388cc; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(68, 170, 255, 0.4); } 
         button:active { transform: translateY(1px); box-shadow: 0 2px 10px rgba(0,0,0,0.3); } 
         button:disabled { background: #555; cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.7;}
@@ -67,15 +41,7 @@
 
         #top-bar { position: absolute; top: 10px; left: 10px; display: flex; gap: 10px; z-index: 1000; }
         .top-btn { background: rgba(50,50,50,0.8); font-size: 1rem; padding: 8px 12px; backdrop-filter: blur(5px); }
-
-        .glass-panel {
-            background: rgba(30, 30, 35, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
+        .glass-panel { background: rgba(30, 30, 35, 0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
 
         #room-code-display { font-size: 2rem; color: #ffaa00; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 8px; display: inline-block; margin-bottom: 10px; border: 2px dashed #ffaa00; letter-spacing: 2px;}
         #host-settings { padding: 20px; margin: 15px auto; max-width: 400px; display: none; }
@@ -102,13 +68,7 @@
 
         #game-content, #pvp-content, #analysis-content { display: flex; justify-content: center; align-items: flex-start; gap: 30px; max-width: 950px; margin: 0 auto 20px auto; flex-wrap: wrap; position: relative;}
         
-        .board-container { 
-            width: 100%; max-width: min(600px, 60vh); aspect-ratio: 1 / 1; 
-            background: radial-gradient(circle at 30% 30%, #ebd29f, #c29b57); 
-            border: 8px solid #3e2723; border-radius: 6px; 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.2); 
-            cursor: crosshair; position: relative; 
-        }
+        .board-container { width: 100%; max-width: min(600px, 55vh); aspect-ratio: 1 / 1; background: radial-gradient(circle at 30% 30%, #ebd29f, #c29b57); border: 8px solid #3e2723; border-radius: 6px; box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.2); cursor: crosshair; position: relative; }
         canvas { width: 100%; height: 100%; display: block; }
 
         #leaderboard, #pvp-sidebar, #analysis-sidebar { padding: 20px; width: 100%; max-width: 300px; text-align: left; box-sizing: border-box; }
@@ -126,7 +86,6 @@
         .place-1 { height: 180px; background: linear-gradient(180deg, #ffe066 0%, #f5af19 100%); z-index: 3; animation: popUp 0.6s ease-out;}
         .place-2 { height: 130px; background: linear-gradient(180deg, #e0e0e0 0%, #9e9e9e 100%); z-index: 2; animation: popUp 0.8s ease-out;}
         .place-3 { height: 100px; background: linear-gradient(180deg, #e69d67 0%, #a6602e 100%); z-index: 1; animation: popUp 1s ease-out;}
-        
         @keyframes popUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1;} }
 
         .podium-name { color: #fff; font-size: 1.4rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8); word-wrap: break-word; font-weight: 700; margin-bottom: 5px;}
@@ -141,54 +100,6 @@
         .emoji-btn:hover { background: rgba(255,255,255,0.15); transform: scale(1.15) rotate(5deg); }
 
         #undo-popup { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); border: 2px solid #ffaa00; padding: 20px; border-radius: 12px; z-index: 2000; box-shadow: 0 0 30px rgba(255,170,0,0.5); display: none;}
-
-        /* =========================================
-           NEU: MOBILE RESPONSIVE FIXES
-           ========================================= */
-        @media (max-width: 900px) {
-            /* Zwingt den Chat auf Handys immer nach ganz unten und das Brett nach oben */
-            #room-container {
-                flex-direction: column-reverse;
-                flex-wrap: nowrap;
-                padding: 0 5px;
-                gap: 20px;
-            }
-            #global-chat {
-                max-width: 100%;
-                width: 100%;
-                height: 350px;
-                margin-bottom: 20px;
-            }
-            #main-column {
-                max-width: 100%;
-                width: 100%;
-            }
-            /* Riesiges Brett am Handy! Überschreibt die 60vh Beschränkung */
-            .board-container {
-                max-width: 100%;
-                width: 96vw;
-                height: auto;
-                aspect-ratio: 1 / 1;
-            }
-            #game-content, #pvp-content, #analysis-content {
-                flex-direction: column;
-                align-items: center;
-                gap: 15px;
-            }
-            #leaderboard, #pvp-sidebar, #analysis-sidebar {
-                max-width: 100%;
-                width: 96vw;
-            }
-            /* HUD am Handy zentrieren und untereinander stapeln */
-            #pvp-hud {
-                flex-direction: column !important;
-                gap: 15px;
-            }
-            #pvp-hud > div {
-                text-align: center !important;
-                width: 100%;
-            }
-        }
     </style>
 </head>
 <body>
@@ -236,11 +147,8 @@
             <div style="flex: 1; min-width: 300px;">
                 <div class="glass-panel" style="padding: 20px; margin-bottom: 25px;">
                     <h3 style="margin-top:0;">Herausforderung stellen</h3>
-                    <select id="select-boardsize" style="width: 100%; max-width: none;">
-                        <option value="9">9x9 Brett (Schnell)</option>
-                        <option value="13">13x13 Brett (Mittel)</option>
-                        <option value="19" selected>19x19 Brett (Klassisch)</option>
-                    </select><br>
+                    <select id="select-boardsize" style="width: 100%; max-width: none;"><option value="9">9x9 Brett (Schnell)</option><option value="13">13x13 Brett (Mittel)</option><option value="19" selected>19x19 Brett (Klassisch)</option></select><br>
+                    
                     <select id="select-time" style="width: 100%; max-width: none;">
                         <option value="10m_0_0" selected>10 Min Sudden Death</option>
                         <option value="10m_3_30">10 Min + 3x 30s Byo-Yomi</option>
@@ -770,7 +678,7 @@
         socket.on('wrong_guess', () => { msgLabel.innerText = "Daneben! ⏳ 1.5 Sekunden Strafe..."; msgLabel.style.color = "#ff4444"; myPlacedStone = null; SoundFX.play('lose'); renderScene(); setTimeout(() => { if (msgLabel.innerText.includes("Strafe")) { canClick = true; msgLabel.innerText = "Weiter geht's! Versuch es nochmal!"; msgLabel.style.color = "#fff"; } }, 1500); });
         socket.on('round_won_by_other', (data) => { canClick = false; msgLabel.innerText = "Zu langsam! " + data.winnerName + " war schneller!"; msgLabel.style.color = "#44aaff"; SoundFX.play('lose'); winningHighlight = { x: data.x, y: data.y }; renderScene(); });
         socket.on('timeout', (solutions) => { canClick = false; msgLabel.innerText = "ZEIT ABGELAUFEN! 💀 Hier ist die Lösung:"; msgLabel.style.color = "#ff4444"; timeoutSolutions = solutions; SoundFX.play('lose'); renderScene(); });
-        socket.on('game_over', (finalLeaderboard) => { canClick = false; gameScreen.style.display = "none"; document.getElementById('game-over-screen').style.display = "block"; SoundFX.play('win'); document.getElementById('go-reason').innerText = "Das sind die Sieger:"; const podiumDiv = document.getElementById('podium-container'); podiumDiv.innerHTML = ""; if (finalLeaderboard.length > 1) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[1].avatar}<br>${finalLeaderboard[1].name}</div><div class="podium-score">${finalLeaderboard[1].score}</div><div class="podium-place place-2">2.</div></div>`; if (finalLeaderboard.length > 0) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">👑<br>${finalLeaderboard[0].avatar}<br>${finalLeaderboard[0].name}</div><div class="podium-score">${finalLeaderboard[0].score}</div><div class="podium-place place-1">1.</div></div>`; if (finalLeaderboard.length > 2) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[2].avatar}<br>${finalLeaderboard[2].name}</div><div class="podium-score">${finalLeaderboard[2].score}</div><div class="podium-place place-3">3.</div></div>`; let countdown = 8; document.getElementById('lobby-countdown').innerText = countdown; let countInterval = setInterval(() => { countdown--; document.getElementById('lobby-countdown').innerText = countdown; if(countdown <= 0) { clearInterval(countInterval); document.getElementById('game-over-screen').style.display = "none"; lobbyScreen.style.display = "block"; } }, 1000); });
+        
         canvas.addEventListener('mousemove', (event) => { if (!canClick) return; const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / currentCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / currentCellSize); const realX = viewMinX + gridX; const realY = viewMinY + gridY; if (realX !== hoverX || realY !== hoverY) { hoverX = realX; hoverY = realY; renderScene(); } });
         canvas.addEventListener('mouseout', () => { hoverX = -1; hoverY = -1; renderScene(); });
         canvas.addEventListener('click', (event) => { if (!canClick) return; const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; lastClickX = (event.clientX - rect.left) * scaleX; lastClickY = (event.clientY - rect.top) * scaleY; const gridX = Math.round((lastClickX - padding) / currentCellSize); const gridY = Math.round((lastClickY - padding) / currentCellSize); const actualX = viewMinX + gridX; const actualY = viewMinY + gridY; if (actualX >= 0 && actualX <= 18 && actualY >= 0 && actualY <= 18) { let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === actualX && s.y === actualY) isOccupied = true; }); if (isOccupied) return; myPlacedStone = { x: actualX, y: actualY }; canClick = false; SoundFX.play('clack'); renderScene(); socket.emit('guess', { x: actualX, y: actualY }); } });
