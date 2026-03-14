@@ -10,6 +10,67 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
 
+// --- NEU: DATENBANK & ELO SYSTEM ---
+const dbFile = path.join(__dirname, 'database.json');
+let userDB = {};
+
+// Lade DB beim Start
+if (fs.existsSync(dbFile)) {
+    try { userDB = JSON.parse(fs.readFileSync(dbFile, 'utf-8')); } 
+    catch(e) { console.log("Fehler beim Laden der DB, starte neu."); userDB = {}; }
+}
+
+function saveDB() {
+    fs.writeFileSync(dbFile, JSON.stringify(userDB, null, 2));
+}
+
+// Wandelt Elo (ab 1000) in Kyu/Dan Ränge um
+function getRank(elo) {
+    if(elo < 1000) return "30k";
+    let kyu = 30 - Math.floor((elo - 1000) / 100);
+    if(kyu > 0) return kyu + "k";
+    let dan = Math.floor((elo - 4000) / 100) + 1; 
+    return dan + "d";
+}
+
+// Zentrales Match-Ende (Updated Elo)
+function finishMatch(matchId, winnerColor, reasonStr) {
+    let match = active1v1Matches[matchId];
+    if(!match) return;
+    
+    let winner = match.players[winnerColor];
+    let loser = match.players[winnerColor === 'black' ? 'white' : 'black'];
+    
+    // Elo berechnen
+    let wToken = winner.token; let lToken = loser.token;
+    if(userDB[wToken] && userDB[lToken]) {
+        let w = userDB[wToken]; let l = userDB[lToken];
+        let expW = 1 / (1 + Math.pow(10, (l.elo - w.elo) / 400));
+        let expL = 1 / (1 + Math.pow(10, (w.elo - l.elo) / 400));
+        
+        let pointChangeW = Math.round(32 * (1 - expW));
+        let pointChangeL = Math.round(32 * (0 - expL));
+        
+        w.elo += pointChangeW; l.elo += pointChangeL;
+        w.wins++; l.losses++;
+        saveDB();
+        
+        w.rank = getRank(w.elo); l.rank = getRank(l.elo);
+        io.to(winner.id).emit('update_stats', w);
+        io.to(loser.id).emit('update_stats', l);
+        
+        reasonStr += `<br><br><span style="color:#00ff00;">${winner.name}: +${pointChangeW} Elo</span> | <span style="color:#ff4444;">${loser.name}: ${pointChangeL} Elo</span>`;
+    }
+    
+    io.to(matchId).emit('1v1_game_over', { 
+        reason: reasonStr,
+        moveList: match.moveList, size: match.size 
+    });
+    delete active1v1Matches[matchId];
+    broadcastMatchmaking();
+}
+
+
 // --- SGF-Übersetzer ---
 function parseSGF(sgfString, msg, solutionsArray) {
     const setup = [];
@@ -89,7 +150,6 @@ function checkCaptures(board, x, y, colorTarget) {
         }
         return {group, liberties};
     }
-
     const neighbors = [ {x: x+1, y: y}, {x: x-1, y: y}, {x: x, y: y+1}, {x: x, y: y-1} ];
     for(let n of neighbors) {
         if(n.x >= 0 && n.x < board.length && n.y >= 0 && n.y < board.length) {
@@ -121,7 +181,6 @@ function getGroupOfColor(board, startX, startY) {
     return group;
 }
 
-// NEU: Nimmt dynamisches Komi entgegen (Handicap = 0.5, Normal = 6.5)
 function calculateJapaneseScore(board, captures, deadStonesSet, komi) {
     let size = board.length; let blackTerritory = 0; let whiteTerritory = 0;
     let finalCaptures = { black: captures.black, white: captures.white };
@@ -161,7 +220,6 @@ function calculateJapaneseScore(board, captures, deadStonesSet, komi) {
     };
 }
 
-// NEU: Handicap-Steine berechnen
 function getHandicapStones(size, count) {
     if(count < 2) return [];
     let stones = []; let c1 = size===19?3:size===13?3:2; let c2 = size===19?15:size===13?9:6; let mid = size===19?9:size===13?6:4;
@@ -201,7 +259,6 @@ function broadcastMatchmaking() {
     io.emit('update_challenges', { challenges: Object.values(challenges), activeMatches: activeList });
 }
 
-// NEU: Byo-Yomi Timer Logik
 setInterval(() => {
     for (let matchId in active1v1Matches) {
         let match = active1v1Matches[matchId];
@@ -214,17 +271,11 @@ setInterval(() => {
                 if (t.byo > 0) t.byo--;
                 else {
                     if (t.periods > 0) {
-                        t.periods--;
-                        t.byo = match.settings.byoTime;
+                        t.periods--; t.byo = match.settings.byoTime;
                     } else {
-                        // Timeout
-                        let winner = match.players[match.turn === 'black' ? 'white' : 'black'];
-                        io.to(matchId).emit('1v1_game_over', { 
-                            reason: `⏱️ Zeit abgelaufen! ${winner.avatar} ${winner.name} gewinnt.`,
-                            moveList: match.moveList, size: match.size 
-                        });
-                        delete active1v1Matches[matchId];
-                        broadcastMatchmaking();
+                        let winnerColor = match.turn === 'black' ? 'white' : 'black';
+                        let winner = match.players[winnerColor];
+                        finishMatch(matchId, winnerColor, `⏱️ Zeit abgelaufen! ${winner.avatar} ${winner.name} gewinnt.`);
                         continue;
                     }
                 }
@@ -237,16 +288,25 @@ setInterval(() => {
 io.on('connection', (socket) => {
     let currentRoom = null; 
 
+    // NEU: Login mit Token
+    socket.on('login', (data) => {
+        if(!userDB[data.token]) { userDB[data.token] = { elo: 1000, wins: 0, losses: 0 }; saveDB(); }
+        let u = userDB[data.token]; u.rank = getRank(u.elo);
+        socket.emit('update_stats', u);
+    });
+
+    socket.on('delete_profile', (token) => {
+        if(userDB[token]) { delete userDB[token]; saveDB(); }
+    });
+
     socket.on('request_challenges', () => { broadcastMatchmaking(); });
     
-    // NEU: Nimmt Settings (Zeit, Handicap) an
     socket.on('create_challenge', (data) => { 
         const challengeId = 'chal_' + socket.id; 
         challenges[challengeId] = { 
             id: challengeId, challengerId: socket.id, challengerName: data.name, challengerAvatar: data.avatar, 
-            boardSize: parseInt(data.boardSize),
-            timeSetting: data.timeSetting, // z.B. "10m_3_30"
-            handicap: parseInt(data.handicap)
+            token: data.token, // Speichere Token für Elo
+            boardSize: parseInt(data.boardSize), timeSetting: data.timeSetting, handicap: parseInt(data.handicap)
         }; 
         broadcastMatchmaking(); 
     });
@@ -259,13 +319,10 @@ io.on('connection', (socket) => {
             const newRoomId = '1v1_' + Math.random().toString(36).substring(2,8);
             let emptyBoard = Array(chal.boardSize).fill(null).map(() => Array(chal.boardSize).fill(null));
             
-            // Einstellungen parsen
-            let parts = chal.timeSetting.split('_'); // [mainMin, periods, byoSec]
+            let parts = chal.timeSetting.split('_');
             let mainT = parseInt(parts[0].replace('m','')) * 60;
-            let pCount = parseInt(parts[1]);
-            let byoT = parseInt(parts[2]);
+            let pCount = parseInt(parts[1]); let byoT = parseInt(parts[2]);
 
-            // Handicap setzen
             let hcapStones = getHandicapStones(chal.boardSize, chal.handicap);
             hcapStones.forEach(st => emptyBoard[st.x][st.y] = 'black');
             let initialTurn = chal.handicap > 0 ? 'white' : 'black';
@@ -273,18 +330,14 @@ io.on('connection', (socket) => {
 
             active1v1Matches[newRoomId] = {
                 id: newRoomId, size: chal.boardSize, board: emptyBoard, turn: initialTurn, passes: 0,
-                state: 'playing', komi: initialKomi, handicapStones: hcapStones,
-                settings: { byoTime: byoT },
+                state: 'playing', komi: initialKomi, handicapStones: hcapStones, settings: { byoTime: byoT },
                 deadStones: new Set(), accepts: { black: false, white: false },
                 history: new Set([JSON.stringify(emptyBoard)]), moveList: [], 
-                timers: { 
-                    black: { main: mainT, byo: byoT, periods: pCount }, 
-                    white: { main: mainT, byo: byoT, periods: pCount } 
-                }, 
+                timers: { black: { main: mainT, byo: byoT, periods: pCount }, white: { main: mainT, byo: byoT, periods: pCount } }, 
                 captures: { black: 0, white: 0 },   
                 players: { 
-                    black: { id: chal.challengerId, name: chal.challengerName, avatar: chal.challengerAvatar }, 
-                    white: { id: socket.id, name: acceptorData.name, avatar: acceptorData.avatar } 
+                    black: { id: chal.challengerId, name: chal.challengerName, avatar: chal.challengerAvatar, token: chal.token }, 
+                    white: { id: socket.id, name: acceptorData.name, avatar: acceptorData.avatar, token: acceptorData.token } 
                 }
             };
 
@@ -306,12 +359,8 @@ io.on('connection', (socket) => {
             if(currentRoom && rooms[currentRoom]) { delete rooms[currentRoom].players[socket.id]; socket.leave(currentRoom); broadcastLeaderboard(currentRoom); }
             socket.join(matchId);
             socket.emit('1v1_match_started', { 
-                roomId: matchId, size: match.size, 
-                playerBlack: match.players.black.name, avatarBlack: match.players.black.avatar, 
-                playerWhite: match.players.white.name, avatarWhite: match.players.white.avatar, 
-                myColor: 'spectator', komi: match.komi,
-                board: match.board, turn: match.turn, captures: match.captures, timers: match.timers,
-                state: match.state, deadStones: Array.from(match.deadStones)
+                roomId: matchId, size: match.size, playerBlack: match.players.black.name, avatarBlack: match.players.black.avatar, playerWhite: match.players.white.name, avatarWhite: match.players.white.avatar, 
+                myColor: 'spectator', komi: match.komi, board: match.board, turn: match.turn, captures: match.captures, timers: match.timers, state: match.state, deadStones: Array.from(match.deadStones)
             });
         }
     });
@@ -340,16 +389,12 @@ io.on('connection', (socket) => {
         match.captures[myColor] += capturedStones.length;
         match.board = newBoard; match.history.add(boardString); match.turn = enemyColor; match.passes = 0;
         
-        // NEU: Byo-Yomi Timer Reset
-        if(match.timers[myColor].main <= 0 && match.timers[myColor].periods > 0) {
-            match.timers[myColor].byo = match.settings.byoTime;
-        }
+        if(match.timers[myColor].main <= 0 && match.timers[myColor].periods > 0) { match.timers[myColor].byo = match.settings.byoTime; }
 
         match.moveList.push({ color: myColor, x: data.x, y: data.y });
         io.to(matchId).emit('1v1_update_board', { board: match.board, turn: match.turn, lastMove: {x: data.x, y: data.y}, captures: match.captures });
     });
 
-    // --- NEU: UNDO LOGIK ---
     socket.on('1v1_request_undo', (matchId) => {
         let match = active1v1Matches[matchId]; if(!match || match.state !== 'playing') return;
         if(match.moveList.length === 0) return;
@@ -366,7 +411,6 @@ io.on('connection', (socket) => {
         if(data.accept) {
             let lastMove = match.moveList.pop(); if(!lastMove) return;
             
-            // Brett aus der Historie (moveList) komplett neu aufbauen, um Gefangene wiederherzustellen
             let emptyBoard = Array(match.size).fill(null).map(() => Array(match.size).fill(null));
             match.board = emptyBoard; match.captures = {black: 0, white: 0}; match.history = new Set([JSON.stringify(emptyBoard)]);
             
@@ -401,7 +445,6 @@ io.on('connection', (socket) => {
         match.turn = (myColor === 'black') ? 'white' : 'black';
         match.moveList.push({ color: myColor, pass: true });
 
-        // Byo-yomi Reset bei Pass
         if(match.timers[myColor].main <= 0 && match.timers[myColor].periods > 0) match.timers[myColor].byo = match.settings.byoTime;
 
         if(match.passes >= 2) {
@@ -440,30 +483,26 @@ io.on('connection', (socket) => {
 
         if(match.accepts.black && match.accepts.white) {
             let finalScore = calculateJapaneseScore(match.board, match.captures, match.deadStones, match.komi);
-            let winnerPlayer = finalScore.blackTotal > finalScore.whiteTotal ? match.players.black : match.players.white;
+            let winnerColor = finalScore.blackTotal > finalScore.whiteTotal ? 'black' : 'white';
+            let winnerPlayer = match.players[winnerColor];
             let diff = Math.abs(finalScore.blackTotal - finalScore.whiteTotal);
             
-            io.to(matchId).emit('1v1_game_over', { 
-                reason: `Beide Spieler haben die Zählung akzeptiert.<br>🏆 <b>${winnerPlayer.avatar} ${winnerPlayer.name} gewinnt</b> mit ${diff} Punkten Vorsprung!<br><br>
+            let reason = `Beide Spieler haben die Zählung akzeptiert.<br>🏆 <b>${winnerPlayer.avatar} ${winnerPlayer.name} gewinnt</b> mit ${diff} Punkten Vorsprung!<br><br>
                 <div style='font-size:1.1rem; color:#ccc; margin-top: 15px; text-align: left; background: #111; padding: 10px; border-radius: 8px;'>
                 <b>Japanische Zählung:</b><br>
                 ⚫ Schwarz: ${finalScore.blackTotal} Punkte <br><span style='font-size:0.9rem;'>(${finalScore.blackTerr} Gebiet + ${finalScore.blackCaps} Gefangene)</span><br><br>
                 ⚪ Weiß: ${finalScore.whiteTotal} Punkte <br><span style='font-size:0.9rem;'>(${finalScore.whiteTerr} Gebiet + ${finalScore.whiteCaps} Gefangene + ${match.komi} Komi)</span>
-                </div>`,
-                moveList: match.moveList, size: match.size 
-            });
-            delete active1v1Matches[matchId]; broadcastMatchmaking();
+                </div>`;
+            finishMatch(matchId, winnerColor, reason);
         }
     });
 
     socket.on('1v1_resign', (matchId) => {
         const match = active1v1Matches[matchId]; if(!match) return;
-        const loser = (match.players.black.id === socket.id) ? match.players.black : match.players.white;
-        io.to(matchId).emit('1v1_game_over', { 
-            reason: `🏳️ ${loser.avatar} ${loser.name} hat aufgegeben.`,
-            moveList: match.moveList, size: match.size 
-        });
-        delete active1v1Matches[matchId]; broadcastMatchmaking();
+        let loserColor = match.players.black.id === socket.id ? 'black' : 'white';
+        let winnerColor = loserColor === 'black' ? 'white' : 'black';
+        let loser = match.players[loserColor];
+        finishMatch(matchId, winnerColor, `🏳️ ${loser.avatar} ${loser.name} hat aufgegeben.`);
     });
 
     // --- TSUMEGO RUSH LOGIK ---

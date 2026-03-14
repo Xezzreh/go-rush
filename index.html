@@ -100,6 +100,9 @@
         .emoji-btn:hover { background: rgba(255,255,255,0.15); transform: scale(1.15) rotate(5deg); }
 
         #undo-popup { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); border: 2px solid #ffaa00; padding: 20px; border-radius: 12px; z-index: 2000; box-shadow: 0 0 30px rgba(255,170,0,0.5); display: none;}
+        
+        /* DSGVO Text */
+        .gdpr-text { font-size: 0.85rem; color: #888; margin-top: 20px; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -118,6 +121,10 @@
         </div>
         <input type="text" id="username" placeholder="Dein Spielername..." autocomplete="off"><br>
         <button id="next-btn" style="padding: 15px 40px; font-size: 1.4rem; margin-top: 10px;">Los geht's</button>
+        
+        <br>
+        <button id="btn-delete-profile" style="display:none; padding: 10px 20px; font-size: 1rem; margin-top: 15px; background: transparent; border: 1px solid #ff4444; color: #ff4444; box-shadow:none;">🗑️ Daten löschen</button>
+        <p class="gdpr-text">🔐 Dein Spielstand (Elo) wird anonymisiert mit einem Schlüssel auf deinem Gerät gespeichert. Wir nutzen kein Tracking und fragen keine E-Mails ab.</p>
     </div>
 
     <div id="menu-screen">
@@ -319,15 +326,26 @@
         const gameScreen = document.getElementById('game-screen'); const pvpScreen = document.getElementById('pvp-screen');
         const analysisScreen = document.getElementById('analysis-screen');
         
-        let myName = ""; let myAvatar = "🦊"; let amIHost = false;
+        let myName = ""; let myAvatar = "🦊"; let amIHost = false; 
+        
+        // NEU: TOKEN & STATS
+        let myToken = ""; let myRank = "30k"; let myElo = 1000;
 
         window.onload = () => {
             const savedName = localStorage.getItem('goRushName'); const savedAvatar = localStorage.getItem('goRushAvatar');
             if (savedName && savedAvatar) {
                 myName = savedName; myAvatar = savedAvatar;
+                
+                myToken = localStorage.getItem('goRushToken');
+                if(!myToken) { myToken = Math.random().toString(36).substring(2) + Date.now().toString(36); localStorage.setItem('goRushToken', myToken); }
+                
                 document.getElementById('username').value = myName;
                 document.querySelectorAll('.avatar-option').forEach(opt => { opt.classList.remove('selected'); if(opt.innerText === myAvatar) opt.classList.add('selected'); });
+                
+                socket.emit('login', { token: myToken, name: myName, avatar: myAvatar });
+                
                 loginScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('profile-btn').style.display = "inline-block";
+                document.getElementById('btn-delete-profile').style.display = "inline-block";
             }
         };
 
@@ -339,7 +357,32 @@
 
         document.getElementById('next-btn').addEventListener('click', () => { 
             SoundFX.init(); myName = document.getElementById('username').value.trim(); 
-            if (myName !== "") { localStorage.setItem('goRushName', myName); localStorage.setItem('goRushAvatar', myAvatar); loginScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('profile-btn').style.display = "inline-block"; } 
+            if (myName !== "") { 
+                localStorage.setItem('goRushName', myName); localStorage.setItem('goRushAvatar', myAvatar); 
+                
+                myToken = localStorage.getItem('goRushToken');
+                if(!myToken) { myToken = Math.random().toString(36).substring(2) + Date.now().toString(36); localStorage.setItem('goRushToken', myToken); }
+                
+                socket.emit('login', { token: myToken, name: myName, avatar: myAvatar });
+                
+                loginScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('profile-btn').style.display = "inline-block"; 
+                document.getElementById('btn-delete-profile').style.display = "inline-block";
+            } 
+        });
+
+        // NEU: Stats Update vom Server
+        socket.on('update_stats', (data) => {
+            myElo = data.elo; myRank = data.rank;
+            document.getElementById('profile-btn').innerHTML = `👤 [${myRank}] Profil`;
+        });
+
+        // NEU: Account löschen
+        document.getElementById('btn-delete-profile').addEventListener('click', () => {
+            if(confirm("Willst du deinen Account (inklusive Elo und Siegen) unwiderruflich löschen?")) {
+                socket.emit('delete_profile', myToken);
+                localStorage.removeItem('goRushName'); localStorage.removeItem('goRushAvatar'); localStorage.removeItem('goRushToken');
+                location.reload();
+            }
         });
 
         document.getElementById('btn-public').addEventListener('click', () => { socket.emit('join_room', { name: myName, avatar: myAvatar, roomId: 'public' }); });
@@ -347,12 +390,13 @@
         document.getElementById('btn-join-private').addEventListener('click', () => { let code = document.getElementById('roomcode-input').value.trim().toUpperCase(); if (code !== "") socket.emit('join_room', { name: myName, avatar: myAvatar, roomId: code }); });
         document.getElementById('start-btn').addEventListener('click', () => { const settings = { timeLimit: document.getElementById('set-time').value, puzzleCount: document.getElementById('set-count').value }; socket.emit('start_game', settings); });
 
+        // --- MATCHMAKING & ZUSCHAUER LOGIK ---
         document.getElementById('btn-goto-matchmaking').addEventListener('click', () => { menuScreen.style.display = "none"; matchmakingScreen.style.display = "block"; socket.emit('request_challenges'); });
         document.getElementById('btn-back-to-menu').addEventListener('click', () => { socket.emit('cancel_challenge'); matchmakingScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('btn-create-challenge').style.display = "inline-block"; document.getElementById('btn-cancel-challenge').style.display = "none"; });
         
         document.getElementById('btn-create-challenge').addEventListener('click', () => { 
             socket.emit('create_challenge', { 
-                name: myName, avatar: myAvatar, 
+                name: myName, avatar: myAvatar, token: myToken, // Token übergeben!
                 boardSize: document.getElementById('select-boardsize').value,
                 timeSetting: document.getElementById('select-time').value,
                 handicap: document.getElementById('select-handicap').value
@@ -383,7 +427,7 @@
             }
         });
 
-        window.acceptChallenge = function(challengeId) { socket.emit('accept_challenge', challengeId, {name: myName, avatar: myAvatar}); };
+        window.acceptChallenge = function(challengeId) { socket.emit('accept_challenge', challengeId, {name: myName, avatar: myAvatar, token: myToken}); }; // Token übergeben!
         window.spectateMatch = function(matchId) { socket.emit('spectate_match', matchId); };
 
         // --- 1v1 PVP ENGINE ---
@@ -651,10 +695,11 @@
 
         // --- CHAT & TSUMEGO LOGIK (Unverändert) ---
         const chatMessages = document.getElementById('chat-messages'); const chatInput = document.getElementById('chat-input');
-        function sendChat(text) { if(text.trim() !== "") { socket.emit('chat_message', { name: myName, avatar: myAvatar, text: text.trim() }); chatInput.value = ""; } }
+        // Chat wurde um Rang erweitert
+        function sendChat(text) { if(text.trim() !== "") { socket.emit('chat_message', { name: myName, avatar: myAvatar, rank: myRank, text: text.trim() }); chatInput.value = ""; } }
         document.getElementById('chat-send').addEventListener('click', () => sendChat(chatInput.value)); chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChat(chatInput.value); });
         document.querySelectorAll('.emoji-btn').forEach(btn => { btn.addEventListener('click', () => sendChat(btn.innerText)); });
-        socket.on('chat_message', (data) => { const div = document.createElement('div'); div.style.marginBottom = "5px"; div.style.wordWrap = "break-word"; div.innerHTML = `<span style="color:#ffaa00; font-weight:bold;">${data.avatar} ${data.name}:</span> <span style="color:#fff;">${data.text}</span>`; chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; });
+        socket.on('chat_message', (data) => { const div = document.createElement('div'); div.style.marginBottom = "5px"; div.style.wordWrap = "break-word"; div.innerHTML = `<span style="color:#ffaa00; font-weight:bold;">[${data.rank || '30k'}] ${data.avatar} ${data.name}:</span> <span style="color:#fff;">${data.text}</span>`; chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; });
 
         socket.on('room_joined', (data) => { menuScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex"; pvpScreen.style.display = "none"; lobbyScreen.style.display = "block"; document.getElementById('game-over-screen').style.display = "none"; amIHost = data.isHost; if (data.roomId === 'public') { document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby"; document.getElementById('room-code-display').style.display = "none"; document.getElementById('host-settings').style.display = "none"; document.getElementById('waiting-msg').style.display = "none"; document.getElementById('start-btn').style.display = "inline-block"; } else { document.getElementById('room-title').innerText = "🔒 Privater Raum"; document.getElementById('room-code-display').style.display = "inline-block"; document.getElementById('the-code').innerText = data.roomId; if (amIHost) { document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; } else { document.getElementById('host-settings').style.display = "none"; document.getElementById('start-btn').style.display = "none"; document.getElementById('waiting-msg').style.display = "block"; } } });
         socket.on('you_are_host', () => { amIHost = true; document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; });
