@@ -5,400 +5,506 @@
     <title>Go-Rush Multiplayer</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚫</text></svg>">
-    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     
     <style>
-        /* ELEGANTES DARK THEME */
+        :root {
+            --bg-base: #0b0d14;
+            --bg-panel: #151822;
+            --border-color: #262a3d;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --board-light: #e3ba78;
+            --board-dark: #c49647;
+            --board-border: #21150c;
+        }
+
         body { 
-            background-color: #0f111a; 
-            background-image: radial-gradient(circle at top right, #181b29, #0f111a);
-            color: #e2e8f0; 
+            background: var(--bg-base); 
+            color: var(--text-main); 
             font-family: 'Inter', sans-serif; 
-            text-align: center; 
             margin: 0; 
-            padding-top: 20px; 
+            padding: 0; 
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
         }
-        
+
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        #login-screen, #menu-screen { margin-top: 100px; padding: 20px; animation: fadeIn 0.4s ease-out; }
-        #lobby-screen, #game-over-screen, #matchmaking-screen, #analysis-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; animation: fadeIn 0.3s ease-out; } 
-        #game-screen, #pvp-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; animation: fadeIn 0.3s ease-out; }
-        #menu-screen { display: none; } 
+        /* SCREENS (Zentriert für Menüs) */
+        #login-screen, #menu-screen, #matchmaking-screen { 
+            display: none; 
+            max-width: 1000px; 
+            margin: 8vh auto 0 auto; 
+            padding: 20px; 
+            text-align: center;
+            animation: fadeIn 0.3s ease-out forwards; 
+        }
+        #login-screen { display: block; }
         
-        h1, h2, h3 { color: #f8fafc; letter-spacing: -0.02em; }
-        p { color: #94a3b8; }
+        #analysis-screen { display: none; padding: 40px 20px; text-align: center; animation: fadeIn 0.3s ease-out forwards; }
+        #lobby-screen, #game-over-screen, #game-screen, #pvp-screen { display: none; width: 100%; box-sizing: border-box; animation: fadeIn 0.3s ease-out forwards; } 
 
-        /* CLEANE EINGABEFELDER */
+        h1, h2, h3 { color: var(--text-main); margin-top: 0; letter-spacing: -0.02em; }
+        p { color: var(--text-muted); line-height: 1.5; }
+
+        /* INPUTS & SELECTS */
         input, select { 
-            font-family: 'Inter', sans-serif; font-size: 1.1rem; padding: 12px 16px; 
-            border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); text-align: center; 
-            margin-bottom: 10px; max-width: 80%; background: rgba(0,0,0,0.2); 
-            color: #f8fafc; outline: none; transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif; font-size: 1rem; padding: 12px 16px; 
+            border-radius: 8px; border: 1px solid var(--border-color); 
+            background: rgba(0,0,0,0.3); color: var(--text-main); outline: none; 
+            transition: all 0.2s ease; width: 100%; box-sizing: border-box; margin-bottom: 15px;
         }
-        input:focus, select:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
-        option { background: #1e293b; color: #f8fafc; }
+        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+        option { background: var(--bg-panel); color: var(--text-main); }
 
-        /* HOCHWERTIGE BUTTONS */
+        /* BUTTONS */
         button { 
-            font-family: 'Inter', sans-serif; font-size: 1.1rem; padding: 12px 24px; 
-            margin: 5px; cursor: pointer; background: #3b82f6; color: white; 
+            font-family: 'Inter', sans-serif; font-size: 1.05rem; padding: 12px 24px; 
+            cursor: pointer; background: var(--primary); color: white; 
             border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; font-weight: 600; 
-            transition: all 0.2s ease; 
+            transition: all 0.2s ease; display: inline-flex; justify-content: center; align-items: center; gap: 8px;
         }
-        button:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25); } 
+        button:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25); } 
         button:active { transform: translateY(1px); box-shadow: none; } 
-        button:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; border-color: transparent;}
+        button:disabled { background: #1e2230; color: #475569; cursor: not-allowed; transform: none; box-shadow: none; border-color: transparent;}
         
-        .btn-public { background: #10b981; } .btn-public:hover { background: #059669; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25); }
-        .btn-private { background: #f59e0b; } .btn-private:hover { background: #d97706; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25); }
-        .btn-1v1 { background: #8b5cf6; } .btn-1v1:hover { background: #7c3aed; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25); }
-        .btn-analysis { background: #ec4899; } .btn-analysis:hover { background: #db2777; box-shadow: 0 4px 12px rgba(236, 72, 153, 0.25); }
-        .btn-nav { padding: 8px 16px; font-size: 1.2rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; box-shadow: none;}
-        .btn-nav:hover { background: rgba(255,255,255,0.1); box-shadow: none; transform: translateY(-1px);}
+        .btn-outline { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); }
+        .btn-outline:hover { background: rgba(255,255,255,0.05); border-color: var(--text-muted); box-shadow: none; }
+        .btn-danger { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: var(--danger); }
+        .btn-danger:hover { background: var(--danger); color: white; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+        .btn-success { background: var(--success); border-color: transparent; }
+        .btn-success:hover { background: #059669; }
+        .btn-warning { background: var(--warning); color: #000; border-color: transparent; }
+        .btn-warning:hover { background: #d97706; }
 
-        /* EDLE AVATAR-AUSWAHL */
+        /* PANELS */
+        .panel { 
+            background: var(--bg-panel); 
+            border: 1px solid var(--border-color); 
+            border-radius: 12px; 
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); 
+            padding: 24px;
+        }
+
+        /* AVATARE */
         .avatar-options { display: flex; justify-content: center; gap: 12px; margin-bottom: 25px; font-size: 2.2rem; cursor: pointer; flex-wrap: wrap; }
-        .avatar-option { opacity: 0.3; transition: all 0.2s ease; padding: 8px; border-radius: 12px; border: 2px solid transparent; background: rgba(0,0,0,0.2); }
+        .avatar-option { opacity: 0.3; transition: all 0.2s ease; padding: 8px; border-radius: 12px; border: 1px solid transparent; background: rgba(0,0,0,0.2); }
         .avatar-option:hover { opacity: 0.7; transform: translateY(-2px); }
-        .avatar-option.selected { opacity: 1; border: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.1); transform: translateY(-4px); box-shadow: 0 8px 16px rgba(59, 130, 246, 0.2);}
+        .avatar-option.selected { opacity: 1; border: 1px solid var(--primary); background: rgba(59, 130, 246, 0.1); transform: translateY(-4px); box-shadow: 0 8px 16px rgba(59, 130, 246, 0.2);}
 
         #top-bar { position: absolute; top: 15px; left: 15px; display: flex; gap: 10px; z-index: 1000; }
-        .top-btn { background: rgba(20, 24, 36, 0.8); font-size: 0.95rem; font-weight: 500; padding: 8px 14px; backdrop-filter: blur(8px); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 12px rgba(0,0,0,0.2);}
-        .top-btn:hover { background: rgba(255,255,255,0.1); transform: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3);}
+        .top-btn { font-size: 0.95rem; font-weight: 500; padding: 8px 14px; background: rgba(21, 24, 34, 0.8); backdrop-filter: blur(8px); }
 
-        /* GLASS-PANELS (REFINED) */
-        .glass-panel {
-            background: rgba(20, 24, 36, 0.6);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        /* DASHBOARD LAYOUT (Der eigentliche Spiel-Raum) */
+        #room-container { 
+            display: none; /* Wird per JS auf 'flex' gesetzt */
+            height: 100vh; 
+            width: 100vw; 
+            margin: 0; 
+            padding: 0; 
+            overflow: hidden; 
+            background: var(--bg-base);
+            flex-wrap: nowrap;
         }
 
-        #room-code-display { font-size: 1.8rem; color: #f59e0b; background: rgba(0,0,0,0.3); padding: 12px 24px; border-radius: 8px; display: inline-block; margin-bottom: 10px; border: 1px dashed rgba(245, 158, 11, 0.5); letter-spacing: 2px; font-weight: 700;}
-        #host-settings { padding: 20px; margin: 15px auto; max-width: 400px; display: none; border-color: rgba(245, 158, 11, 0.3); }
-        .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        #waiting-msg { color: #94a3b8; font-style: italic; display: none; margin: 20px; }
+        /* LINKE SIDEBAR: Chat */
+        #global-chat { 
+            width: 320px; 
+            height: 100vh; 
+            background: var(--bg-panel); 
+            border-right: 1px solid var(--border-color); 
+            display: flex; 
+            flex-direction: column; 
+            padding: 20px; 
+            box-sizing: border-box; 
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        #chat-messages { flex-grow: 1; overflow-y: auto; text-align: left; margin-bottom: 15px; font-size: 0.95rem; line-height: 1.4; padding-right: 10px;}
+        .emoji-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px; }
+        .emoji-btn { background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 10px; font-size: 1.2rem; transition: all 0.2s; box-shadow: none; cursor: pointer; }
+        .emoji-btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.1); border-color: rgba(255,255,255,0.2); }
+        .chat-input-wrapper { display: flex; gap: 8px; width: 100%; }
+        #chat-input { margin: 0; background: var(--bg-base); border-color: var(--border-color); }
+        #chat-send { margin: 0; padding: 10px 16px; }
 
-        #lobby-players { list-style: none; padding: 0; font-size: 1.3rem; font-weight: 500; color: #cbd5e1; margin: 20px auto; width: 300px; max-width: 90%; padding: 15px; }
-        #lobby-players li { border-bottom: 1px solid rgba(255,255,255,0.05); padding: 10px 0; display: flex; justify-content: center; align-items: center; gap: 10px;}
-        #lobby-players li:last-child { border-bottom: none; }
-        
-        .challenge-card { padding: 15px; margin: 10px auto; max-width: 400px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease;}
-        .challenge-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); background: rgba(25, 30, 45, 0.7); }
-        .challenge-info { text-align: left; }
-        .challenge-info h3 { margin: 0 0 5px 0; color: #f8fafc; font-size: 1.1rem; }
-        .challenge-info span { color: #94a3b8; font-size: 0.9rem; }
+        /* RECHTER BEREICH: Main Column (Board & Stats) */
+        #main-column { 
+            flex-grow: 1; 
+            height: 100vh; 
+            overflow-y: auto; 
+            position: relative; 
+            display: flex; 
+            flex-direction: column; 
+            padding: 30px 20px; 
+            box-sizing: border-box; 
+        }
 
-        #hud, #pvp-hud { display: flex; justify-content: center; align-items: center; gap: 30px; font-size: 1.8rem; font-weight: 700; margin-bottom: 5px; flex-wrap: wrap; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-        .timer { color: #ef4444; }
-        .score { color: #3b82f6; }
-        #msg { font-size: 1.2rem; color: #cbd5e1; min-height: 35px; font-weight: 600; margin-bottom: 15px;}
-        
-        #timer-container { width: 100%; max-width: 600px; background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; margin: 0 auto 15px auto; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
-        #timer-bar { height: 100%; width: 100%; background: #10b981; transition: width 1s linear, background 0.5s; }
+        /* 1v1 LAYOUT */
+        #pvp-content {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            align-items: flex-start;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
 
-        #game-content, #pvp-content, #analysis-content { display: flex; justify-content: center; align-items: flex-start; gap: 30px; max-width: 950px; margin: 0 auto 20px auto; flex-wrap: wrap; position: relative;}
-        
-        /* EDLES HOLZBRETT */
+        .board-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 65vh; /* Skaliert das Brett perfekt */
+            width: 100%;
+        }
+
         .board-container { 
-            width: 100%; max-width: min(600px, 55vh); aspect-ratio: 1 / 1; 
-            background: linear-gradient(135deg, #dfb76e, #c79a47); 
-            border: 6px solid #2b1b10; border-radius: 4px; 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,0,0,0.1); 
-            cursor: crosshair; position: relative; 
+            width: 100%; 
+            aspect-ratio: 1 / 1; 
+            background: linear-gradient(135deg, var(--board-light), var(--board-dark)); 
+            border: 6px solid var(--board-border); 
+            border-radius: 4px; 
+            box-shadow: 0 15px 40px rgba(0,0,0,0.7), inset 0 0 20px rgba(0,0,0,0.1); 
+            cursor: crosshair; 
+            position: relative; 
         }
         canvas { width: 100%; height: 100%; display: block; }
 
-        #leaderboard, #pvp-sidebar, #analysis-sidebar { padding: 20px; width: 100%; max-width: 300px; text-align: left; box-sizing: border-box; }
-        #leaderboard h2 { margin-top: 0; color: #f8fafc; text-align: center; font-size: 1.3rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 15px; }
-        .lb-row { display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.03); }
-        .lb-rank { color: #64748b; width: 30px; font-weight: 700; font-size: 0.95rem;}
-        .lb-name { flex-grow: 1; font-weight: 500; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .lb-score { color: #3b82f6; font-weight: 700; }
+        /* RECHTE SIDEBAR (HUD & Buttons) */
+        #pvp-sidebar {
+            width: 320px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            text-align: left;
+        }
 
-        .floating-points { position: absolute; color: #10b981; font-size: 2rem; font-weight: 700; pointer-events: none; text-shadow: 0 4px 12px rgba(0,0,0,0.6); animation: floatUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; z-index: 100; }
+        .player-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .player-info { display: flex; flex-direction: column; gap: 4px; }
+        .p-name { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
+        .p-caps { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+        .p-time { font-size: 1.5rem; font-weight: 900; color: var(--success); font-variant-numeric: tabular-nums; }
+
+        /* Matchmaking Listen */
+        .challenge-card { padding: 15px 20px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease;}
+        .challenge-card:hover { border-color: rgba(255,255,255,0.15); background: #1a1e2b; }
+        .challenge-info { text-align: left; }
+        .challenge-info h3 { margin: 0 0 4px 0; font-size: 1.05rem; font-weight: 600; }
+        .challenge-info span { color: var(--text-muted); font-size: 0.85rem; }
+
+        /* ANALYSIS SCREEN */
+        #analysis-content { display: flex; gap: 40px; justify-content: center; align-items: flex-start; max-width: 1200px; margin: 0 auto; width: 100%; }
+        #analysis-sidebar { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; text-align: left; }
+        .nav-buttons { display: flex; gap: 8px; justify-content: space-between; }
+        .nav-buttons button { flex: 1; padding: 10px 0; margin: 0; font-size: 1.1rem; }
+
+        /* TSUMEGO SCREEN */
+        #game-content { display: flex; gap: 40px; justify-content: center; align-items: flex-start; max-width: 1200px; margin: 0 auto; width: 100%; }
+        #hud { display: flex; justify-content: center; gap: 30px; font-size: 1.5rem; font-weight: 800; margin-bottom: 10px; width: 100%; }
+        #timer-container { width: 100%; max-width: 600px; background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; margin: 0 auto 15px auto; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+        #timer-bar { height: 100%; width: 100%; background: var(--success); transition: width 1s linear, background 0.5s; }
+        #leaderboard { width: 320px; flex-shrink: 0; }
+        .lb-row { display: flex; justify-content: space-between; align-items: center; font-size: 1rem; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
+        .lb-rank { color: var(--text-muted); width: 30px; font-weight: 700; font-size: 0.9rem;}
+        .lb-name { flex-grow: 1; font-weight: 600; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; padding-left: 10px;}
+        .lb-score { color: var(--primary); font-weight: 800; }
+
+        /* EXTRAS */
+        .floating-points { position: absolute; color: var(--success); font-size: 2rem; font-weight: 900; pointer-events: none; text-shadow: 0 4px 12px rgba(0,0,0,0.8); animation: floatUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; z-index: 100; }
         @keyframes floatUp { 0% { transform: translateY(0) scale(0.8); opacity: 0; } 20% { transform: translateY(-20px) scale(1.1); opacity: 1; } 100% { transform: translateY(-60px) scale(1); opacity: 0; } }
 
-        /* MINIMALISTISCHES PODIUM */
-        .podium { display: flex; justify-content: center; align-items: flex-end; gap: 15px; margin: 40px auto; height: 180px; max-width: 500px; }
-        .podium-place { width: 110px; text-align: center; border-radius: 8px 8px 0 0; color: #0f111a; font-weight: 700; padding-top: 15px; font-size: 1.5rem; display: flex; flex-direction: column; justify-content: flex-start; box-shadow: 0 -5px 20px rgba(0,0,0,0.4); transition: transform 0.5s;}
-        .place-1 { height: 160px; background: linear-gradient(180deg, #fcd34d 0%, #d97706 100%); z-index: 3; animation: popUp 0.6s ease-out;}
-        .place-2 { height: 110px; background: linear-gradient(180deg, #e2e8f0 0%, #94a3b8 100%); z-index: 2; animation: popUp 0.8s ease-out;}
-        .place-3 { height: 80px; background: linear-gradient(180deg, #fdba74 0%, #b45309 100%); z-index: 1; animation: popUp 1s ease-out;}
-        @keyframes popUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1;} }
+        #undo-popup { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15, 17, 26, 0.95); border: 1px solid var(--warning); padding: 25px; border-radius: 12px; z-index: 2000; box-shadow: 0 10px 40px rgba(0,0,0,0.8); display: none; backdrop-filter: blur(10px); width: 80%; text-align: center;}
 
-        .podium-name { color: #f8fafc; font-size: 1.2rem; text-shadow: 0 2px 4px rgba(0,0,0,0.6); word-wrap: break-word; font-weight: 600; margin-bottom: 5px;}
-        .podium-score { color: #60a5fa; font-size: 1.1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.6); margin-bottom: 10px; font-weight: 700;}
-
-        /* DEZENTE SCROLLBARS */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; transition: background 0.3s;}
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-        .emoji-btn { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 6px 10px; font-size: 1.2rem; cursor: pointer; transition: all 0.2s; box-shadow: none;}
-        .emoji-btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.1); border-color: rgba(255,255,255,0.2);}
-
-        #undo-popup { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); background: rgba(15, 17, 26, 0.95); border: 1px solid #f59e0b; padding: 25px; border-radius: 12px; z-index: 2000; box-shadow: 0 10px 40px rgba(0,0,0,0.6); display: none; backdrop-filter: blur(10px);}
-        
-        .gdpr-text { font-size: 0.85rem; color: #64748b; margin-top: 20px; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.5; }
+        .gdpr-text { font-size: 0.85rem; color: var(--text-muted); margin-top: 20px; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.5; }
 
         /* =========================================
-           DIE UNVERÄNDERTEN MOBILE-FIXES
+           MOBILE RESPONSIVE (Fixes Stapelung)
            ========================================= */
         @media (max-width: 900px) {
+            body { overflow-y: auto; } /* Auf dem Handy normal scrollen */
             #room-container {
                 flex-direction: column-reverse;
-                flex-wrap: nowrap;
-                padding: 0 5px;
-                gap: 20px;
+                height: auto;
+                min-height: 100vh;
+                overflow: visible;
             }
             #global-chat {
-                max-width: 100%;
                 width: 100%;
                 height: 350px;
-                margin-bottom: 20px;
+                border-right: none;
+                border-top: 1px solid var(--border-color);
             }
             #main-column {
-                max-width: 100%;
-                width: 100%;
-            }
-            .board-container {
-                max-width: 100%;
-                width: 96vw;
                 height: auto;
-                aspect-ratio: 1 / 1;
+                padding: 15px 10px;
             }
-            #game-content, #pvp-content, #analysis-content {
+            #pvp-content, #analysis-content, #game-content {
                 flex-direction: column;
                 align-items: center;
-                gap: 15px;
+                gap: 20px;
             }
-            #leaderboard, #pvp-sidebar, #analysis-sidebar {
+            .board-wrapper {
                 max-width: 100%;
+            }
+            .board-container {
                 width: 96vw;
+                height: auto;
             }
-            #pvp-hud {
-                flex-direction: column !important;
-                gap: 15px;
-            }
-            #pvp-hud > div {
-                text-align: center !important;
+            #pvp-sidebar, #analysis-sidebar, #leaderboard {
                 width: 100%;
+                max-width: 96vw;
             }
+            /* Player cards side by side on mobile */
+            #pvp-sidebar { flex-direction: row; flex-wrap: wrap; }
+            .player-card { flex: 1; min-width: 140px; padding: 12px; }
+            .panel { width: 100%; }
         }
     </style>
 </head>
 <body>
 
     <div id="top-bar">
-        <button class="top-btn" id="mute-btn">🔊</button>
-        <button class="top-btn" id="profile-btn" style="display:none;">👤 Profil</button> 
+        <button class="top-btn btn-outline" id="mute-btn">🔊</button>
+        <button class="top-btn btn-outline" id="profile-btn" style="display:none;">👤 Profil</button> 
     </div>
 
     <div id="login-screen">
-        <h1 style="font-size: 3.5rem; margin-bottom: 10px; font-weight: 900; letter-spacing: -0.05em; color: #f8fafc;">Go-Rush<span style="color:#3b82f6;">.</span></h1>
-        <p style="color: #94a3b8; margin-bottom: 20px; font-size: 1.1rem;">Wähle deinen Avatar</p>
+        <h1 style="font-size: 3.5rem; margin-bottom: 5px; font-weight: 900; letter-spacing: -0.05em; color: var(--text-main);">Go-Rush<span style="color:var(--primary);">.</span></h1>
+        <p style="font-size: 1.1rem; margin-bottom: 30px;">Wähle deinen Avatar & Namen</p>
         <div class="avatar-options" id="avatar-selection">
             <div class="avatar-option selected">🦊</div><div class="avatar-option">🐼</div><div class="avatar-option">🐸</div><div class="avatar-option">🐉</div>
             <div class="avatar-option">🐯</div><div class="avatar-option">🐱</div><div class="avatar-option">🐧</div><div class="avatar-option">🦉</div>
         </div>
-        <input type="text" id="username" placeholder="Dein Spielername..." autocomplete="off"><br>
-        <button id="next-btn" style="padding: 14px 40px; font-size: 1.2rem; margin-top: 10px; border-radius: 30px;">Los geht's</button>
+        <input type="text" id="username" placeholder="Spielername eingeben..." autocomplete="off"><br>
+        <button id="next-btn" style="padding: 14px 40px; font-size: 1.1rem; margin-top: 10px;">Los geht's</button>
         
         <br>
-        <button id="btn-delete-profile" style="display:none; padding: 8px 16px; font-size: 0.9rem; margin-top: 20px; background: transparent; border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; box-shadow:none;">🗑️ Daten löschen</button>
-        <p class="gdpr-text">🔐 Dein Spielstand (Elo) wird anonymisiert mit einem Schlüssel auf deinem Gerät gespeichert. Wir nutzen kein Tracking und fragen keine E-Mails ab.</p>
+        <button id="btn-delete-profile" class="btn-danger" style="display:none; padding: 8px 16px; font-size: 0.9rem; margin-top: 30px;">🗑️ Daten löschen</button>
+        <p class="gdpr-text">🔐 Dein Spielstand (Elo) wird anonymisiert lokal gespeichert. Wir nutzen kein Tracking.</p>
     </div>
 
     <div id="menu-screen">
-        <h2 style="font-size: 2.2rem; font-weight: 700; margin-bottom: 30px;">Spielmodus wählen</h2>
-        <button class="btn-1v1" id="btn-goto-matchmaking" style="padding: 18px 36px; font-size: 1.4rem; margin-bottom: 20px; border-radius: 12px;">⚔️ 1v1 Online spielen</button><br>
-        <button class="btn-public" id="btn-public" style="margin-bottom: 20px;">🌍 Öffentlicher Tsumego-Rush</button><br>
-        <button class="btn-analysis" id="btn-goto-analysis-menu" style="margin-bottom: 35px;">🔬 SGF Studio / Analyse</button><br>
+        <h2 style="font-size: 2.2rem; margin-bottom: 40px;">Dashboard</h2>
         
-        <div class="glass-panel" style="padding: 25px; display: inline-block; max-width: 90%;">
-            <button class="btn-private" id="btn-create-private" style="margin-bottom: 15px;">🔒 Privaten Raum erstellen</button>
-            <h3 style="color:#94a3b8; font-weight: 400; font-size: 1rem; margin-bottom: 10px;">oder mit Code beitreten</h3>
-            <div style="display: flex; gap: 10px; justify-content: center;">
-                <input type="text" id="roomcode-input" placeholder="CODE" style="width: 120px; margin: 0; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
-                <button id="btn-join-private" style="margin: 0; background: #475569; border-color: rgba(255,255,255,0.1);">Beitreten</button>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; max-width: 400px; margin: 0 auto;">
+            <button class="btn-1v1" id="btn-goto-matchmaking" style="width: 100%; padding: 18px; font-size: 1.2rem;">⚔️ 1v1 Arena</button>
+            <button class="btn-public" id="btn-public" style="width: 100%; padding: 16px;">🌍 Tsumego Rush (Öffentlich)</button>
+            <button class="btn-analysis" id="btn-goto-analysis-menu" style="width: 100%; padding: 16px;">🔬 SGF Studio / Analyse</button>
+        </div>
+        
+        <div class="panel" style="margin-top: 40px; display: inline-block; width: 100%; max-width: 400px; padding: 25px; box-sizing: border-box;">
+            <h3 style="margin-bottom: 20px; font-size: 1.1rem; color: var(--text-muted);">Private Räume (Tsumego)</h3>
+            <button class="btn-warning" id="btn-create-private" style="width: 100%; margin: 0 0 15px 0;">🔒 Raum erstellen</button>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="roomcode-input" placeholder="CODE..." style="margin: 0; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+                <button id="btn-join-private" class="btn-outline" style="margin: 0; white-space: nowrap;">Beitreten</button>
             </div>
         </div>
     </div>
 
     <div id="matchmaking-screen">
-        <div style="display: flex; justify-content: space-between; align-items: center; max-width: 900px; margin: 0 auto 10px auto;">
-            <h1 style="color: #f8fafc; margin: 0; font-size: 2rem;">Das Schwarze Brett</h1>
-            <button class="top-btn" id="btn-back-to-menu" style="margin:0;">Zurück zum Menü</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1000px; margin: 0 auto 20px auto;">
+            <h1 style="color: var(--text-main); margin: 0;">1v1 Arena</h1>
+            <button id="btn-back-to-menu" class="btn-outline" style="margin:0;">Zurück</button>
         </div>
-        <p style="color: #94a3b8; max-width: 900px; margin: 0 auto 30px auto; text-align: left; font-size: 1rem;">Suche dir einen Gegner oder schau laufenden Spielen zu.</p>
         
-        <div style="display: flex; justify-content: center; gap: 25px; flex-wrap: wrap; max-width: 900px; margin: 0 auto;">
-            <div style="flex: 1; min-width: 300px;">
-                <div class="glass-panel" style="padding: 25px; margin-bottom: 25px; border-top: 3px solid #8b5cf6;">
-                    <h3 style="margin-top:0; font-weight: 600;">Herausforderung stellen</h3>
-                    <select id="select-boardsize" style="width: 100%; max-width: none; background: rgba(0,0,0,0.3);"><option value="9">9x9 Brett (Schnell)</option><option value="13">13x13 Brett (Mittel)</option><option value="19" selected>19x19 Brett (Klassisch)</option></select><br>
-                    
-                    <select id="select-time" style="width: 100%; max-width: none; background: rgba(0,0,0,0.3);">
+        <div style="display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; max-width: 1000px; margin: 0 auto;">
+            <div style="flex: 1; min-width: 320px;">
+                <div class="panel" style="margin-bottom: 25px; border-top: 3px solid var(--primary);">
+                    <h3 style="margin-top:0;">Spiel erstellen</h3>
+                    <select id="select-boardsize"><option value="9">9x9 Brett (Schnell)</option><option value="13">13x13 Brett (Mittel)</option><option value="19" selected>19x19 Brett (Klassisch)</option></select>
+                    <select id="select-time">
                         <option value="10m_0_0" selected>10 Min Sudden Death</option>
                         <option value="10m_3_30">10 Min + 3x 30s Byo-Yomi</option>
                         <option value="3m_3_20">3 Min + 3x 20s Blitz</option>
-                    </select><br>
-                    <select id="select-handicap" style="width: 100%; max-width: none; background: rgba(0,0,0,0.3); margin-bottom: 20px;">
+                    </select>
+                    <select id="select-handicap">
                         <option value="0" selected>Kein Handicap (Gleichstand)</option>
-                        <option value="2">2 Steine Handicap</option><option value="3">3 Steine Handicap</option>
-                        <option value="4">4 Steine Handicap</option><option value="5">5 Steine Handicap</option>
-                        <option value="6">6 Steine Handicap</option><option value="7">7 Steine Handicap</option>
-                        <option value="8">8 Steine Handicap</option><option value="9">9 Steine Handicap</option>
-                    </select><br>
-
-                    <button class="btn-1v1" id="btn-create-challenge" style="width: 100%; margin: 0; padding: 14px;">Gegner suchen 🔎</button>
-                    <button id="btn-cancel-challenge" style="display:none; background: #ef4444; width: 100%; margin: 0; padding: 14px;">Suche abbrechen</button>
+                        <option value="2">2 Steine Vorgabe</option><option value="3">3 Steine Vorgabe</option>
+                        <option value="4">4 Steine Vorgabe</option><option value="5">5 Steine Vorgabe</option>
+                        <option value="6">6 Steine Vorgabe</option><option value="7">7 Steine Vorgabe</option>
+                        <option value="8">8 Steine Vorgabe</option><option value="9">9 Steine Vorgabe</option>
+                    </select>
+                    <button class="btn-1v1" id="btn-create-challenge" style="width: 100%; margin: 10px 0 0 0;">Gegner suchen</button>
+                    <button id="btn-cancel-challenge" class="btn-danger" style="display:none; width: 100%; margin: 10px 0 0 0;">Suche abbrechen</button>
                 </div>
-                <h3 style="text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; font-size: 1.1rem; color: #cbd5e1;">Offene Herausforderungen</h3>
-                <div id="challenge-list"><p style="color: #475569; font-style: italic;">Aktuell sucht niemand nach einem Spiel.</p></div>
+                <div class="panel" style="padding: 20px;">
+                    <h3 style="margin-top:0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Offene Spiele</h3>
+                    <div id="challenge-list"><p style="color: var(--text-muted); font-style: italic;">Aktuell sucht niemand.</p></div>
+                </div>
             </div>
 
-            <div class="glass-panel" style="flex: 1; min-width: 300px; padding: 25px; border-top: 3px solid #3b82f6;">
-                <h3 style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; font-size: 1.1rem; color: #cbd5e1;">Live Spiele (Zuschauen)</h3>
-                <div id="active-matches-list"><p style="color: #475569; font-style: italic;">Aktuell laufen keine Spiele.</p></div>
+            <div class="panel" style="flex: 1; min-width: 320px; border-top: 3px solid var(--success);">
+                <h3 style="margin-top:0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size: 1rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Live Zuschauer-Modus</h3>
+                <div id="active-matches-list"><p style="color: var(--text-muted); font-style: italic;">Aktuell laufen keine Spiele.</p></div>
             </div>
         </div>
     </div>
 
     <div id="analysis-screen">
-        <h1 style="color: #f8fafc; margin-top: 0; margin-bottom: 5px; font-size: 2rem;">SGF Studio</h1>
-        <p style="color: #94a3b8; margin-top: 0; margin-bottom: 25px;">Analysiere Züge, spiele Varianten oder importiere Dateien.</p>
+        <h1 style="color: var(--text-main); margin-top: 0; margin-bottom: 5px;">SGF Studio</h1>
+        <p style="color: var(--text-muted); margin-top: 0; margin-bottom: 30px;">Analysiere Züge, spiele Varianten oder importiere Dateien.</p>
         <div id="analysis-content">
-            <div class="board-container"><canvas id="analysisCanvas" width="600" height="600"></canvas></div>
-            <div id="analysis-sidebar" class="glass-panel">
-                <h3 style="margin-top:0; color:#cbd5e1; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; font-size:1rem; text-transform: uppercase; letter-spacing: 1px;">Navigation</h3>
-                <div style="display: flex; justify-content: center; gap: 6px; margin-bottom: 15px;">
+            <div class="board-wrapper">
+                <div class="board-container"><canvas id="analysisCanvas" width="600" height="600"></canvas></div>
+            </div>
+            <div id="analysis-sidebar" class="panel" style="padding: 20px;">
+                <h3 style="margin-top:0; color:var(--text-muted); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size:0.9rem; text-transform: uppercase; letter-spacing: 1px;">Navigation</h3>
+                <div class="nav-buttons" style="margin-bottom: 15px;">
                     <button class="btn-nav" id="btn-ana-start">|&lt;</button><button class="btn-nav" id="btn-ana-prev">&lt;</button>
                     <button class="btn-nav" id="btn-ana-next">&gt;</button><button class="btn-nav" id="btn-ana-end">&gt;|</button>
                 </div>
-                <p style="text-align:center; color:#f8fafc; font-weight:500; margin-bottom: 25px;">Zug: <span id="ana-move-count" style="font-weight:700;">0</span> / <span id="ana-total-moves">0</span></p>
+                <p style="text-align:center; color:var(--text-main); font-weight:500; margin-bottom: 25px;">Zug: <span id="ana-move-count" style="font-weight:800; color:var(--primary);">0</span> / <span id="ana-total-moves">0</span></p>
                 
-                <h3 style="margin-top:0; color:#cbd5e1; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; font-size:1rem; text-transform: uppercase; letter-spacing: 1px;">Freies Setzen</h3>
+                <h3 style="margin-top:0; color:var(--text-muted); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size:0.9rem; text-transform: uppercase; letter-spacing: 1px;">Freies Setzen</h3>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 25px; gap:10px;">
-                    <button id="btn-ana-color-black" style="flex:1; margin:0; background:#1e293b; border: 1px solid #3b82f6;">⚫ Schwarz</button>
-                    <button id="btn-ana-color-white" style="flex:1; margin:0; background:#f1f5f9; color:#0f111a; border: 1px solid transparent;">⚪ Weiß</button>
+                    <button id="btn-ana-color-black" style="flex:1; margin:0; background:#000; border: 2px solid var(--primary); color:#fff;">⚫</button>
+                    <button id="btn-ana-color-white" style="flex:1; margin:0; background:#fff; border: 2px solid transparent; color:#000;">⚪</button>
                 </div>
                 
-                <h3 style="margin-top:0; color:#cbd5e1; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; font-size:1rem; text-transform: uppercase; letter-spacing: 1px;">Dateien</h3>
+                <h3 style="margin-top:0; color:var(--text-muted); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size:0.9rem; text-transform: uppercase; letter-spacing: 1px;">Dateien</h3>
                 <input type="file" id="sgf-upload-input" accept=".sgf" style="display:none;">
-                <button id="btn-ana-upload" style="width: 100%; background: #10b981; margin: 0 0 10px 0;">📂 SGF Hochladen</button>
-                <button id="btn-ana-download" style="width: 100%; background: #3b82f6; margin: 0 0 25px 0;">💾 SGF Speichern</button>
+                <button id="btn-ana-upload" class="btn-success" style="width: 100%; margin: 0 0 10px 0;">📂 SGF Laden</button>
+                <button id="btn-ana-download" class="btn-outline" style="width: 100%; margin: 0 0 25px 0;">💾 Speichern</button>
                 
-                <button id="btn-ana-leave" style="width: 100%; background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1; margin: 0;">Zurück zum Menü</button>
+                <button id="btn-ana-leave" class="btn-outline" style="width: 100%; margin: 0; color: var(--danger); border-color: rgba(239,68,68,0.3);">Zurück zum Menü</button>
             </div>
         </div>
     </div>
 
     <div id="room-container">
         
-        <div id="global-chat" class="glass-panel" style="display: flex; width: 100%; max-width: 320px; padding: 20px; flex-direction: column; height: min(600px, 75vh); box-sizing: border-box;">
-            <h3 style="margin: 0 0 15px 0; color: #f8fafc; text-align: left; font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">💬 Raum Chat</h3>
-            <div id="chat-messages" style="flex-grow: 1; overflow-y: auto; text-align: left; margin-bottom: 15px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; font-size: 1rem; word-wrap: break-word;"></div>
-            <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 15px;"><button class="emoji-btn">🔥</button><button class="emoji-btn">❤️</button><button class="emoji-btn">😡</button><button class="emoji-btn">😂</button><button class="emoji-btn">👏</button></div>
-            <div style="display: flex; gap: 8px; width: 100%;">
-                <input type="text" id="chat-input" placeholder="Nachricht..." autocomplete="off" style="flex-grow: 1; font-size: 1rem; padding: 10px; margin: 0; text-align: left; min-width: 0; border: none; background: rgba(255,255,255,0.05);">
-                <button id="chat-send" style="margin: 0; padding: 10px 18px; border-radius: 8px;">▶</button>
+        <div id="global-chat">
+            <h3 style="margin: 0 0 15px 0; color: var(--text-main); font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">💬 Raum Chat</h3>
+            <div id="chat-messages"></div>
+            <div class="emoji-row"><button class="emoji-btn">🔥</button><button class="emoji-btn">❤️</button><button class="emoji-btn">😡</button><button class="emoji-btn">😂</button><button class="emoji-btn">👏</button></div>
+            <div class="chat-input-wrapper">
+                <input type="text" id="chat-input" placeholder="Nachricht..." autocomplete="off">
+                <button id="chat-send">▶</button>
             </div>
         </div>
 
-        <div id="main-column" style="flex-grow: 1; width: 100%; max-width: 850px; display: flex; flex-direction: column; align-items: center;">
+        <div id="main-column">
             
-            <div id="lobby-screen" class="glass-panel" style="width: 100%; padding: 30px;">
-                <h2 id="room-title" style="margin-top: 0; font-size: 2rem; font-weight: 700;">Wartezimmer</h2>
+            <div id="lobby-screen" class="panel" style="max-width: 600px;">
+                <h2 id="room-title" style="margin-top: 0; font-size: 2rem;">Wartezimmer</h2>
                 <div id="room-code-display" style="display:none;">Code: <span id="the-code"></span></div> 
-                <div id="host-settings" class="glass-panel" style="background: rgba(0,0,0,0.2); border: 1px solid rgba(245, 158, 11, 0.3);">
-                    <h3 style="margin-top:0; color:#f59e0b; font-size:1.1rem;">Raum Einstellungen</h3>
-                    <div class="setting-row"><label style="color:#cbd5e1;">Zeit pro Rätsel:</label><select id="set-time" style="margin:0; padding:8px; font-size:1rem;"><option value="5">5s</option><option value="10" selected>10s</option><option value="15">15s</option><option value="30">30s</option></select></div>
-                    <div class="setting-row" style="margin-top:15px;"><label style="color:#cbd5e1;">Anzahl Runden:</label><select id="set-count" style="margin:0; padding:8px; font-size:1rem;"><option value="10">10</option><option value="20" selected>20</option><option value="all">Alle</option></select></div>
+                <div id="host-settings" style="border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 20px;">
+                    <h3 style="margin-top:0; color:var(--warning); font-size:1.1rem;">Host Einstellungen</h3>
+                    <div class="setting-row"><label>Zeit pro Rätsel:</label><select id="set-time" style="width:auto; margin:0;"><option value="5">5s</option><option value="10" selected>10s</option><option value="15">15s</option><option value="30">30s</option></select></div>
+                    <div class="setting-row" style="margin-top:15px;"><label>Runden:</label><select id="set-count" style="width:auto; margin:0;"><option value="10">10</option><option value="20" selected>20</option><option value="all">Alle</option></select></div>
                 </div>
                 <p id="waiting-msg">Warte auf den Host...</p>
-                <h3 style="margin-top: 30px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom:10px; font-size:1.1rem; color:#cbd5e1;">Mitspieler:</h3>
+                <h3 style="margin-top: 30px; border-bottom: 1px solid var(--border-color); padding-bottom:10px; font-size:1rem; color:var(--text-muted); text-transform:uppercase;">Spieler im Raum</h3>
                 <ul id="lobby-players"></ul>
-                <button id="start-btn" style="display:none; padding: 15px 40px; font-size: 1.3rem; margin-top: 20px;">💥 SPIEL STARTEN</button>
+                <button id="start-btn" class="btn-success" style="display:none; padding: 15px 40px; font-size: 1.3rem; margin-top: 20px; width:100%;">💥 RUSH STARTEN</button>
             </div>
 
-            <div id="game-over-screen" style="width: 100%;">
-                <h1 style="color: #f8fafc; font-size: 3.5rem; margin-bottom: 0; margin-top: 0; font-weight: 900; letter-spacing:-0.03em;">SPIEL BEENDET</h1>
-                <h3 id="go-reason" style="color: #94a3b8; margin-top: 10px; font-size: 1.2rem; font-weight: 500;">Das sind die Sieger:</h3>
+            <div id="game-over-screen">
+                <h1 style="color: var(--warning); font-size: 3.5rem; margin: 0 0 10px 0; font-weight: 900;">SPIEL BEENDET</h1>
+                <h3 id="go-reason" style="color: var(--text-muted); margin: 0 0 30px 0; font-size: 1.2rem; font-weight: 500;"></h3>
                 <div class="podium" id="podium-container"></div>
                 <div style="margin-top: 50px; display: flex; justify-content: center; gap: 15px;">
-                    <button id="btn-go-back-lobby" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">🔙 Zurück zur Lobby</button>
-                    <button id="btn-go-analyze" class="btn-analysis" style="display: none;">🔬 Partie analysieren</button>
+                    <button id="btn-go-back-lobby" class="btn-outline">🔙 Zurück</button>
+                    <button id="btn-go-analyze" class="btn-analysis" style="display: none;">🔬 Analysieren</button>
                 </div>
             </div>
 
-            <div id="game-screen" style="width: 100%;">
+            <div id="game-screen">
                 <div id="hud"><div class="score" id="score">Score: 0</div><div class="timer" id="timer">Zeit: 10</div></div>
                 <div id="timer-container"><div id="timer-bar"></div></div>
                 <p id="msg">Mache dich bereit...</p>
                 <div id="game-content">
-                    <div class="board-container"><canvas id="goCanvas" width="600" height="600"></canvas></div>
-                    <div id="leaderboard" class="glass-panel">
-                        <h2 style="color:#f8fafc;">Rangliste</h2><div id="lb-list"></div>
+                    <div class="board-wrapper"><div class="board-container"><canvas id="goCanvas" width="600" height="600"></canvas></div></div>
+                    <div id="leaderboard" class="panel">
+                        <h2 style="color:var(--text-main);">Rangliste</h2><div id="lb-list"></div>
                     </div>
                 </div>
             </div>
 
-            <div id="pvp-screen" style="width: 100%;">
-                <div id="pvp-hud" class="glass-panel" style="display:flex; justify-content:space-between; width:100%; max-width:600px; padding:15px 25px; margin-bottom:20px; box-sizing:border-box; background: rgba(15,17,26,0.6);">
-                    <div style="text-align:left;">
-                        <div style="color:#f8fafc; font-size:1.3rem; font-weight:700;" id="pvp-black-name">⚫ Schwarz</div>
-                        <div style="color:#94a3b8; font-size:1.1rem; margin-top:5px; font-weight:600;">⏱️ <span id="pvp-black-time" style="color:#10b981;">10:00</span> &nbsp;|&nbsp; ⚔️ <span id="pvp-black-caps" style="color:#f8fafc;">0</span></div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div style="color:#f8fafc; font-size:1.3rem; font-weight:700;" id="pvp-white-name">⚪ Weiß</div>
-                        <div style="color:#94a3b8; font-size:1.1rem; margin-top:5px; font-weight:600;">⚔️ <span id="pvp-white-caps" style="color:#f8fafc;">0</span> &nbsp;|&nbsp; ⏱️ <span id="pvp-white-time" style="color:#10b981;">10:00</span></div>
-                    </div>
-                </div>
-
-                <h2 id="pvp-turn-indicator" style="color: #f8fafc; margin: 0 0 20px 0; font-size: 1.5rem; font-weight: 600;">Schwarz ist am Zug</h2>
-                
+            <div id="pvp-screen">
                 <div id="pvp-content">
-                    <div class="board-container">
-                        <div id="undo-popup">
-                            <h3 style="margin-top:0; color:#f8fafc; font-size:1.2rem;">Gegner möchte Zug zurücknehmen!</h3>
-                            <div style="display: flex; gap: 10px; justify-content: center; margin-top:20px;">
-                                <button id="btn-undo-yes" style="background:#10b981; flex:1; margin:0;">Erlauben</button>
-                                <button id="btn-undo-no" style="background:transparent; border: 1px solid #ef4444; color:#ef4444; flex:1; margin:0;">Ablehnen</button>
-                            </div>
+                    <div class="board-wrapper">
+                        <div style="width: 100%; text-align: left; margin-bottom: 15px;">
+                            <h2 id="pvp-turn-indicator" style="margin: 0; font-size: 1.4rem; color: var(--warning);">Schwarz ist am Zug</h2>
                         </div>
-                        <canvas id="pvpCanvas" width="600" height="600"></canvas>
+                        <div class="board-container">
+                            <div id="undo-popup">
+                                <h3 style="margin-top:0; color:var(--text-main); font-size:1.2rem;">Gegner bittet um Undo!</h3>
+                                <div style="display: flex; gap: 10px; justify-content: center; margin-top:20px;">
+                                    <button id="btn-undo-yes" class="btn-success" style="flex:1; margin:0;">Erlauben</button>
+                                    <button id="btn-undo-no" class="btn-danger" style="flex:1; margin:0;">Ablehnen</button>
+                                </div>
+                            </div>
+                            <canvas id="pvpCanvas" width="600" height="600"></canvas>
+                        </div>
                     </div>
-                    <div id="pvp-sidebar" class="glass-panel">
+                    
+                    <div id="pvp-sidebar">
                         
-                        <div id="pvp-confirm-area" style="display:none; margin-bottom: 25px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 12px; border: 1px dashed #3b82f6;">
-                            <p style="margin-top:0; font-size: 0.95rem; color: #60a5fa; font-weight: 600;">Zugvorschau platziert</p>
-                            <button id="btn-pvp-confirm-move" style="width: 100%; margin:0; background: #3b82f6; color: white; padding: 12px; font-size: 1.2rem;">👆 HIER SETZEN</button>
+                        <div class="player-card">
+                            <div class="player-info">
+                                <div id="pvp-white-name" class="p-name">⚪ Weiß</div>
+                                <div class="p-caps">Gefangene: <span id="pvp-white-caps" style="color:var(--text-main); font-weight:700;">0</span></div>
+                            </div>
+                            <div id="pvp-white-time" class="p-time">10:00</div>
                         </div>
 
-                        <h3 style="margin-top:0; color:#cbd5e1; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; font-size:1rem; text-transform: uppercase; letter-spacing: 1px;">Aktionen</h3>
-                        <div id="pvp-playing-actions">
-                            <button id="btn-pvp-pass" style="width: 100%; margin: 0 0 10px 0; background: rgba(255,255,255,0.1); color: #f8fafc; border: 1px solid rgba(255,255,255,0.1);">Gepasst</button>
-                            <button id="btn-pvp-undo" style="width: 100%; margin: 0 0 15px 0; background: transparent; color: #94a3b8; border: 1px solid rgba(255,255,255,0.1); font-size: 1rem;">Zug zurücknehmen</button>
-                            <button id="btn-pvp-resign" style="width: 100%; margin: 0; background: transparent; border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; box-shadow: none; font-size: 1rem;">Aufgeben</button>
+                        <div class="player-card">
+                            <div class="player-info">
+                                <div id="pvp-black-name" class="p-name">⚫ Schwarz</div>
+                                <div class="p-caps">Gefangene: <span id="pvp-black-caps" style="color:var(--text-main); font-weight:700;">0</span></div>
+                            </div>
+                            <div id="pvp-black-time" class="p-time">10:00</div>
                         </div>
-                        <div id="pvp-scoring-actions" style="display:none;">
-                            <p style="font-size:0.95rem; color:#94a3b8; margin-bottom:15px; line-height: 1.5;">Klicke auf Steine auf dem Brett, um sie als tot zu markieren. Wenn das Brett sauber ist, bestätigen!</p>
-                            <button id="btn-pvp-accept" style="width: 100%; margin: 0 0 10px 0; background: #10b981; padding: 12px; font-size: 1.1rem;">Zählung akzeptieren</button>
-                            <p id="pvp-accept-status" style="font-size: 0.95rem; font-weight: 600; color:#f59e0b; margin:0;"></p>
+
+                        <div class="panel" style="padding: 20px;">
+                            <div id="pvp-confirm-area" style="display:none; margin-bottom: 20px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 8px; border: 1px dashed var(--primary);">
+                                <p style="margin: 0 0 10px 0; font-size: 0.9rem; color: var(--primary); font-weight: 600; text-align: center;">Zugvorschau platziert</p>
+                                <button id="btn-pvp-confirm-move" style="width: 100%; margin:0; padding: 12px; font-size: 1.1rem;">👆 HIER SETZEN</button>
+                            </div>
+
+                            <h3 style="margin-top:0; color:var(--text-muted); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size:0.9rem; text-transform: uppercase; letter-spacing: 1px;">Aktionen</h3>
+                            <div id="pvp-playing-actions" style="display: flex; flex-direction: column; gap: 10px;">
+                                <button id="btn-pvp-pass" class="btn-warning" style="margin: 0;">Gepasst</button>
+                                <button id="btn-pvp-undo" class="btn-outline" style="margin: 0; font-size: 1rem;">Zug zurücknehmen</button>
+                                <button id="btn-pvp-resign" class="btn-danger" style="margin: 0; font-size: 1rem;">Aufgeben</button>
+                            </div>
+                            
+                            <div id="pvp-scoring-actions" style="display:none; flex-direction: column; gap: 10px;">
+                                <p style="font-size:0.9rem; color:var(--text-muted); margin:0;">Klicke auf tote Steine. Danach bestätigen.</p>
+                                <button id="btn-pvp-accept" class="btn-success" style="margin: 0;">Zählung akzeptieren</button>
+                                <p id="pvp-accept-status" style="font-size: 0.9rem; font-weight: 600; color:var(--warning); margin:0; text-align: center;"></p>
+                            </div>
+                            <button id="btn-leave-spectate" class="btn-outline" style="display:none; width: 100%; margin-top:10px;">Zuschauen beenden</button>
                         </div>
-                        <button id="btn-leave-spectate" style="display:none; width: 100%; margin: 0; background: transparent; border: 1px solid rgba(255,255,255,0.2); color:#cbd5e1;">Zuschauen beenden</button>
                     </div>
+
                 </div>
             </div>
 
@@ -506,8 +612,8 @@
             else { 
                 data.challenges.forEach(c => { 
                     const isMe = (c.challengerId === socket.id); 
-                    const btnHtml = isMe ? `<button disabled style="background:rgba(255,255,255,0.05); color:#64748b; box-shadow:none;">Deine Suche</button>` : `<button onclick="acceptChallenge('${c.id}')" style="background:#10b981;">Annehmen</button>`; 
-                    cList.innerHTML += `<div class="challenge-card glass-panel"><div class="challenge-info"><h3 style="margin-bottom:5px;">${c.challengerAvatar} ${c.challengerName}</h3><span>Brettgröße: ${c.boardSize}x${c.boardSize}</span></div><div>${btnHtml}</div></div>`; 
+                    const btnHtml = isMe ? `<button disabled class="btn-outline">Deine Suche</button>` : `<button onclick="acceptChallenge('${c.id}')" class="btn-success">Annehmen</button>`; 
+                    cList.innerHTML += `<div class="challenge-card panel"><div class="challenge-info"><h3>${c.challengerAvatar} ${c.challengerName}</h3><span>Brettgröße: ${c.boardSize}x${c.boardSize}</span></div><div>${btnHtml}</div></div>`; 
                 }); 
             }
             
@@ -517,7 +623,7 @@
                 data.activeMatches.forEach(m => {
                     const isMyGame = (m.playerBlack.id === socket.id || m.playerWhite.id === socket.id);
                     if(isMyGame) return; 
-                    mList.innerHTML += `<div class="challenge-card glass-panel" style="border-color:rgba(59, 130, 246, 0.5);"><div class="challenge-info"><h3 style="font-size:1.1rem; margin-bottom:5px;">${m.playerBlack.avatar} ${m.playerBlack.name} <br><span style="color:#64748b; font-size:0.85rem; font-weight:400;">vs</span><br> ${m.playerWhite.avatar} ${m.playerWhite.name}</h3><span>Brett: ${m.size}x${m.size}</span></div><div><button onclick="spectateMatch('${m.id}')" style="background:#3b82f6; border-radius: 8px; padding: 10px 15px; font-size: 1rem;">👀 Zuschauen</button></div></div>`;
+                    mList.innerHTML += `<div class="challenge-card panel" style="border-left: 4px solid var(--primary);"><div class="challenge-info"><h3>${m.playerBlack.avatar} ${m.playerBlack.name} <br><span style="color:var(--text-muted); font-size:0.85rem; font-weight:400;">vs</span><br> ${m.playerWhite.avatar} ${m.playerWhite.name}</h3><span>Brett: ${m.size}x${m.size}</span></div><div><button onclick="spectateMatch('${m.id}')">👀 Zuschauen</button></div></div>`;
                 });
             }
         });
@@ -547,10 +653,10 @@
             if(myPvpColor === 'spectator') {
                 document.getElementById('pvp-playing-actions').style.display = "none"; document.getElementById('pvp-scoring-actions').style.display = "none"; document.getElementById('btn-leave-spectate').style.display = "block";
             } else {
-                document.getElementById('pvp-playing-actions').style.display = "block"; document.getElementById('pvp-scoring-actions').style.display = "none"; document.getElementById('btn-leave-spectate').style.display = "none";
+                document.getElementById('pvp-playing-actions').style.display = "flex"; document.getElementById('pvp-scoring-actions').style.display = "none"; document.getElementById('btn-leave-spectate').style.display = "none";
             }
             
-            document.getElementById('btn-pvp-accept').innerText = "Auszählung akzeptieren"; document.getElementById('btn-pvp-accept').style.background = "#10b981"; document.getElementById('pvp-accept-status').innerText = "";
+            document.getElementById('btn-pvp-accept').innerText = "Zählung akzeptieren"; document.getElementById('btn-pvp-accept').className = "btn-success"; document.getElementById('pvp-accept-status').innerText = "";
             document.getElementById('pvp-confirm-area').style.display = "none"; pendingMoveX = -1; pendingMoveY = -1;
             document.getElementById('undo-popup').style.display = "none";
             
@@ -570,7 +676,7 @@
 
         socket.on('1v1_timer_update', (data) => {
             document.getElementById('pvp-black-time').innerText = formatTimerObj(data.timers.black); document.getElementById('pvp-white-time').innerText = formatTimerObj(data.timers.white);
-            document.getElementById('pvp-black-time').style.color = (data.timers.black.main <= 0 && data.timers.black.byo <= 10) ? "#ef4444" : "#10b981"; document.getElementById('pvp-white-time').style.color = (data.timers.white.main <= 0 && data.timers.white.byo <= 10) ? "#ef4444" : "#10b981";
+            document.getElementById('pvp-black-time').style.color = (data.timers.black.main <= 0 && data.timers.black.byo <= 10) ? "var(--danger)" : "var(--success)"; document.getElementById('pvp-white-time').style.color = (data.timers.white.main <= 0 && data.timers.white.byo <= 10) ? "var(--danger)" : "var(--success)";
         });
 
         function drawPvpBoard() {
@@ -583,7 +689,7 @@
         function drawPvpStone(x, y, color, isLastMove=false, isDead=false) {
             const cx = padding + x * pvpCellSize; const cy = padding + y * pvpCellSize; const r = pvpCellSize * 0.47; 
             if(isDead) pvpCtx.globalAlpha = 0.3; else pvpCtx.globalAlpha = 1.0;
-            pvpCtx.beginPath(); pvpCtx.arc(cx + 2, cy + 4, r, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(0,0,0,0.5)"; pvpCtx.fill(); 
+            pvpCtx.beginPath(); pvpCtx.arc(cx + 2, cy + 4, r, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(0,0,0,0.4)"; pvpCtx.fill(); 
             pvpCtx.beginPath(); pvpCtx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = pvpCtx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
             if (color === "black") { gradient.addColorStop(0, "#444"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } 
             else if (color === "white") { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#f1f5f9"); gradient.addColorStop(1, "#cbd5e1"); }
@@ -608,10 +714,10 @@
             }
             
             if (pvpState === 'playing') {
-                if (myPvpColor === 'spectator') { document.getElementById('pvp-turn-indicator').innerText = `👀 Zuschauer Modus (${turn === 'black' ? 'Schwarz' : 'Weiß'} zieht)`; document.getElementById('pvp-turn-indicator').style.color = "#3b82f6"; } 
-                else { let turnText = (turn === 'black') ? '⚫ Schwarz ist am Zug' : '⚪ Weiß ist am Zug'; document.getElementById('pvp-turn-indicator').innerText = turnText; document.getElementById('pvp-turn-indicator').style.color = (turn === myPvpColor) ? '#10b981' : '#f59e0b'; }
+                if (myPvpColor === 'spectator') { document.getElementById('pvp-turn-indicator').innerText = `👀 Zuschauer Modus (${turn === 'black' ? 'Schwarz' : 'Weiß'} zieht)`; document.getElementById('pvp-turn-indicator').style.color = "var(--primary)"; } 
+                else { let turnText = (turn === 'black') ? '⚫ Schwarz ist am Zug' : '⚪ Weiß ist am Zug'; document.getElementById('pvp-turn-indicator').innerText = turnText; document.getElementById('pvp-turn-indicator').style.color = (turn === myPvpColor) ? 'var(--success)' : 'var(--warning)'; }
             } else {
-                document.getElementById('pvp-turn-indicator').innerText = "🚩 Phase: Tote Steine markieren"; document.getElementById('pvp-turn-indicator').style.color = "#f59e0b";
+                document.getElementById('pvp-turn-indicator').innerText = "🚩 Phase: Tote Steine markieren"; document.getElementById('pvp-turn-indicator').style.color = "var(--warning)";
             }
         }
 
@@ -633,12 +739,12 @@
         document.getElementById('btn-undo-no').addEventListener('click', () => { document.getElementById('undo-popup').style.display = "none"; socket.emit('1v1_respond_undo', {matchId: currentPvpMatch, accept: false}); });
         document.getElementById('btn-pvp-undo').addEventListener('click', () => { socket.emit('1v1_request_undo', currentPvpMatch); });
 
-        socket.on('1v1_scoring_phase', () => { pvpState = 'scoring'; if(myPvpColor !== 'spectator') { document.getElementById('pvp-playing-actions').style.display = "none"; document.getElementById('pvp-scoring-actions').style.display = "block"; } renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove); });
+        socket.on('1v1_scoring_phase', () => { pvpState = 'scoring'; if(myPvpColor !== 'spectator') { document.getElementById('pvp-playing-actions').style.display = "none"; document.getElementById('pvp-scoring-actions').style.display = "flex"; } renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove); });
         socket.on('1v1_scoring_update', (data) => {
             pvpDeadStones = new Set(data.deadStones);
             if(myPvpColor !== 'spectator') {
                 let iAccepted = data.accepts[myPvpColor]; let enemyAccepted = data.accepts[myPvpColor === 'black' ? 'white' : 'black'];
-                if(iAccepted) { document.getElementById('btn-pvp-accept').innerText = "✅ Bereit"; document.getElementById('btn-pvp-accept').style.background = "rgba(255,255,255,0.1)"; } else { document.getElementById('btn-pvp-accept').innerText = "Auszählung akzeptieren"; document.getElementById('btn-pvp-accept').style.background = "#10b981"; }
+                if(iAccepted) { document.getElementById('btn-pvp-accept').innerText = "✅ Bereit"; document.getElementById('btn-pvp-accept').className = "btn-outline"; } else { document.getElementById('btn-pvp-accept').innerText = "Zählung akzeptieren"; document.getElementById('btn-pvp-accept').className = "btn-success"; }
                 if(iAccepted && !enemyAccepted) document.getElementById('pvp-accept-status').innerText = "Warte auf Gegner..."; else if(!iAccepted && enemyAccepted) document.getElementById('pvp-accept-status').innerText = "Gegner ist bereit!"; else document.getElementById('pvp-accept-status').innerText = "";
             }
             renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove);
@@ -647,7 +753,7 @@
         socket.on('1v1_game_over', (data) => {
             pvpState = 'playing'; pvpScreen.style.display = "none"; document.getElementById('game-over-screen').style.display = "block";
             document.getElementById('go-reason').innerHTML = data.reason; document.getElementById('podium-container').innerHTML = "";
-            if(data.moveList) { lastPlayedGame.moveList = data.moveList; lastPlayedGame.size = data.size || pvpBoardSize; document.getElementById('btn-go-analyze').style.display = "inline-block"; } 
+            if(data.moveList) { lastPlayedGame.moveList = data.moveList; lastPlayedGame.size = data.size || pvpBoardSize; document.getElementById('btn-go-analyze').style.display = "inline-flex"; } 
             else { document.getElementById('btn-go-analyze').style.display = "none"; }
         });
 
@@ -745,8 +851,8 @@
         document.getElementById('btn-ana-next').addEventListener('click', () => { if(analysisCurrentStep < analysisMoves.length) { analysisCurrentStep++; SoundFX.play('clack'); renderAnalysis(); } });
         document.getElementById('btn-ana-end').addEventListener('click', () => { analysisCurrentStep = analysisMoves.length; renderAnalysis(); });
 
-        document.getElementById('btn-ana-color-black').addEventListener('click', () => { anaManualColor = 'black'; document.getElementById('btn-ana-color-black').style.borderColor = "#3b82f6"; document.getElementById('btn-ana-color-white').style.borderColor = "transparent"; });
-        document.getElementById('btn-ana-color-white').addEventListener('click', () => { anaManualColor = 'white'; document.getElementById('btn-ana-color-white').style.borderColor = "#3b82f6"; document.getElementById('btn-ana-color-black').style.borderColor = "transparent"; });
+        document.getElementById('btn-ana-color-black').addEventListener('click', () => { anaManualColor = 'black'; document.getElementById('btn-ana-color-black').style.borderColor = "var(--primary)"; document.getElementById('btn-ana-color-white').style.borderColor = "transparent"; });
+        document.getElementById('btn-ana-color-white').addEventListener('click', () => { anaManualColor = 'white'; document.getElementById('btn-ana-color-white').style.borderColor = "var(--primary)"; document.getElementById('btn-ana-color-black').style.borderColor = "transparent"; });
 
         anaCanvas.addEventListener('mousemove', (event) => { const rect = anaCanvas.getBoundingClientRect(); const scaleX = anaCanvas.width / rect.width; const scaleY = anaCanvas.height / rect.height; const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / analysisCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / analysisCellSize); if (gridX !== anaHoverX || gridY !== anaHoverY) { anaHoverX = gridX; anaHoverY = gridY; renderAnalysis(); } });
         anaCanvas.addEventListener('mouseout', () => { anaHoverX = -1; anaHoverY = -1; renderAnalysis(); });
@@ -791,7 +897,7 @@
         function sendChat(text) { if(text.trim() !== "") { socket.emit('chat_message', { name: myName, avatar: myAvatar, rank: myRank, text: text.trim() }); chatInput.value = ""; } }
         document.getElementById('chat-send').addEventListener('click', () => sendChat(chatInput.value)); chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChat(chatInput.value); });
         document.querySelectorAll('.emoji-btn').forEach(btn => { btn.addEventListener('click', () => sendChat(btn.innerText)); });
-        socket.on('chat_message', (data) => { const div = document.createElement('div'); div.style.marginBottom = "8px"; div.style.wordWrap = "break-word"; div.innerHTML = `<span style="color:#94a3b8; font-size:0.85rem;">[${data.rank || '30k'}]</span> <span style="color:#fcd34d; font-weight:600;">${data.avatar} ${data.name}:</span> <span style="color:#f8fafc;">${data.text}</span>`; chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; });
+        socket.on('chat_message', (data) => { const div = document.createElement('div'); div.style.marginBottom = "8px"; div.style.wordWrap = "break-word"; div.innerHTML = `<span style="color:#64748b; font-size:0.85rem;">[${data.rank || '30k'}]</span> <span style="color:#fcd34d; font-weight:600;">${data.avatar} ${data.name}:</span> <span style="color:#f8fafc;">${data.text}</span>`; chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; });
 
         socket.on('room_joined', (data) => { menuScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex"; pvpScreen.style.display = "none"; lobbyScreen.style.display = "block"; document.getElementById('game-over-screen').style.display = "none"; amIHost = data.isHost; if (data.roomId === 'public') { document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby"; document.getElementById('room-code-display').style.display = "none"; document.getElementById('host-settings').style.display = "none"; document.getElementById('waiting-msg').style.display = "none"; document.getElementById('start-btn').style.display = "inline-block"; } else { document.getElementById('room-title').innerText = "🔒 Privater Raum"; document.getElementById('room-code-display').style.display = "inline-block"; document.getElementById('the-code').innerText = data.roomId; if (amIHost) { document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; } else { document.getElementById('host-settings').style.display = "none"; document.getElementById('start-btn').style.display = "none"; document.getElementById('waiting-msg').style.display = "block"; } } });
         socket.on('you_are_host', () => { amIHost = true; document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; });
