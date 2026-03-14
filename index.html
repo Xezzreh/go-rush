@@ -5,163 +5,255 @@
     <title>Go-Rush Multiplayer</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚫</text></svg>">
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
+        /* ELEGANTES DARK THEME */
         body { 
-            background: linear-gradient(135deg, #0f1016 0%, #1a1a2e 50%, #0f1016 100%); background-size: 200% 200%; animation: gradientBG 15s ease infinite;
-            color: white; font-family: 'Nunito', sans-serif; text-align: center; margin: 0; padding-top: 20px; min-height: 100vh;
+            background-color: #0f111a; 
+            background-image: radial-gradient(circle at top right, #181b29, #0f111a);
+            color: #e2e8f0; 
+            font-family: 'Inter', sans-serif; 
+            text-align: center; 
+            margin: 0; 
+            padding-top: 20px; 
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
         }
-        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         #login-screen, #menu-screen { margin-top: 100px; padding: 20px; animation: fadeIn 0.4s ease-out; }
-        #lobby-screen, #game-over-screen, #matchmaking-screen, #analysis-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; animation: fadeIn 0.4s ease-out; } 
-        #game-screen, #pvp-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; animation: fadeIn 0.4s ease-out; }
+        #lobby-screen, #game-over-screen, #matchmaking-screen, #analysis-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; animation: fadeIn 0.3s ease-out; } 
+        #game-screen, #pvp-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; animation: fadeIn 0.3s ease-out; }
         #menu-screen { display: none; } 
         
-        input, select { font-family: 'Nunito', sans-serif; font-size: 1.2rem; padding: 12px; border-radius: 8px; border: 2px solid #444; text-align: center; margin-bottom: 10px; max-width: 80%; background: rgba(30,30,30,0.8); color: white; outline: none; transition: border 0.3s, box-shadow 0.3s; }
-        input:focus, select:focus { border: 2px solid #ffaa00; box-shadow: 0 0 10px rgba(255, 170, 0, 0.3); }
+        h1, h2, h3 { color: #f8fafc; letter-spacing: -0.02em; }
+        p { color: #94a3b8; }
 
-        button { font-family: 'Nunito', sans-serif; font-size: 1.2rem; padding: 12px 24px; margin: 5px; cursor: pointer; background: #44aaff; color: white; border: none; border-radius: 8px; font-weight: 700; transition: all 0.2s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        button:hover { background: #3388cc; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(68, 170, 255, 0.4); } 
-        button:active { transform: translateY(1px); box-shadow: 0 2px 10px rgba(0,0,0,0.3); } 
-        button:disabled { background: #555; cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.7;}
+        /* CLEANE EINGABEFELDER */
+        input, select { 
+            font-family: 'Inter', sans-serif; font-size: 1.1rem; padding: 12px 16px; 
+            border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); text-align: center; 
+            margin-bottom: 10px; max-width: 80%; background: rgba(0,0,0,0.2); 
+            color: #f8fafc; outline: none; transition: all 0.2s ease;
+        }
+        input:focus, select:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+        option { background: #1e293b; color: #f8fafc; }
+
+        /* HOCHWERTIGE BUTTONS */
+        button { 
+            font-family: 'Inter', sans-serif; font-size: 1.1rem; padding: 12px 24px; 
+            margin: 5px; cursor: pointer; background: #3b82f6; color: white; 
+            border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; font-weight: 600; 
+            transition: all 0.2s ease; 
+        }
+        button:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25); } 
+        button:active { transform: translateY(1px); box-shadow: none; } 
+        button:disabled { background: #334155; color: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; border-color: transparent;}
         
-        .btn-public { background: #28a745; } .btn-public:hover { background: #218838; box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4); }
-        .btn-private { background: #ffaa00; } .btn-private:hover { background: #e69500; box-shadow: 0 6px 20px rgba(255, 170, 0, 0.4); }
-        .btn-1v1 { background: #9932cc; } .btn-1v1:hover { background: #8a2be2; box-shadow: 0 6px 20px rgba(153, 50, 204, 0.4); }
-        .btn-analysis { background: #e91e63; } .btn-analysis:hover { background: #c2185b; box-shadow: 0 6px 20px rgba(233, 30, 99, 0.4); }
-        .btn-nav { padding: 10px 15px; font-size: 1.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
+        .btn-public { background: #10b981; } .btn-public:hover { background: #059669; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25); }
+        .btn-private { background: #f59e0b; } .btn-private:hover { background: #d97706; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25); }
+        .btn-1v1 { background: #8b5cf6; } .btn-1v1:hover { background: #7c3aed; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25); }
+        .btn-analysis { background: #ec4899; } .btn-analysis:hover { background: #db2777; box-shadow: 0 4px 12px rgba(236, 72, 153, 0.25); }
+        .btn-nav { padding: 8px 16px; font-size: 1.2rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; box-shadow: none;}
+        .btn-nav:hover { background: rgba(255,255,255,0.1); box-shadow: none; transform: translateY(-1px);}
 
-        .avatar-options { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; font-size: 2.5rem; cursor: pointer; flex-wrap: wrap; }
-        .avatar-option { opacity: 0.4; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); padding: 5px; border-radius: 12px; border: 2px solid transparent; }
-        .avatar-option:hover { transform: scale(1.2); opacity: 0.8; }
-        .avatar-option.selected { opacity: 1; border: 2px solid #ffaa00; background: rgba(255, 170, 0, 0.1); transform: scale(1.1); box-shadow: 0 0 15px rgba(255, 170, 0, 0.3);}
+        /* EDLE AVATAR-AUSWAHL */
+        .avatar-options { display: flex; justify-content: center; gap: 12px; margin-bottom: 25px; font-size: 2.2rem; cursor: pointer; flex-wrap: wrap; }
+        .avatar-option { opacity: 0.3; transition: all 0.2s ease; padding: 8px; border-radius: 12px; border: 2px solid transparent; background: rgba(0,0,0,0.2); }
+        .avatar-option:hover { opacity: 0.7; transform: translateY(-2px); }
+        .avatar-option.selected { opacity: 1; border: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.1); transform: translateY(-4px); box-shadow: 0 8px 16px rgba(59, 130, 246, 0.2);}
 
-        #top-bar { position: absolute; top: 10px; left: 10px; display: flex; gap: 10px; z-index: 1000; }
-        .top-btn { background: rgba(50,50,50,0.8); font-size: 1rem; padding: 8px 12px; backdrop-filter: blur(5px); }
-        .glass-panel { background: rgba(30, 30, 35, 0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
+        #top-bar { position: absolute; top: 15px; left: 15px; display: flex; gap: 10px; z-index: 1000; }
+        .top-btn { background: rgba(20, 24, 36, 0.8); font-size: 0.95rem; font-weight: 500; padding: 8px 14px; backdrop-filter: blur(8px); border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 4px 12px rgba(0,0,0,0.2);}
+        .top-btn:hover { background: rgba(255,255,255,0.1); transform: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3);}
 
-        #room-code-display { font-size: 2rem; color: #ffaa00; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 8px; display: inline-block; margin-bottom: 10px; border: 2px dashed #ffaa00; letter-spacing: 2px;}
-        #host-settings { padding: 20px; margin: 15px auto; max-width: 400px; display: none; }
+        /* GLASS-PANELS (REFINED) */
+        .glass-panel {
+            background: rgba(20, 24, 36, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        #room-code-display { font-size: 1.8rem; color: #f59e0b; background: rgba(0,0,0,0.3); padding: 12px 24px; border-radius: 8px; display: inline-block; margin-bottom: 10px; border: 1px dashed rgba(245, 158, 11, 0.5); letter-spacing: 2px; font-weight: 700;}
+        #host-settings { padding: 20px; margin: 15px auto; max-width: 400px; display: none; border-color: rgba(245, 158, 11, 0.3); }
         .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        #waiting-msg { color: #aaa; font-style: italic; display: none; margin: 20px; }
+        #waiting-msg { color: #94a3b8; font-style: italic; display: none; margin: 20px; }
 
-        #lobby-players { list-style: none; padding: 0; font-size: 1.5rem; color: #ffcc00; margin: 20px auto; width: 300px; max-width: 90%; padding: 15px; }
-        #lobby-players li { border-bottom: 1px dashed rgba(255,255,255,0.1); padding: 8px 0; }
+        #lobby-players { list-style: none; padding: 0; font-size: 1.3rem; font-weight: 500; color: #cbd5e1; margin: 20px auto; width: 300px; max-width: 90%; padding: 15px; }
+        #lobby-players li { border-bottom: 1px solid rgba(255,255,255,0.05); padding: 10px 0; display: flex; justify-content: center; align-items: center; gap: 10px;}
         #lobby-players li:last-child { border-bottom: none; }
         
-        .challenge-card { padding: 15px; margin: 10px auto; max-width: 400px; display: flex; justify-content: space-between; align-items: center; border: 2px solid rgba(153, 50, 204, 0.5); transition: transform 0.2s;}
-        .challenge-card:hover { transform: translateY(-2px); border-color: rgba(153, 50, 204, 1); }
+        .challenge-card { padding: 15px; margin: 10px auto; max-width: 400px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease;}
+        .challenge-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); background: rgba(25, 30, 45, 0.7); }
         .challenge-info { text-align: left; }
-        .challenge-info h3 { margin: 0 0 5px 0; color: #fff; }
-        .challenge-info span { color: #aaa; font-size: 0.9rem; }
+        .challenge-info h3 { margin: 0 0 5px 0; color: #f8fafc; font-size: 1.1rem; }
+        .challenge-info span { color: #94a3b8; font-size: 0.9rem; }
 
-        #hud, #pvp-hud { display: flex; justify-content: center; align-items: center; gap: 30px; font-size: 1.8rem; font-weight: 900; margin-bottom: 5px; flex-wrap: wrap; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-        .timer { color: #ff4444; }
-        .score { color: #44aaff; }
-        #msg { font-size: 1.3rem; color: #aaa; min-height: 35px; font-weight: 700; margin-bottom: 15px;}
+        #hud, #pvp-hud { display: flex; justify-content: center; align-items: center; gap: 30px; font-size: 1.8rem; font-weight: 700; margin-bottom: 5px; flex-wrap: wrap; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .timer { color: #ef4444; }
+        .score { color: #3b82f6; }
+        #msg { font-size: 1.2rem; color: #cbd5e1; min-height: 35px; font-weight: 600; margin-bottom: 15px;}
         
-        #timer-container { width: 100%; max-width: 600px; background: rgba(0,0,0,0.5); height: 14px; border-radius: 7px; margin: 0 auto 15px auto; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: inset 0 2px 5px rgba(0,0,0,0.5); }
-        #timer-bar { height: 100%; width: 100%; background: linear-gradient(90deg, #00ff00, #00cc00); transition: width 1s linear, background 0.5s; }
+        #timer-container { width: 100%; max-width: 600px; background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; margin: 0 auto 15px auto; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+        #timer-bar { height: 100%; width: 100%; background: #10b981; transition: width 1s linear, background 0.5s; }
 
         #game-content, #pvp-content, #analysis-content { display: flex; justify-content: center; align-items: flex-start; gap: 30px; max-width: 950px; margin: 0 auto 20px auto; flex-wrap: wrap; position: relative;}
         
-        .board-container { width: 100%; max-width: min(600px, 55vh); aspect-ratio: 1 / 1; background: radial-gradient(circle at 30% 30%, #ebd29f, #c29b57); border: 8px solid #3e2723; border-radius: 6px; box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.2); cursor: crosshair; position: relative; }
+        /* EDLES HOLZBRETT */
+        .board-container { 
+            width: 100%; max-width: min(600px, 55vh); aspect-ratio: 1 / 1; 
+            background: linear-gradient(135deg, #dfb76e, #c79a47); 
+            border: 6px solid #2b1b10; border-radius: 4px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,0,0,0.1); 
+            cursor: crosshair; position: relative; 
+        }
         canvas { width: 100%; height: 100%; display: block; }
 
         #leaderboard, #pvp-sidebar, #analysis-sidebar { padding: 20px; width: 100%; max-width: 300px; text-align: left; box-sizing: border-box; }
-        #leaderboard h2 { margin-top: 0; color: #ffcc00; text-align: center; font-size: 1.5rem; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
-        .lb-row { display: flex; justify-content: space-between; font-size: 1.2rem; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed rgba(255,255,255,0.1); }
-        .lb-rank { color: #888; width: 30px; font-weight: 900;}
-        .lb-name { flex-grow: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .lb-score { color: #44aaff; font-weight: 900; }
+        #leaderboard h2 { margin-top: 0; color: #f8fafc; text-align: center; font-size: 1.3rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 15px; }
+        .lb-row { display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .lb-rank { color: #64748b; width: 30px; font-weight: 700; font-size: 0.95rem;}
+        .lb-name { flex-grow: 1; font-weight: 500; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .lb-score { color: #3b82f6; font-weight: 700; }
 
-        .floating-points { position: absolute; color: #00ff00; font-size: 2.5rem; font-weight: 900; pointer-events: none; text-shadow: 0 4px 8px rgba(0,0,0,0.8); animation: floatUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; z-index: 100; }
-        @keyframes floatUp { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20% { transform: translateY(-20px) scale(1.2); opacity: 1; } 100% { transform: translateY(-80px) scale(1); opacity: 0; } }
+        .floating-points { position: absolute; color: #10b981; font-size: 2rem; font-weight: 700; pointer-events: none; text-shadow: 0 4px 12px rgba(0,0,0,0.6); animation: floatUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; z-index: 100; }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(0.8); opacity: 0; } 20% { transform: translateY(-20px) scale(1.1); opacity: 1; } 100% { transform: translateY(-60px) scale(1); opacity: 0; } }
 
-        .podium { display: flex; justify-content: center; align-items: flex-end; gap: 15px; margin: 40px auto; height: 200px; max-width: 500px; }
-        .podium-place { width: 110px; text-align: center; border-radius: 12px 12px 0 0; color: #000; font-weight: 900; padding-top: 15px; font-size: 1.8rem; display: flex; flex-direction: column; justify-content: flex-start; box-shadow: inset 0 8px 15px rgba(255,255,255,0.4), 0 -5px 20px rgba(0,0,0,0.5); transition: transform 0.5s;}
-        .place-1 { height: 180px; background: linear-gradient(180deg, #ffe066 0%, #f5af19 100%); z-index: 3; animation: popUp 0.6s ease-out;}
-        .place-2 { height: 130px; background: linear-gradient(180deg, #e0e0e0 0%, #9e9e9e 100%); z-index: 2; animation: popUp 0.8s ease-out;}
-        .place-3 { height: 100px; background: linear-gradient(180deg, #e69d67 0%, #a6602e 100%); z-index: 1; animation: popUp 1s ease-out;}
+        /* MINIMALISTISCHES PODIUM */
+        .podium { display: flex; justify-content: center; align-items: flex-end; gap: 15px; margin: 40px auto; height: 180px; max-width: 500px; }
+        .podium-place { width: 110px; text-align: center; border-radius: 8px 8px 0 0; color: #0f111a; font-weight: 700; padding-top: 15px; font-size: 1.5rem; display: flex; flex-direction: column; justify-content: flex-start; box-shadow: 0 -5px 20px rgba(0,0,0,0.4); transition: transform 0.5s;}
+        .place-1 { height: 160px; background: linear-gradient(180deg, #fcd34d 0%, #d97706 100%); z-index: 3; animation: popUp 0.6s ease-out;}
+        .place-2 { height: 110px; background: linear-gradient(180deg, #e2e8f0 0%, #94a3b8 100%); z-index: 2; animation: popUp 0.8s ease-out;}
+        .place-3 { height: 80px; background: linear-gradient(180deg, #fdba74 0%, #b45309 100%); z-index: 1; animation: popUp 1s ease-out;}
         @keyframes popUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1;} }
 
-        .podium-name { color: #fff; font-size: 1.4rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8); word-wrap: break-word; font-weight: 700; margin-bottom: 5px;}
-        .podium-score { color: #44aaff; font-size: 1.2rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8); margin-bottom: 10px; font-weight: 900;}
+        .podium-name { color: #f8fafc; font-size: 1.2rem; text-shadow: 0 2px 4px rgba(0,0,0,0.6); word-wrap: break-word; font-weight: 600; margin-bottom: 5px;}
+        .podium-score { color: #60a5fa; font-size: 1.1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.6); margin-bottom: 10px; font-weight: 700;}
 
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; transition: background 0.3s;}
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 170, 0, 0.6); }
+        /* DEZENTE SCROLLBARS */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; transition: background 0.3s;}
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.3); }
 
-        .emoji-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 8px 12px; font-size: 1.4rem; cursor: pointer; transition: transform 0.1s, background 0.2s; box-shadow: none;}
-        .emoji-btn:hover { background: rgba(255,255,255,0.15); transform: scale(1.15) rotate(5deg); }
+        .emoji-btn { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 6px 10px; font-size: 1.2rem; cursor: pointer; transition: all 0.2s; box-shadow: none;}
+        .emoji-btn:hover { background: rgba(255,255,255,0.1); transform: scale(1.1); border-color: rgba(255,255,255,0.2);}
 
-        #undo-popup { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); border: 2px solid #ffaa00; padding: 20px; border-radius: 12px; z-index: 2000; box-shadow: 0 0 30px rgba(255,170,0,0.5); display: none;}
+        #undo-popup { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); background: rgba(15, 17, 26, 0.95); border: 1px solid #f59e0b; padding: 25px; border-radius: 12px; z-index: 2000; box-shadow: 0 10px 40px rgba(0,0,0,0.6); display: none; backdrop-filter: blur(10px);}
         
-        /* DSGVO Text */
-        .gdpr-text { font-size: 0.85rem; color: #888; margin-top: 20px; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.4; }
+        .gdpr-text { font-size: 0.85rem; color: #64748b; margin-top: 20px; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.5; }
+
+        /* =========================================
+           DIE UNVERÄNDERTEN MOBILE-FIXES
+           ========================================= */
+        @media (max-width: 900px) {
+            #room-container {
+                flex-direction: column-reverse;
+                flex-wrap: nowrap;
+                padding: 0 5px;
+                gap: 20px;
+            }
+            #global-chat {
+                max-width: 100%;
+                width: 100%;
+                height: 350px;
+                margin-bottom: 20px;
+            }
+            #main-column {
+                max-width: 100%;
+                width: 100%;
+            }
+            .board-container {
+                max-width: 100%;
+                width: 96vw;
+                height: auto;
+                aspect-ratio: 1 / 1;
+            }
+            #game-content, #pvp-content, #analysis-content {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
+            #leaderboard, #pvp-sidebar, #analysis-sidebar {
+                max-width: 100%;
+                width: 96vw;
+            }
+            #pvp-hud {
+                flex-direction: column !important;
+                gap: 15px;
+            }
+            #pvp-hud > div {
+                text-align: center !important;
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
 
     <div id="top-bar">
-        <button class="top-btn glass-panel" id="mute-btn">🔊</button>
-        <button class="top-btn glass-panel" id="profile-btn" style="display:none;">👤 Profil</button> 
+        <button class="top-btn" id="mute-btn">🔊</button>
+        <button class="top-btn" id="profile-btn" style="display:none;">👤 Profil</button> 
     </div>
 
     <div id="login-screen">
-        <h1 style="font-size: 3rem; margin-bottom: 10px; background: -webkit-linear-gradient(#fff, #aaa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Go-Rush!</h1>
-        <p style="color: #aaa; margin-bottom: 15px; font-size: 1.2rem;">Wähle deinen Avatar</p>
+        <h1 style="font-size: 3.5rem; margin-bottom: 10px; font-weight: 900; letter-spacing: -0.05em; color: #f8fafc;">Go-Rush<span style="color:#3b82f6;">.</span></h1>
+        <p style="color: #94a3b8; margin-bottom: 20px; font-size: 1.1rem;">Wähle deinen Avatar</p>
         <div class="avatar-options" id="avatar-selection">
             <div class="avatar-option selected">🦊</div><div class="avatar-option">🐼</div><div class="avatar-option">🐸</div><div class="avatar-option">🐉</div>
             <div class="avatar-option">🐯</div><div class="avatar-option">🐱</div><div class="avatar-option">🐧</div><div class="avatar-option">🦉</div>
         </div>
         <input type="text" id="username" placeholder="Dein Spielername..." autocomplete="off"><br>
-        <button id="next-btn" style="padding: 15px 40px; font-size: 1.4rem; margin-top: 10px;">Los geht's</button>
+        <button id="next-btn" style="padding: 14px 40px; font-size: 1.2rem; margin-top: 10px; border-radius: 30px;">Los geht's</button>
         
         <br>
-        <button id="btn-delete-profile" style="display:none; padding: 10px 20px; font-size: 1rem; margin-top: 15px; background: transparent; border: 1px solid #ff4444; color: #ff4444; box-shadow:none;">🗑️ Daten löschen</button>
+        <button id="btn-delete-profile" style="display:none; padding: 8px 16px; font-size: 0.9rem; margin-top: 20px; background: transparent; border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; box-shadow:none;">🗑️ Daten löschen</button>
         <p class="gdpr-text">🔐 Dein Spielstand (Elo) wird anonymisiert mit einem Schlüssel auf deinem Gerät gespeichert. Wir nutzen kein Tracking und fragen keine E-Mails ab.</p>
     </div>
 
     <div id="menu-screen">
-        <h2 style="font-size: 2rem; color: #fff;">Spielmodus wählen</h2>
-        <button class="btn-1v1" id="btn-goto-matchmaking" style="padding: 20px 40px; font-size: 1.6rem; margin-bottom: 25px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2);">⚔️ 1v1 Online spielen</button><br>
-        <button class="btn-public" id="btn-public">🌍 Öffentlicher Tsumego-Rush</button><br>
-        <button class="btn-analysis" id="btn-goto-analysis-menu" style="margin-bottom: 25px;">🔬 SGF Studio / Analyse</button><br>
+        <h2 style="font-size: 2.2rem; font-weight: 700; margin-bottom: 30px;">Spielmodus wählen</h2>
+        <button class="btn-1v1" id="btn-goto-matchmaking" style="padding: 18px 36px; font-size: 1.4rem; margin-bottom: 20px; border-radius: 12px;">⚔️ 1v1 Online spielen</button><br>
+        <button class="btn-public" id="btn-public" style="margin-bottom: 20px;">🌍 Öffentlicher Tsumego-Rush</button><br>
+        <button class="btn-analysis" id="btn-goto-analysis-menu" style="margin-bottom: 35px;">🔬 SGF Studio / Analyse</button><br>
         
         <div class="glass-panel" style="padding: 25px; display: inline-block; max-width: 90%;">
-            <button class="btn-private" id="btn-create-private">🔒 Privaten Raum erstellen</button>
-            <h3 style="color:#aaa; font-weight: 400;">oder mit Code beitreten</h3>
+            <button class="btn-private" id="btn-create-private" style="margin-bottom: 15px;">🔒 Privaten Raum erstellen</button>
+            <h3 style="color:#94a3b8; font-weight: 400; font-size: 1rem; margin-bottom: 10px;">oder mit Code beitreten</h3>
             <div style="display: flex; gap: 10px; justify-content: center;">
-                <input type="text" id="roomcode-input" placeholder="CODE..." style="width: 100px; margin: 0; font-weight: bold; text-transform: uppercase;">
-                <button id="btn-join-private" style="margin: 0;">Beitreten</button>
+                <input type="text" id="roomcode-input" placeholder="CODE" style="width: 120px; margin: 0; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+                <button id="btn-join-private" style="margin: 0; background: #475569; border-color: rgba(255,255,255,0.1);">Beitreten</button>
             </div>
         </div>
     </div>
 
     <div id="matchmaking-screen">
-        <div style="display: flex; justify-content: space-between; align-items: center; max-width: 900px; margin: 0 auto;">
-            <h1 style="color: #c973ff; margin-top: 0;">Das Schwarze Brett</h1>
-            <button class="glass-panel" id="btn-back-to-menu" style="background: rgba(0,0,0,0.5); padding: 10px 20px; font-size: 1rem;">Zurück zum Menü</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; max-width: 900px; margin: 0 auto 10px auto;">
+            <h1 style="color: #f8fafc; margin: 0; font-size: 2rem;">Das Schwarze Brett</h1>
+            <button class="top-btn" id="btn-back-to-menu" style="margin:0;">Zurück zum Menü</button>
         </div>
-        <p style="color: #aaa; max-width: 900px; margin: 0 auto 25px auto; text-align: left; font-size: 1.1rem;">Suche dir einen Gegner oder schau laufenden Spielen zu!</p>
+        <p style="color: #94a3b8; max-width: 900px; margin: 0 auto 30px auto; text-align: left; font-size: 1rem;">Suche dir einen Gegner oder schau laufenden Spielen zu.</p>
         
         <div style="display: flex; justify-content: center; gap: 25px; flex-wrap: wrap; max-width: 900px; margin: 0 auto;">
             <div style="flex: 1; min-width: 300px;">
-                <div class="glass-panel" style="padding: 20px; margin-bottom: 25px;">
-                    <h3 style="margin-top:0;">Herausforderung stellen</h3>
-                    <select id="select-boardsize" style="width: 100%; max-width: none;"><option value="9">9x9 Brett (Schnell)</option><option value="13">13x13 Brett (Mittel)</option><option value="19" selected>19x19 Brett (Klassisch)</option></select><br>
+                <div class="glass-panel" style="padding: 25px; margin-bottom: 25px; border-top: 3px solid #8b5cf6;">
+                    <h3 style="margin-top:0; font-weight: 600;">Herausforderung stellen</h3>
+                    <select id="select-boardsize" style="width: 100%; max-width: none; background: rgba(0,0,0,0.3);"><option value="9">9x9 Brett (Schnell)</option><option value="13">13x13 Brett (Mittel)</option><option value="19" selected>19x19 Brett (Klassisch)</option></select><br>
                     
-                    <select id="select-time" style="width: 100%; max-width: none;">
+                    <select id="select-time" style="width: 100%; max-width: none; background: rgba(0,0,0,0.3);">
                         <option value="10m_0_0" selected>10 Min Sudden Death</option>
                         <option value="10m_3_30">10 Min + 3x 30s Byo-Yomi</option>
                         <option value="3m_3_20">3 Min + 3x 20s Blitz</option>
                     </select><br>
-                    <select id="select-handicap" style="width: 100%; max-width: none;">
+                    <select id="select-handicap" style="width: 100%; max-width: none; background: rgba(0,0,0,0.3); margin-bottom: 20px;">
                         <option value="0" selected>Kein Handicap (Gleichstand)</option>
                         <option value="2">2 Steine Handicap</option><option value="3">3 Steine Handicap</option>
                         <option value="4">4 Steine Handicap</option><option value="5">5 Steine Handicap</option>
@@ -169,77 +261,83 @@
                         <option value="8">8 Steine Handicap</option><option value="9">9 Steine Handicap</option>
                     </select><br>
 
-                    <button class="btn-1v1" id="btn-create-challenge" style="width: 100%; margin: 5px 0 0 0;">Gegner suchen 🔎</button>
-                    <button id="btn-cancel-challenge" style="display:none; background: #ff4444; width: 100%; margin: 5px 0 0 0;">Suche abbrechen</button>
+                    <button class="btn-1v1" id="btn-create-challenge" style="width: 100%; margin: 0; padding: 14px;">Gegner suchen 🔎</button>
+                    <button id="btn-cancel-challenge" style="display:none; background: #ef4444; width: 100%; margin: 0; padding: 14px;">Suche abbrechen</button>
                 </div>
-                <h3 style="text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Offene Herausforderungen:</h3>
-                <div id="challenge-list"><p style="color: #666; font-style: italic;">Aktuell sucht niemand nach einem Spiel.</p></div>
+                <h3 style="text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; font-size: 1.1rem; color: #cbd5e1;">Offene Herausforderungen</h3>
+                <div id="challenge-list"><p style="color: #475569; font-style: italic;">Aktuell sucht niemand nach einem Spiel.</p></div>
             </div>
 
-            <div class="glass-panel" style="flex: 1; min-width: 300px; padding: 20px;">
-                <h3 style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Live Spiele (Zuschauen):</h3>
-                <div id="active-matches-list"><p style="color: #666; font-style: italic;">Aktuell laufen keine Spiele.</p></div>
+            <div class="glass-panel" style="flex: 1; min-width: 300px; padding: 25px; border-top: 3px solid #3b82f6;">
+                <h3 style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; font-size: 1.1rem; color: #cbd5e1;">Live Spiele (Zuschauen)</h3>
+                <div id="active-matches-list"><p style="color: #475569; font-style: italic;">Aktuell laufen keine Spiele.</p></div>
             </div>
         </div>
     </div>
 
     <div id="analysis-screen">
-        <h1 style="color: #e91e63; margin-top: 0; margin-bottom: 5px;">SGF Studio</h1>
-        <p style="color: #aaa; margin-top: 0; margin-bottom: 20px;">Analysiere Züge, spiele Varianten oder importiere Dateien.</p>
+        <h1 style="color: #f8fafc; margin-top: 0; margin-bottom: 5px; font-size: 2rem;">SGF Studio</h1>
+        <p style="color: #94a3b8; margin-top: 0; margin-bottom: 25px;">Analysiere Züge, spiele Varianten oder importiere Dateien.</p>
         <div id="analysis-content">
             <div class="board-container"><canvas id="analysisCanvas" width="600" height="600"></canvas></div>
             <div id="analysis-sidebar" class="glass-panel">
-                <h3 style="margin-top:0; color:#fff; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Navigation</h3>
-                <div style="display: flex; justify-content: center; gap: 5px; margin-bottom: 15px;">
+                <h3 style="margin-top:0; color:#cbd5e1; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; font-size:1rem; text-transform: uppercase; letter-spacing: 1px;">Navigation</h3>
+                <div style="display: flex; justify-content: center; gap: 6px; margin-bottom: 15px;">
                     <button class="btn-nav" id="btn-ana-start">|&lt;</button><button class="btn-nav" id="btn-ana-prev">&lt;</button>
                     <button class="btn-nav" id="btn-ana-next">&gt;</button><button class="btn-nav" id="btn-ana-end">&gt;|</button>
                 </div>
-                <p style="text-align:center; color:#ffaa00; font-weight:bold; margin-bottom: 20px;">Zug: <span id="ana-move-count">0</span> / <span id="ana-total-moves">0</span></p>
-                <h3 style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Freies Setzen</h3>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                    <button id="btn-ana-color-black" style="flex:1; background:#000; border: 2px solid #ffaa00;">Schwarz ⚫</button>
-                    <button id="btn-ana-color-white" style="flex:1; background:#fff; color:#000; border: 2px solid transparent;">Weiß ⚪</button>
+                <p style="text-align:center; color:#f8fafc; font-weight:500; margin-bottom: 25px;">Zug: <span id="ana-move-count" style="font-weight:700;">0</span> / <span id="ana-total-moves">0</span></p>
+                
+                <h3 style="margin-top:0; color:#cbd5e1; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; font-size:1rem; text-transform: uppercase; letter-spacing: 1px;">Freies Setzen</h3>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 25px; gap:10px;">
+                    <button id="btn-ana-color-black" style="flex:1; margin:0; background:#1e293b; border: 1px solid #3b82f6;">⚫ Schwarz</button>
+                    <button id="btn-ana-color-white" style="flex:1; margin:0; background:#f1f5f9; color:#0f111a; border: 1px solid transparent;">⚪ Weiß</button>
                 </div>
-                <h3 style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Dateien</h3>
+                
+                <h3 style="margin-top:0; color:#cbd5e1; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; font-size:1rem; text-transform: uppercase; letter-spacing: 1px;">Dateien</h3>
                 <input type="file" id="sgf-upload-input" accept=".sgf" style="display:none;">
-                <button id="btn-ana-upload" style="width: 100%; background: #28a745; margin-bottom: 10px;">📂 SGF Hochladen</button>
-                <button id="btn-ana-download" style="width: 100%; background: #44aaff; margin-bottom: 20px;">💾 SGF Speichern</button>
-                <button id="btn-ana-leave" style="width: 100%; background: #555; margin-top: 10px;">Zurück zum Menü</button>
+                <button id="btn-ana-upload" style="width: 100%; background: #10b981; margin: 0 0 10px 0;">📂 SGF Hochladen</button>
+                <button id="btn-ana-download" style="width: 100%; background: #3b82f6; margin: 0 0 25px 0;">💾 SGF Speichern</button>
+                
+                <button id="btn-ana-leave" style="width: 100%; background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1; margin: 0;">Zurück zum Menü</button>
             </div>
         </div>
     </div>
 
     <div id="room-container">
         
-        <div id="global-chat" class="glass-panel" style="display: flex; width: 100%; max-width: 320px; padding: 15px; flex-direction: column; height: min(600px, 75vh); box-sizing: border-box;">
-            <h3 style="margin: 0 0 15px 0; color: #fff; text-align: left; font-size: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">💬 Raum Chat</h3>
-            <div id="chat-messages" style="flex-grow: 1; overflow-y: auto; text-align: left; margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px; font-size: 1.1rem; word-wrap: break-word;"></div>
-            <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 15px;"><button class="emoji-btn">🔥</button><button class="emoji-btn">❤️</button><button class="emoji-btn">😡</button><button class="emoji-btn">😂</button><button class="emoji-btn">👏</button></div>
-            <div style="display: flex; gap: 8px; width: 100%;"><input type="text" id="chat-input" placeholder="Nachricht..." autocomplete="off" style="flex-grow: 1; font-size: 1.1rem; padding: 10px; margin: 0; text-align: left; min-width: 0; border: none; background: rgba(255,255,255,0.1);"><button id="chat-send" style="margin: 0; padding: 10px 20px; border-radius: 8px;">▶</button></div>
+        <div id="global-chat" class="glass-panel" style="display: flex; width: 100%; max-width: 320px; padding: 20px; flex-direction: column; height: min(600px, 75vh); box-sizing: border-box;">
+            <h3 style="margin: 0 0 15px 0; color: #f8fafc; text-align: left; font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">💬 Raum Chat</h3>
+            <div id="chat-messages" style="flex-grow: 1; overflow-y: auto; text-align: left; margin-bottom: 15px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; font-size: 1rem; word-wrap: break-word;"></div>
+            <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 15px;"><button class="emoji-btn">🔥</button><button class="emoji-btn">❤️</button><button class="emoji-btn">😡</button><button class="emoji-btn">😂</button><button class="emoji-btn">👏</button></div>
+            <div style="display: flex; gap: 8px; width: 100%;">
+                <input type="text" id="chat-input" placeholder="Nachricht..." autocomplete="off" style="flex-grow: 1; font-size: 1rem; padding: 10px; margin: 0; text-align: left; min-width: 0; border: none; background: rgba(255,255,255,0.05);">
+                <button id="chat-send" style="margin: 0; padding: 10px 18px; border-radius: 8px;">▶</button>
+            </div>
         </div>
 
         <div id="main-column" style="flex-grow: 1; width: 100%; max-width: 850px; display: flex; flex-direction: column; align-items: center;">
             
-            <div id="lobby-screen" class="glass-panel" style="width: 100%;">
-                <h2 id="room-title" style="margin-top: 0; font-size: 2rem;">Wartezimmer</h2>
+            <div id="lobby-screen" class="glass-panel" style="width: 100%; padding: 30px;">
+                <h2 id="room-title" style="margin-top: 0; font-size: 2rem; font-weight: 700;">Wartezimmer</h2>
                 <div id="room-code-display" style="display:none;">Code: <span id="the-code"></span></div> 
-                <div id="host-settings" class="glass-panel" style="background: rgba(0,0,0,0.3); border: 1px solid #ffaa00;">
-                    <h3 style="margin-top:0; color:#ffaa00;">Raum Einstellungen</h3>
-                    <div class="setting-row"><label>Zeit pro Rätsel:</label><select id="set-time" style="margin:0;"><option value="5">5s</option><option value="10" selected>10s</option><option value="15">15s</option><option value="30">30s</option></select></div>
-                    <div class="setting-row" style="margin-top:15px;"><label>Anzahl Runden:</label><select id="set-count" style="margin:0;"><option value="10">10</option><option value="20" selected>20</option><option value="all">Alle</option></select></div>
+                <div id="host-settings" class="glass-panel" style="background: rgba(0,0,0,0.2); border: 1px solid rgba(245, 158, 11, 0.3);">
+                    <h3 style="margin-top:0; color:#f59e0b; font-size:1.1rem;">Raum Einstellungen</h3>
+                    <div class="setting-row"><label style="color:#cbd5e1;">Zeit pro Rätsel:</label><select id="set-time" style="margin:0; padding:8px; font-size:1rem;"><option value="5">5s</option><option value="10" selected>10s</option><option value="15">15s</option><option value="30">30s</option></select></div>
+                    <div class="setting-row" style="margin-top:15px;"><label style="color:#cbd5e1;">Anzahl Runden:</label><select id="set-count" style="margin:0; padding:8px; font-size:1rem;"><option value="10">10</option><option value="20" selected>20</option><option value="all">Alle</option></select></div>
                 </div>
                 <p id="waiting-msg">Warte auf den Host...</p>
-                <h3 style="margin-top: 30px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom:10px;">Mitspieler:</h3>
+                <h3 style="margin-top: 30px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom:10px; font-size:1.1rem; color:#cbd5e1;">Mitspieler:</h3>
                 <ul id="lobby-players"></ul>
-                <button id="start-btn" style="display:none; padding: 15px 40px; font-size: 1.5rem; margin-top: 20px;">💥 SPIEL STARTEN 💥</button>
+                <button id="start-btn" style="display:none; padding: 15px 40px; font-size: 1.3rem; margin-top: 20px;">💥 SPIEL STARTEN</button>
             </div>
 
             <div id="game-over-screen" style="width: 100%;">
-                <h1 style="color: #ffaa00; font-size: 4rem; margin-bottom: 0; margin-top: 0; text-shadow: 0 4px 10px rgba(0,0,0,0.5);">SPIEL BEENDET!</h1>
-                <h3 id="go-reason" style="color: #fff; margin-top: 10px; font-size: 1.5rem; font-weight: 400;">Das sind die Sieger:</h3>
+                <h1 style="color: #f8fafc; font-size: 3.5rem; margin-bottom: 0; margin-top: 0; font-weight: 900; letter-spacing:-0.03em;">SPIEL BEENDET</h1>
+                <h3 id="go-reason" style="color: #94a3b8; margin-top: 10px; font-size: 1.2rem; font-weight: 500;">Das sind die Sieger:</h3>
                 <div class="podium" id="podium-container"></div>
-                <div style="margin-top: 40px; display: flex; justify-content: center; gap: 20px;">
-                    <button id="btn-go-back-lobby" style="background: #555;">🔙 Zurück zur Lobby</button>
+                <div style="margin-top: 50px; display: flex; justify-content: center; gap: 15px;">
+                    <button id="btn-go-back-lobby" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">🔙 Zurück zur Lobby</button>
                     <button id="btn-go-analyze" class="btn-analysis" style="display: none;">🔬 Partie analysieren</button>
                 </div>
             </div>
@@ -250,54 +348,56 @@
                 <p id="msg">Mache dich bereit...</p>
                 <div id="game-content">
                     <div class="board-container"><canvas id="goCanvas" width="600" height="600"></canvas></div>
-                    <div id="leaderboard" class="glass-panel"><h2>Rangliste</h2><div id="lb-list"></div></div>
+                    <div id="leaderboard" class="glass-panel">
+                        <h2 style="color:#f8fafc;">Rangliste</h2><div id="lb-list"></div>
+                    </div>
                 </div>
             </div>
 
             <div id="pvp-screen" style="width: 100%;">
-                <div id="pvp-hud" class="glass-panel" style="display:flex; justify-content:space-between; width:100%; max-width:600px; padding:15px 25px; margin-bottom:15px; box-sizing:border-box;">
+                <div id="pvp-hud" class="glass-panel" style="display:flex; justify-content:space-between; width:100%; max-width:600px; padding:15px 25px; margin-bottom:20px; box-sizing:border-box; background: rgba(15,17,26,0.6);">
                     <div style="text-align:left;">
-                        <div style="color:#fff; font-size:1.5rem; font-weight:900; text-shadow: 0 2px 4px rgba(0,0,0,0.8);" id="pvp-black-name">⚫ Schwarz</div>
-                        <div style="color:#ddd; font-size:1.2rem; margin-top:5px; font-weight:700;">⏱️ <span id="pvp-black-time" style="color:#00ff00;">10:00</span> &nbsp;|&nbsp; ⚔️ <span id="pvp-black-caps">0</span></div>
+                        <div style="color:#f8fafc; font-size:1.3rem; font-weight:700;" id="pvp-black-name">⚫ Schwarz</div>
+                        <div style="color:#94a3b8; font-size:1.1rem; margin-top:5px; font-weight:600;">⏱️ <span id="pvp-black-time" style="color:#10b981;">10:00</span> &nbsp;|&nbsp; ⚔️ <span id="pvp-black-caps" style="color:#f8fafc;">0</span></div>
                     </div>
                     <div style="text-align:right;">
-                        <div style="color:#fff; font-size:1.5rem; font-weight:900; text-shadow: 0 2px 4px rgba(0,0,0,0.8);" id="pvp-white-name">⚪ Weiß</div>
-                        <div style="color:#ddd; font-size:1.2rem; margin-top:5px; font-weight:700;">⚔️ <span id="pvp-white-caps">0</span> &nbsp;|&nbsp; ⏱️ <span id="pvp-white-time" style="color:#00ff00;">10:00</span></div>
+                        <div style="color:#f8fafc; font-size:1.3rem; font-weight:700;" id="pvp-white-name">⚪ Weiß</div>
+                        <div style="color:#94a3b8; font-size:1.1rem; margin-top:5px; font-weight:600;">⚔️ <span id="pvp-white-caps" style="color:#f8fafc;">0</span> &nbsp;|&nbsp; ⏱️ <span id="pvp-white-time" style="color:#10b981;">10:00</span></div>
                     </div>
                 </div>
 
-                <h2 id="pvp-turn-indicator" style="color: #ffaa00; margin: 0 0 20px 0; font-size: 2rem; text-shadow: 0 2px 5px rgba(0,0,0,0.5);">Schwarz ist am Zug</h2>
+                <h2 id="pvp-turn-indicator" style="color: #f8fafc; margin: 0 0 20px 0; font-size: 1.5rem; font-weight: 600;">Schwarz ist am Zug</h2>
                 
                 <div id="pvp-content">
                     <div class="board-container">
                         <div id="undo-popup">
-                            <h3 style="margin-top:0;">Gegner möchte Zug zurücknehmen!</h3>
-                            <div style="display: flex; gap: 10px; justify-content: center;">
-                                <button id="btn-undo-yes" style="background:#28a745;">Erlauben</button>
-                                <button id="btn-undo-no" style="background:#ff4444;">Ablehnen</button>
+                            <h3 style="margin-top:0; color:#f8fafc; font-size:1.2rem;">Gegner möchte Zug zurücknehmen!</h3>
+                            <div style="display: flex; gap: 10px; justify-content: center; margin-top:20px;">
+                                <button id="btn-undo-yes" style="background:#10b981; flex:1; margin:0;">Erlauben</button>
+                                <button id="btn-undo-no" style="background:transparent; border: 1px solid #ef4444; color:#ef4444; flex:1; margin:0;">Ablehnen</button>
                             </div>
                         </div>
                         <canvas id="pvpCanvas" width="600" height="600"></canvas>
                     </div>
                     <div id="pvp-sidebar" class="glass-panel">
                         
-                        <div id="pvp-confirm-area" style="display:none; margin-bottom: 25px; padding: 15px; background: rgba(68, 170, 255, 0.1); border-radius: 12px; border: 2px dashed #44aaff;">
-                            <p style="margin-top:0; font-size: 1rem; color: #44aaff; font-weight: bold;">Zugvorschau platziert!</p>
-                            <button id="btn-pvp-confirm-move" style="width: 100%; margin:0; background: #44aaff; color: white; padding: 15px; font-size: 1.4rem; box-shadow: 0 0 15px rgba(68, 170, 255, 0.4);">👆 HIER SETZEN</button>
+                        <div id="pvp-confirm-area" style="display:none; margin-bottom: 25px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 12px; border: 1px dashed #3b82f6;">
+                            <p style="margin-top:0; font-size: 0.95rem; color: #60a5fa; font-weight: 600;">Zugvorschau platziert</p>
+                            <button id="btn-pvp-confirm-move" style="width: 100%; margin:0; background: #3b82f6; color: white; padding: 12px; font-size: 1.2rem;">👆 HIER SETZEN</button>
                         </div>
 
-                        <h3 style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Spiel-Aktionen</h3>
+                        <h3 style="margin-top:0; color:#cbd5e1; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; font-size:1rem; text-transform: uppercase; letter-spacing: 1px;">Aktionen</h3>
                         <div id="pvp-playing-actions">
-                            <button id="btn-pvp-pass" style="width: 100%; margin: 0 0 10px 0; background: #ffaa00; color: #000;">Gepasst</button>
-                            <button id="btn-pvp-undo" style="width: 100%; margin: 0 0 10px 0; background: #666;">Zug zurücknehmen</button>
-                            <button id="btn-pvp-resign" style="width: 100%; margin: 0; background: transparent; border: 2px solid #ff4444; color: #ff4444; box-shadow: none;">Aufgeben</button>
+                            <button id="btn-pvp-pass" style="width: 100%; margin: 0 0 10px 0; background: rgba(255,255,255,0.1); color: #f8fafc; border: 1px solid rgba(255,255,255,0.1);">Gepasst</button>
+                            <button id="btn-pvp-undo" style="width: 100%; margin: 0 0 15px 0; background: transparent; color: #94a3b8; border: 1px solid rgba(255,255,255,0.1); font-size: 1rem;">Zug zurücknehmen</button>
+                            <button id="btn-pvp-resign" style="width: 100%; margin: 0; background: transparent; border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; box-shadow: none; font-size: 1rem;">Aufgeben</button>
                         </div>
                         <div id="pvp-scoring-actions" style="display:none;">
-                            <p style="font-size:1rem; color:#ddd; margin-bottom:15px; line-height: 1.4;">Klicke auf Steine auf dem Brett, um sie als tot zu markieren. Wenn alles sauber ist, bestätigen!</p>
-                            <button id="btn-pvp-accept" style="width: 100%; margin: 0 0 10px 0; background: #28a745; padding: 15px; font-size: 1.2rem;">Zählung akzeptieren</button>
-                            <p id="pvp-accept-status" style="font-size: 1rem; font-weight: bold; color:#ffaa00; margin:0;"></p>
+                            <p style="font-size:0.95rem; color:#94a3b8; margin-bottom:15px; line-height: 1.5;">Klicke auf Steine auf dem Brett, um sie als tot zu markieren. Wenn das Brett sauber ist, bestätigen!</p>
+                            <button id="btn-pvp-accept" style="width: 100%; margin: 0 0 10px 0; background: #10b981; padding: 12px; font-size: 1.1rem;">Zählung akzeptieren</button>
+                            <p id="pvp-accept-status" style="font-size: 0.95rem; font-weight: 600; color:#f59e0b; margin:0;"></p>
                         </div>
-                        <button id="btn-leave-spectate" style="display:none; width: 100%; margin: 0; background: rgba(255,255,255,0.2); backdrop-filter: blur(5px);">Zuschauen beenden</button>
+                        <button id="btn-leave-spectate" style="display:none; width: 100%; margin: 0; background: transparent; border: 1px solid rgba(255,255,255,0.2); color:#cbd5e1;">Zuschauen beenden</button>
                     </div>
                 </div>
             </div>
@@ -327,8 +427,6 @@
         const analysisScreen = document.getElementById('analysis-screen');
         
         let myName = ""; let myAvatar = "🦊"; let amIHost = false; 
-        
-        // NEU: TOKEN & STATS
         let myToken = ""; let myRank = "30k"; let myElo = 1000;
 
         window.onload = () => {
@@ -370,13 +468,11 @@
             } 
         });
 
-        // NEU: Stats Update vom Server
         socket.on('update_stats', (data) => {
             myElo = data.elo; myRank = data.rank;
             document.getElementById('profile-btn').innerHTML = `👤 [${myRank}] Profil`;
         });
 
-        // NEU: Account löschen
         document.getElementById('btn-delete-profile').addEventListener('click', () => {
             if(confirm("Willst du deinen Account (inklusive Elo und Siegen) unwiderruflich löschen?")) {
                 socket.emit('delete_profile', myToken);
@@ -390,13 +486,12 @@
         document.getElementById('btn-join-private').addEventListener('click', () => { let code = document.getElementById('roomcode-input').value.trim().toUpperCase(); if (code !== "") socket.emit('join_room', { name: myName, avatar: myAvatar, roomId: code }); });
         document.getElementById('start-btn').addEventListener('click', () => { const settings = { timeLimit: document.getElementById('set-time').value, puzzleCount: document.getElementById('set-count').value }; socket.emit('start_game', settings); });
 
-        // --- MATCHMAKING & ZUSCHAUER LOGIK ---
         document.getElementById('btn-goto-matchmaking').addEventListener('click', () => { menuScreen.style.display = "none"; matchmakingScreen.style.display = "block"; socket.emit('request_challenges'); });
         document.getElementById('btn-back-to-menu').addEventListener('click', () => { socket.emit('cancel_challenge'); matchmakingScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('btn-create-challenge').style.display = "inline-block"; document.getElementById('btn-cancel-challenge').style.display = "none"; });
         
         document.getElementById('btn-create-challenge').addEventListener('click', () => { 
             socket.emit('create_challenge', { 
-                name: myName, avatar: myAvatar, token: myToken, // Token übergeben!
+                name: myName, avatar: myAvatar, token: myToken,
                 boardSize: document.getElementById('select-boardsize').value,
                 timeSetting: document.getElementById('select-time').value,
                 handicap: document.getElementById('select-handicap').value
@@ -407,30 +502,29 @@
         
         socket.on('update_challenges', (data) => {
             const cList = document.getElementById('challenge-list'); cList.innerHTML = "";
-            if(data.challenges.length === 0) { cList.innerHTML = '<p style="color: #666; font-style: italic;">Aktuell sucht niemand.</p>'; } 
+            if(data.challenges.length === 0) { cList.innerHTML = '<p style="color: #475569; font-style: italic;">Aktuell sucht niemand.</p>'; } 
             else { 
                 data.challenges.forEach(c => { 
                     const isMe = (c.challengerId === socket.id); 
-                    const btnHtml = isMe ? `<button disabled style="background:rgba(255,255,255,0.1); color:#aaa; box-shadow:none;">Deine Suche</button>` : `<button onclick="acceptChallenge('${c.id}')" style="background:#28a745;">Annehmen</button>`; 
+                    const btnHtml = isMe ? `<button disabled style="background:rgba(255,255,255,0.05); color:#64748b; box-shadow:none;">Deine Suche</button>` : `<button onclick="acceptChallenge('${c.id}')" style="background:#10b981;">Annehmen</button>`; 
                     cList.innerHTML += `<div class="challenge-card glass-panel"><div class="challenge-info"><h3 style="margin-bottom:5px;">${c.challengerAvatar} ${c.challengerName}</h3><span>Brettgröße: ${c.boardSize}x${c.boardSize}</span></div><div>${btnHtml}</div></div>`; 
                 }); 
             }
             
             const mList = document.getElementById('active-matches-list'); mList.innerHTML = "";
-            if(data.activeMatches.length === 0) { mList.innerHTML = '<p style="color: #666; font-style: italic;">Aktuell laufen keine Spiele.</p>'; }
+            if(data.activeMatches.length === 0) { mList.innerHTML = '<p style="color: #475569; font-style: italic;">Aktuell laufen keine Spiele.</p>'; }
             else {
                 data.activeMatches.forEach(m => {
                     const isMyGame = (m.playerBlack.id === socket.id || m.playerWhite.id === socket.id);
                     if(isMyGame) return; 
-                    mList.innerHTML += `<div class="challenge-card glass-panel" style="border-color:rgba(68, 170, 255, 0.5);"><div class="challenge-info"><h3 style="font-size:1.1rem; margin-bottom:5px;">${m.playerBlack.avatar} ${m.playerBlack.name} <br><span style="color:#aaa; font-size:0.9rem; font-weight:400;">vs</span><br> ${m.playerWhite.avatar} ${m.playerWhite.name}</h3><span>Brett: ${m.size}x${m.size}</span></div><div><button onclick="spectateMatch('${m.id}')" style="background:#44aaff; border-radius: 8px;">👀 Zuschauen</button></div></div>`;
+                    mList.innerHTML += `<div class="challenge-card glass-panel" style="border-color:rgba(59, 130, 246, 0.5);"><div class="challenge-info"><h3 style="font-size:1.1rem; margin-bottom:5px;">${m.playerBlack.avatar} ${m.playerBlack.name} <br><span style="color:#64748b; font-size:0.85rem; font-weight:400;">vs</span><br> ${m.playerWhite.avatar} ${m.playerWhite.name}</h3><span>Brett: ${m.size}x${m.size}</span></div><div><button onclick="spectateMatch('${m.id}')" style="background:#3b82f6; border-radius: 8px; padding: 10px 15px; font-size: 1rem;">👀 Zuschauen</button></div></div>`;
                 });
             }
         });
 
-        window.acceptChallenge = function(challengeId) { socket.emit('accept_challenge', challengeId, {name: myName, avatar: myAvatar, token: myToken}); }; // Token übergeben!
+        window.acceptChallenge = function(challengeId) { socket.emit('accept_challenge', challengeId, {name: myName, avatar: myAvatar, token: myToken}); }; 
         window.spectateMatch = function(matchId) { socket.emit('spectate_match', matchId); };
 
-        // --- 1v1 PVP ENGINE ---
         const pvpCanvas = document.getElementById('pvpCanvas'); const pvpCtx = pvpCanvas.getContext('2d');
         const padding = 30;
         let currentPvpMatch = null; let myPvpColor = null; let pvpBoardSize = 19; let pvpCellSize = 0; let pvpHoverX = -1, pvpHoverY = -1;
@@ -456,7 +550,7 @@
                 document.getElementById('pvp-playing-actions').style.display = "block"; document.getElementById('pvp-scoring-actions').style.display = "none"; document.getElementById('btn-leave-spectate').style.display = "none";
             }
             
-            document.getElementById('btn-pvp-accept').innerText = "Auszählung akzeptieren"; document.getElementById('btn-pvp-accept').style.background = "#28a745"; document.getElementById('pvp-accept-status').innerText = "";
+            document.getElementById('btn-pvp-accept').innerText = "Auszählung akzeptieren"; document.getElementById('btn-pvp-accept').style.background = "#10b981"; document.getElementById('pvp-accept-status').innerText = "";
             document.getElementById('pvp-confirm-area').style.display = "none"; pendingMoveX = -1; pendingMoveY = -1;
             document.getElementById('undo-popup').style.display = "none";
             
@@ -476,27 +570,27 @@
 
         socket.on('1v1_timer_update', (data) => {
             document.getElementById('pvp-black-time').innerText = formatTimerObj(data.timers.black); document.getElementById('pvp-white-time').innerText = formatTimerObj(data.timers.white);
-            document.getElementById('pvp-black-time').style.color = (data.timers.black.main <= 0 && data.timers.black.byo <= 10) ? "#ff4444" : "#00ff00"; document.getElementById('pvp-white-time').style.color = (data.timers.white.main <= 0 && data.timers.white.byo <= 10) ? "#ff4444" : "#00ff00";
+            document.getElementById('pvp-black-time').style.color = (data.timers.black.main <= 0 && data.timers.black.byo <= 10) ? "#ef4444" : "#10b981"; document.getElementById('pvp-white-time').style.color = (data.timers.white.main <= 0 && data.timers.white.byo <= 10) ? "#ef4444" : "#10b981";
         });
 
         function drawPvpBoard() {
-            pvpCtx.clearRect(0, 0, 600, 600); pvpCtx.strokeStyle = "rgba(0,0,0,0.6)"; pvpCtx.lineWidth = 1.5; pvpCtx.beginPath();
+            pvpCtx.clearRect(0, 0, 600, 600); pvpCtx.strokeStyle = "rgba(0,0,0,0.7)"; pvpCtx.lineWidth = 1.5; pvpCtx.beginPath();
             for (let i = 0; i < pvpBoardSize; i++) { let pos = padding + i * pvpCellSize; pvpCtx.moveTo(pos, padding); pvpCtx.lineTo(pos, padding + (pvpBoardSize - 1) * pvpCellSize); pvpCtx.moveTo(padding, pos); pvpCtx.lineTo(padding + (pvpBoardSize - 1) * pvpCellSize, pos); } pvpCtx.stroke();
             let hoshi = []; if(pvpBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}]; if(pvpBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}]; if(pvpBoardSize === 9) hoshi = [{x:4,y:4}];
             pvpCtx.fillStyle = "#000"; hoshi.forEach(h => { let px = padding + h.x * pvpCellSize; let py = padding + h.y * pvpCellSize; pvpCtx.beginPath(); pvpCtx.arc(px, py, 4.5, 0, Math.PI * 2); pvpCtx.fill(); });
         }
 
         function drawPvpStone(x, y, color, isLastMove=false, isDead=false) {
-            const cx = padding + x * pvpCellSize; const cy = padding + y * pvpCellSize; const r = pvpCellSize * 0.46; 
+            const cx = padding + x * pvpCellSize; const cy = padding + y * pvpCellSize; const r = pvpCellSize * 0.47; 
             if(isDead) pvpCtx.globalAlpha = 0.3; else pvpCtx.globalAlpha = 1.0;
             pvpCtx.beginPath(); pvpCtx.arc(cx + 2, cy + 4, r, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(0,0,0,0.5)"; pvpCtx.fill(); 
             pvpCtx.beginPath(); pvpCtx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = pvpCtx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
-            if (color === "black") { gradient.addColorStop(0, "#555"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } 
-            else if (color === "white") { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#eee"); gradient.addColorStop(1, "#aaa"); }
-            else if (color === "green") { gradient.addColorStop(0, "#44aaff"); gradient.addColorStop(0.7, "#2288ff"); gradient.addColorStop(1, "#0055cc"); } 
+            if (color === "black") { gradient.addColorStop(0, "#444"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } 
+            else if (color === "white") { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#f1f5f9"); gradient.addColorStop(1, "#cbd5e1"); }
+            else if (color === "green") { gradient.addColorStop(0, "#60a5fa"); gradient.addColorStop(0.7, "#3b82f6"); gradient.addColorStop(1, "#1d4ed8"); } 
             pvpCtx.fillStyle = gradient; pvpCtx.fill();
-            if(isLastMove && !isDead) { pvpCtx.beginPath(); pvpCtx.arc(cx, cy, 3, 0, Math.PI * 2); pvpCtx.fillStyle = "red"; pvpCtx.fill(); }
-            if(isDead) { pvpCtx.beginPath(); pvpCtx.arc(cx, cy, r*0.4, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(255,0,0,0.8)"; pvpCtx.fill(); }
+            if(isLastMove && !isDead) { pvpCtx.beginPath(); pvpCtx.arc(cx, cy, 3, 0, Math.PI * 2); pvpCtx.fillStyle = "#ef4444"; pvpCtx.fill(); }
+            if(isDead) { pvpCtx.beginPath(); pvpCtx.arc(cx, cy, r*0.4, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(239,68,68,0.8)"; pvpCtx.fill(); }
             pvpCtx.globalAlpha = 1.0;
         }
 
@@ -514,10 +608,10 @@
             }
             
             if (pvpState === 'playing') {
-                if (myPvpColor === 'spectator') { document.getElementById('pvp-turn-indicator').innerText = `👀 Zuschauer Modus (${turn === 'black' ? 'Schwarz' : 'Weiß'} zieht)`; document.getElementById('pvp-turn-indicator').style.color = "#44aaff"; } 
-                else { let turnText = (turn === 'black') ? '⚫ Schwarz ist am Zug' : '⚪ Weiß ist am Zug'; document.getElementById('pvp-turn-indicator').innerText = turnText; document.getElementById('pvp-turn-indicator').style.color = (turn === myPvpColor) ? '#00ff00' : '#ffaa00'; }
+                if (myPvpColor === 'spectator') { document.getElementById('pvp-turn-indicator').innerText = `👀 Zuschauer Modus (${turn === 'black' ? 'Schwarz' : 'Weiß'} zieht)`; document.getElementById('pvp-turn-indicator').style.color = "#3b82f6"; } 
+                else { let turnText = (turn === 'black') ? '⚫ Schwarz ist am Zug' : '⚪ Weiß ist am Zug'; document.getElementById('pvp-turn-indicator').innerText = turnText; document.getElementById('pvp-turn-indicator').style.color = (turn === myPvpColor) ? '#10b981' : '#f59e0b'; }
             } else {
-                document.getElementById('pvp-turn-indicator').innerText = "🚩 Phase: Tote Steine markieren"; document.getElementById('pvp-turn-indicator').style.color = "#ffaa00";
+                document.getElementById('pvp-turn-indicator').innerText = "🚩 Phase: Tote Steine markieren"; document.getElementById('pvp-turn-indicator').style.color = "#f59e0b";
             }
         }
 
@@ -544,7 +638,7 @@
             pvpDeadStones = new Set(data.deadStones);
             if(myPvpColor !== 'spectator') {
                 let iAccepted = data.accepts[myPvpColor]; let enemyAccepted = data.accepts[myPvpColor === 'black' ? 'white' : 'black'];
-                if(iAccepted) { document.getElementById('btn-pvp-accept').innerText = "✅ Bereit"; document.getElementById('btn-pvp-accept').style.background = "rgba(255,255,255,0.2)"; } else { document.getElementById('btn-pvp-accept').innerText = "Auszählung akzeptieren"; document.getElementById('btn-pvp-accept').style.background = "#28a745"; }
+                if(iAccepted) { document.getElementById('btn-pvp-accept').innerText = "✅ Bereit"; document.getElementById('btn-pvp-accept').style.background = "rgba(255,255,255,0.1)"; } else { document.getElementById('btn-pvp-accept').innerText = "Auszählung akzeptieren"; document.getElementById('btn-pvp-accept').style.background = "#10b981"; }
                 if(iAccepted && !enemyAccepted) document.getElementById('pvp-accept-status').innerText = "Warte auf Gegner..."; else if(!iAccepted && enemyAccepted) document.getElementById('pvp-accept-status').innerText = "Gegner ist bereit!"; else document.getElementById('pvp-accept-status').innerText = "";
             }
             renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove);
@@ -623,20 +717,20 @@
         }
 
         function drawAnaBoard() {
-            anaCtx.clearRect(0, 0, 600, 600); anaCtx.strokeStyle = "rgba(0,0,0,0.6)"; anaCtx.lineWidth = 1.5; anaCtx.beginPath();
+            anaCtx.clearRect(0, 0, 600, 600); anaCtx.strokeStyle = "rgba(0,0,0,0.7)"; anaCtx.lineWidth = 1.5; anaCtx.beginPath();
             for (let i = 0; i < analysisBoardSize; i++) { let pos = padding + i * analysisCellSize; anaCtx.moveTo(pos, padding); anaCtx.lineTo(pos, padding + (analysisBoardSize - 1) * analysisCellSize); anaCtx.moveTo(padding, pos); anaCtx.lineTo(padding + (analysisBoardSize - 1) * analysisCellSize, pos); } anaCtx.stroke();
             let hoshi = []; if(analysisBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}]; if(analysisBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}]; if(analysisBoardSize === 9) hoshi = [{x:4,y:4}];
             anaCtx.fillStyle = "#000"; hoshi.forEach(h => { let px = padding + h.x * analysisCellSize; let py = padding + h.y * analysisCellSize; anaCtx.beginPath(); anaCtx.arc(px, py, 4.5, 0, Math.PI * 2); anaCtx.fill(); });
         }
 
         function drawAnaStone(x, y, color, isLastMove=false) {
-            const cx = padding + x * analysisCellSize; const cy = padding + y * analysisCellSize; const r = analysisCellSize * 0.46; 
+            const cx = padding + x * analysisCellSize; const cy = padding + y * analysisCellSize; const r = analysisCellSize * 0.47; 
             anaCtx.beginPath(); anaCtx.arc(cx + 2, cy + 4, r, 0, Math.PI * 2); anaCtx.fillStyle = "rgba(0,0,0,0.5)"; anaCtx.fill(); 
             anaCtx.beginPath(); anaCtx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = anaCtx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
-            if (color === "black") { gradient.addColorStop(0, "#555"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } 
-            else if (color === "white") { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#eee"); gradient.addColorStop(1, "#aaa"); }
+            if (color === "black") { gradient.addColorStop(0, "#444"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } 
+            else if (color === "white") { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#f1f5f9"); gradient.addColorStop(1, "#cbd5e1"); }
             anaCtx.fillStyle = gradient; anaCtx.fill();
-            if(isLastMove) { anaCtx.beginPath(); anaCtx.arc(cx, cy, 3, 0, Math.PI * 2); anaCtx.fillStyle = "red"; anaCtx.fill(); }
+            if(isLastMove) { anaCtx.beginPath(); anaCtx.arc(cx, cy, 3, 0, Math.PI * 2); anaCtx.fillStyle = "#ef4444"; anaCtx.fill(); }
         }
 
         function renderAnalysis() {
@@ -651,8 +745,8 @@
         document.getElementById('btn-ana-next').addEventListener('click', () => { if(analysisCurrentStep < analysisMoves.length) { analysisCurrentStep++; SoundFX.play('clack'); renderAnalysis(); } });
         document.getElementById('btn-ana-end').addEventListener('click', () => { analysisCurrentStep = analysisMoves.length; renderAnalysis(); });
 
-        document.getElementById('btn-ana-color-black').addEventListener('click', () => { anaManualColor = 'black'; document.getElementById('btn-ana-color-black').style.borderColor = "#ffaa00"; document.getElementById('btn-ana-color-white').style.borderColor = "transparent"; });
-        document.getElementById('btn-ana-color-white').addEventListener('click', () => { anaManualColor = 'white'; document.getElementById('btn-ana-color-white').style.borderColor = "#ffaa00"; document.getElementById('btn-ana-color-black').style.borderColor = "transparent"; });
+        document.getElementById('btn-ana-color-black').addEventListener('click', () => { anaManualColor = 'black'; document.getElementById('btn-ana-color-black').style.borderColor = "#3b82f6"; document.getElementById('btn-ana-color-white').style.borderColor = "transparent"; });
+        document.getElementById('btn-ana-color-white').addEventListener('click', () => { anaManualColor = 'white'; document.getElementById('btn-ana-color-white').style.borderColor = "#3b82f6"; document.getElementById('btn-ana-color-black').style.borderColor = "transparent"; });
 
         anaCanvas.addEventListener('mousemove', (event) => { const rect = anaCanvas.getBoundingClientRect(); const scaleX = anaCanvas.width / rect.width; const scaleY = anaCanvas.height / rect.height; const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / analysisCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / analysisCellSize); if (gridX !== anaHoverX || gridY !== anaHoverY) { anaHoverX = gridX; anaHoverY = gridY; renderAnalysis(); } });
         anaCanvas.addEventListener('mouseout', () => { anaHoverX = -1; anaHoverY = -1; renderAnalysis(); });
@@ -693,13 +787,11 @@
             }; reader.readAsText(file);
         });
 
-        // --- CHAT & TSUMEGO LOGIK (Unverändert) ---
         const chatMessages = document.getElementById('chat-messages'); const chatInput = document.getElementById('chat-input');
-        // Chat wurde um Rang erweitert
         function sendChat(text) { if(text.trim() !== "") { socket.emit('chat_message', { name: myName, avatar: myAvatar, rank: myRank, text: text.trim() }); chatInput.value = ""; } }
         document.getElementById('chat-send').addEventListener('click', () => sendChat(chatInput.value)); chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChat(chatInput.value); });
         document.querySelectorAll('.emoji-btn').forEach(btn => { btn.addEventListener('click', () => sendChat(btn.innerText)); });
-        socket.on('chat_message', (data) => { const div = document.createElement('div'); div.style.marginBottom = "5px"; div.style.wordWrap = "break-word"; div.innerHTML = `<span style="color:#ffaa00; font-weight:bold;">[${data.rank || '30k'}] ${data.avatar} ${data.name}:</span> <span style="color:#fff;">${data.text}</span>`; chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; });
+        socket.on('chat_message', (data) => { const div = document.createElement('div'); div.style.marginBottom = "8px"; div.style.wordWrap = "break-word"; div.innerHTML = `<span style="color:#94a3b8; font-size:0.85rem;">[${data.rank || '30k'}]</span> <span style="color:#fcd34d; font-weight:600;">${data.avatar} ${data.name}:</span> <span style="color:#f8fafc;">${data.text}</span>`; chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; });
 
         socket.on('room_joined', (data) => { menuScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex"; pvpScreen.style.display = "none"; lobbyScreen.style.display = "block"; document.getElementById('game-over-screen').style.display = "none"; amIHost = data.isHost; if (data.roomId === 'public') { document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby"; document.getElementById('room-code-display').style.display = "none"; document.getElementById('host-settings').style.display = "none"; document.getElementById('waiting-msg').style.display = "none"; document.getElementById('start-btn').style.display = "inline-block"; } else { document.getElementById('room-title').innerText = "🔒 Privater Raum"; document.getElementById('room-code-display').style.display = "inline-block"; document.getElementById('the-code').innerText = data.roomId; if (amIHost) { document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; } else { document.getElementById('host-settings').style.display = "none"; document.getElementById('start-btn').style.display = "none"; document.getElementById('waiting-msg').style.display = "block"; } } });
         socket.on('you_are_host', () => { amIHost = true; document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; });
@@ -710,19 +802,19 @@
         let myScore = 0; let canClick = false; let currentPuzzle = null; let lastClickX = 0; let lastClickY = 0; let hoverX = -1; let hoverY = -1; let myPlacedStone = null; let timeoutSolutions = null; let roundTimeLimit = 10; let winningHighlight = null; 
 
         function calculateZoomView(puzzle) { let minX = 18, maxX = 0, minY = 18, maxY = 0; puzzle.setup.forEach(s => { if (s.x < minX) minX = s.x; if (s.x > maxX) maxX = s.x; if (s.y < minY) minY = s.y; if (s.y > maxY) maxY = s.y; }); puzzle.solution.forEach(sol => { if (sol.x < minX) minX = sol.x; if (sol.x > maxX) maxX = sol.x; if (sol.y < minY) minY = sol.y; if (sol.y > maxY) maxY = sol.y; }); minX = Math.max(0, minX - 3); maxX = Math.min(18, maxX + 3); minY = Math.max(0, minY - 3); maxY = Math.min(18, maxY + 3); let neededSize = Math.max(maxX - minX, maxY - minY, 8); while(maxX - minX < neededSize) { if (minX > 0) minX--; if (maxX - minX < neededSize && maxX < 18) maxX++; } while(maxY - minY < neededSize) { if (minY > 0) minY--; if (maxY - minY < neededSize && maxY < 18) maxY++; } viewMinX = minX; viewMaxX = maxX; viewMinY = minY; viewMaxY = maxY; activeBoardSize = (viewMaxX - viewMinX) + 1; currentCellSize = (600 - padding * 2) / (activeBoardSize - 1); }
-        function drawBoard() { ctx.clearRect(0, 0, 600, 600); ctx.strokeStyle = "rgba(0,0,0,0.6)"; ctx.lineWidth = 1.5; ctx.beginPath(); for (let i = 0; i < activeBoardSize; i++) { let actualX = viewMinX + i; let actualY = viewMinY + i; let pos = padding + i * currentCellSize; if (actualX >= 0 && actualX <= 18) { let startY = padding + Math.max(0, 0 - viewMinY) * currentCellSize; let endY = padding + Math.min(activeBoardSize - 1, 18 - viewMinY) * currentCellSize; ctx.moveTo(pos, startY); ctx.lineTo(pos, endY); } if (actualY >= 0 && actualY <= 18) { let startX = padding + Math.max(0, 0 - viewMinX) * currentCellSize; let endX = padding + Math.min(activeBoardSize - 1, 18 - viewMinX) * currentCellSize; ctx.moveTo(startX, pos); ctx.lineTo(endX, pos); } } ctx.stroke(); const hoshi = [3, 9, 15]; ctx.fillStyle = "#000"; hoshi.forEach(hx => { hoshi.forEach(hy => { if (hx >= viewMinX && hx <= viewMaxX && hy >= viewMinY && hy <= viewMaxY) { let px = padding + (hx - viewMinX) * currentCellSize; let py = padding + (hy - viewMinY) * currentCellSize; ctx.beginPath(); ctx.arc(px, py, 4.5, 0, Math.PI * 2); ctx.fill(); }});}); }
-        function drawStone(x, y, color) { if (x < viewMinX || x > viewMaxX || y < viewMinY || y > viewMaxY) return; const cx = padding + (x - viewMinX) * currentCellSize; const cy = padding + (y - viewMinY) * currentCellSize; const r = currentCellSize * 0.46; ctx.beginPath(); ctx.arc(cx + 2, cy + 4, r, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fill(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r); if (color === "black") { gradient.addColorStop(0, "#555"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } else { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#eee"); gradient.addColorStop(1, "#aaa"); } ctx.fillStyle = gradient; ctx.fill(); }
-        function renderScene() { drawBoard(); if (currentPuzzle) { currentPuzzle.setup.forEach(s => drawStone(s.x, s.y, s.c)); } if (myPlacedStone) { drawStone(myPlacedStone.x, myPlacedStone.y, "black"); } if (canClick && hoverX >= viewMinX && hoverX <= viewMaxX && hoverY >= viewMinY && hoverY <= viewMaxY) { let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === hoverX && s.y === hoverY) isOccupied = true; }); if (!isOccupied) { ctx.globalAlpha = 0.5; drawStone(hoverX, hoverY, "black"); ctx.globalAlpha = 1.0; } } if (timeoutSolutions) { timeoutSolutions.forEach(sol => { if (sol.x >= viewMinX && sol.x <= viewMaxX && sol.y >= viewMinY && sol.y <= viewMaxY) { const cx = padding + (sol.x - viewMinX) * currentCellSize; const cy = padding + (sol.y - viewMinY) * currentCellSize; ctx.beginPath(); ctx.arc(cx, cy, currentCellSize * 0.45, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,255,0,0.4)"; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke(); } }); } if (winningHighlight && winningHighlight.x >= viewMinX && winningHighlight.x <= viewMaxX && winningHighlight.y >= viewMinY && winningHighlight.y <= viewMaxY) { const cx = padding + (winningHighlight.x - viewMinX) * currentCellSize; const cy = padding + (winningHighlight.y - viewMinY) * currentCellSize; ctx.beginPath(); ctx.arc(cx, cy, currentCellSize * 0.45, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,150,255,0.5)"; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke(); } }
+        function drawBoard() { ctx.clearRect(0, 0, 600, 600); ctx.strokeStyle = "rgba(0,0,0,0.7)"; ctx.lineWidth = 1.5; ctx.beginPath(); for (let i = 0; i < activeBoardSize; i++) { let actualX = viewMinX + i; let actualY = viewMinY + i; let pos = padding + i * currentCellSize; if (actualX >= 0 && actualX <= 18) { let startY = padding + Math.max(0, 0 - viewMinY) * currentCellSize; let endY = padding + Math.min(activeBoardSize - 1, 18 - viewMinY) * currentCellSize; ctx.moveTo(pos, startY); ctx.lineTo(pos, endY); } if (actualY >= 0 && actualY <= 18) { let startX = padding + Math.max(0, 0 - viewMinX) * currentCellSize; let endX = padding + Math.min(activeBoardSize - 1, 18 - viewMinX) * currentCellSize; ctx.moveTo(startX, pos); ctx.lineTo(endX, pos); } } ctx.stroke(); const hoshi = [3, 9, 15]; ctx.fillStyle = "#000"; hoshi.forEach(hx => { hoshi.forEach(hy => { if (hx >= viewMinX && hx <= viewMaxX && hy >= viewMinY && hy <= viewMaxY) { let px = padding + (hx - viewMinX) * currentCellSize; let py = padding + (hy - viewMinY) * currentCellSize; ctx.beginPath(); ctx.arc(px, py, 4.5, 0, Math.PI * 2); ctx.fill(); }});}); }
+        function drawStone(x, y, color) { if (x < viewMinX || x > viewMaxX || y < viewMinY || y > viewMaxY) return; const cx = padding + (x - viewMinX) * currentCellSize; const cy = padding + (y - viewMinY) * currentCellSize; const r = currentCellSize * 0.47; ctx.beginPath(); ctx.arc(cx + 2, cy + 4, r, 0, Math.PI * 2); ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fill(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r); if (color === "black") { gradient.addColorStop(0, "#444"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } else { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#f1f5f9"); gradient.addColorStop(1, "#cbd5e1"); } ctx.fillStyle = gradient; ctx.fill(); }
+        function renderScene() { drawBoard(); if (currentPuzzle) { currentPuzzle.setup.forEach(s => drawStone(s.x, s.y, s.c)); } if (myPlacedStone) { drawStone(myPlacedStone.x, myPlacedStone.y, "black"); } if (canClick && hoverX >= viewMinX && hoverX <= viewMaxX && hoverY >= viewMinY && hoverY <= viewMaxY) { let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === hoverX && s.y === hoverY) isOccupied = true; }); if (!isOccupied) { ctx.globalAlpha = 0.5; drawStone(hoverX, hoverY, "black"); ctx.globalAlpha = 1.0; } } if (timeoutSolutions) { timeoutSolutions.forEach(sol => { if (sol.x >= viewMinX && sol.x <= viewMaxX && sol.y >= viewMinY && sol.y <= viewMaxY) { const cx = padding + (sol.x - viewMinX) * currentCellSize; const cy = padding + (sol.y - viewMinY) * currentCellSize; ctx.beginPath(); ctx.arc(cx, cy, currentCellSize * 0.45, 0, Math.PI * 2); ctx.fillStyle = "rgba(16,185,129,0.4)"; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke(); } }); } if (winningHighlight && winningHighlight.x >= viewMinX && winningHighlight.x <= viewMaxX && winningHighlight.y >= viewMinY && winningHighlight.y <= viewMaxY) { const cx = padding + (winningHighlight.x - viewMinX) * currentCellSize; const cy = padding + (winningHighlight.y - viewMinY) * currentCellSize; ctx.beginPath(); ctx.arc(cx, cy, currentCellSize * 0.45, 0, Math.PI * 2); ctx.fillStyle = "rgba(59,130,246,0.5)"; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke(); } }
 
-        socket.on('update_leaderboard', (boardData) => { const list = document.getElementById('lb-list'); list.innerHTML = ""; lobbyPlayersList.innerHTML = ""; boardData.forEach((player, index) => { list.innerHTML += `<div class="lb-row"><span class="lb-rank">${index + 1}.</span><span class="lb-name">${player.avatar} ${player.name}</span><span class="lb-score">${player.score}</span></div>`; lobbyPlayersList.innerHTML += `<li>${player.avatar} ${player.name}</li>`; }); });
+        socket.on('update_leaderboard', (boardData) => { const list = document.getElementById('lb-list'); list.innerHTML = ""; lobbyPlayersList.innerHTML = ""; boardData.forEach((player, index) => { list.innerHTML += `<div class="lb-row"><span class="lb-rank">${index + 1}.</span><span class="lb-name">${player.avatar} ${player.name}</span><span class="lb-score">${player.score}</span></div>`; lobbyPlayersList.innerHTML += `<li><span style="color:#64748b;">[${player.rank||'30k'}]</span> ${player.avatar} ${player.name}</li>`; }); });
         socket.on('game_starting', () => { lobbyScreen.style.display = "none"; document.getElementById('game-over-screen').style.display = "none"; gameScreen.style.display = "block"; msgLabel.innerText = "Mache dich bereit..."; myScore = 0; scoreLabel.innerText = "Score: 0"; viewMinX = 0; viewMaxX = 18; viewMinY = 0; viewMaxY = 18; activeBoardSize = 19; currentCellSize = (600 - padding * 2) / 18; renderScene(); });
         socket.on('game_already_started', () => { loginScreen.style.display = "none"; menuScreen.style.display = "none"; lobbyScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex"; gameScreen.style.display = "block"; });
-        socket.on('new_round', (data) => { canClick = true; currentPuzzle = data.puzzle; roundTimeLimit = data.maxTime; myPlacedStone = null; timeoutSolutions = null; winningHighlight = null; hoverX = -1; hoverY = -1; msgLabel.innerText = data.puzzle.msg; msgLabel.style.color = "#fff"; calculateZoomView(data.puzzle); renderScene(); });
-        socket.on('timer', (timeLeft) => { timerLabel.innerText = "Zeit: " + timeLeft; let pct = (timeLeft / roundTimeLimit) * 100; tBar.style.width = pct + "%"; if (pct > 50) tBar.style.background = "#00ff00"; else if (pct > 25) tBar.style.background = "#ffaa00"; else tBar.style.background = "#ff4444"; timerLabel.style.color = timeLeft <= (roundTimeLimit * 0.3) ? "#ff0000" : "#ffaa00"; });
-        socket.on('correct_guess', (data) => { canClick = false; myScore += data.points; scoreLabel.innerText = "Score: " + myScore; let winText = "RICHTIG! +" + data.points + " Punkte!"; if (data.combo > 1) winText += " 🔥 COMBO x" + data.combo; msgLabel.innerText = winText; msgLabel.style.color = "#00ff00"; SoundFX.play('win'); const floatDiv = document.createElement('div'); floatDiv.className = 'floating-points'; floatDiv.innerText = "+" + data.points; if (data.combo > 1) floatDiv.innerText += " 🔥"; floatDiv.style.left = lastClickX + "px"; floatDiv.style.top = lastClickY + "px"; document.getElementById('board-container').appendChild(floatDiv); setTimeout(() => { floatDiv.remove(); }, 1000); renderScene(); });
-        socket.on('wrong_guess', () => { msgLabel.innerText = "Daneben! ⏳ 1.5 Sekunden Strafe..."; msgLabel.style.color = "#ff4444"; myPlacedStone = null; SoundFX.play('lose'); renderScene(); setTimeout(() => { if (msgLabel.innerText.includes("Strafe")) { canClick = true; msgLabel.innerText = "Weiter geht's! Versuch es nochmal!"; msgLabel.style.color = "#fff"; } }, 1500); });
-        socket.on('round_won_by_other', (data) => { canClick = false; msgLabel.innerText = "Zu langsam! " + data.winnerName + " war schneller!"; msgLabel.style.color = "#44aaff"; SoundFX.play('lose'); winningHighlight = { x: data.x, y: data.y }; renderScene(); });
-        socket.on('timeout', (solutions) => { canClick = false; msgLabel.innerText = "ZEIT ABGELAUFEN! 💀 Hier ist die Lösung:"; msgLabel.style.color = "#ff4444"; timeoutSolutions = solutions; SoundFX.play('lose'); renderScene(); });
+        socket.on('new_round', (data) => { canClick = true; currentPuzzle = data.puzzle; roundTimeLimit = data.maxTime; myPlacedStone = null; timeoutSolutions = null; winningHighlight = null; hoverX = -1; hoverY = -1; msgLabel.innerText = data.puzzle.msg; msgLabel.style.color = "#f8fafc"; calculateZoomView(data.puzzle); renderScene(); });
+        socket.on('timer', (timeLeft) => { timerLabel.innerText = "Zeit: " + timeLeft; let pct = (timeLeft / roundTimeLimit) * 100; tBar.style.width = pct + "%"; if (pct > 50) tBar.style.background = "#10b981"; else if (pct > 25) tBar.style.background = "#f59e0b"; else tBar.style.background = "#ef4444"; timerLabel.style.color = timeLeft <= (roundTimeLimit * 0.3) ? "#ef4444" : "#f59e0b"; });
+        socket.on('correct_guess', (data) => { canClick = false; myScore += data.points; scoreLabel.innerText = "Score: " + myScore; let winText = "RICHTIG! +" + data.points + " Punkte!"; if (data.combo > 1) winText += " 🔥 COMBO x" + data.combo; msgLabel.innerText = winText; msgLabel.style.color = "#10b981"; SoundFX.play('win'); const floatDiv = document.createElement('div'); floatDiv.className = 'floating-points'; floatDiv.innerText = "+" + data.points; if (data.combo > 1) floatDiv.innerText += " 🔥"; floatDiv.style.left = lastClickX + "px"; floatDiv.style.top = lastClickY + "px"; document.getElementById('board-container').appendChild(floatDiv); setTimeout(() => { floatDiv.remove(); }, 1000); renderScene(); });
+        socket.on('wrong_guess', () => { msgLabel.innerText = "Daneben! ⏳ 1.5 Sekunden Strafe..."; msgLabel.style.color = "#ef4444"; myPlacedStone = null; SoundFX.play('lose'); renderScene(); setTimeout(() => { if (msgLabel.innerText.includes("Strafe")) { canClick = true; msgLabel.innerText = "Weiter geht's! Versuch es nochmal!"; msgLabel.style.color = "#f8fafc"; } }, 1500); });
+        socket.on('round_won_by_other', (data) => { canClick = false; msgLabel.innerText = "Zu langsam! " + data.winnerName + " war schneller!"; msgLabel.style.color = "#3b82f6"; SoundFX.play('lose'); winningHighlight = { x: data.x, y: data.y }; renderScene(); });
+        socket.on('timeout', (solutions) => { canClick = false; msgLabel.innerText = "ZEIT ABGELAUFEN! 💀 Hier ist die Lösung:"; msgLabel.style.color = "#ef4444"; timeoutSolutions = solutions; SoundFX.play('lose'); renderScene(); });
         
         canvas.addEventListener('mousemove', (event) => { if (!canClick) return; const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / currentCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / currentCellSize); const realX = viewMinX + gridX; const realY = viewMinY + gridY; if (realX !== hoverX || realY !== hoverY) { hoverX = realX; hoverY = realY; renderScene(); } });
         canvas.addEventListener('mouseout', () => { hoverX = -1; hoverY = -1; renderScene(); });
