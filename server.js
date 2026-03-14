@@ -107,15 +107,13 @@ function getGroupOfColor(board, startX, startY) {
     if (!color) return [];
     let group = []; let visited = new Set(); let queue = [{x: startX, y: startY}];
     visited.add(`${startX},${startY}`);
-
     while(queue.length > 0) {
         let curr = queue.shift(); group.push(curr);
         let neighbors = [ {x: curr.x+1, y: curr.y}, {x: curr.x-1, y: curr.y}, {x: curr.x, y: curr.y+1}, {x: curr.x, y: curr.y-1} ];
         for(let n of neighbors) {
             if(n.x >= 0 && n.x < board.length && n.y >= 0 && n.y < board.length) {
                 if(board[n.x][n.y] === color && !visited.has(`${n.x},${n.y}`)) {
-                    visited.add(`${n.x},${n.y}`);
-                    queue.push(n);
+                    visited.add(`${n.x},${n.y}`); queue.push(n);
                 }
             }
         }
@@ -123,18 +121,15 @@ function getGroupOfColor(board, startX, startY) {
     return group;
 }
 
-function calculateJapaneseScore(board, captures, deadStonesSet) {
-    let size = board.length;
-    let blackTerritory = 0;
-    let whiteTerritory = 0;
+// NEU: Nimmt dynamisches Komi entgegen (Handicap = 0.5, Normal = 6.5)
+function calculateJapaneseScore(board, captures, deadStonesSet, komi) {
+    let size = board.length; let blackTerritory = 0; let whiteTerritory = 0;
     let finalCaptures = { black: captures.black, white: captures.white };
 
     let scoreBoard = board.map(row => [...row]);
     deadStonesSet.forEach(pos => {
-        let [x, y] = pos.split(',').map(Number);
-        let color = scoreBoard[x][y];
-        if (color === 'black') finalCaptures.white++; 
-        if (color === 'white') finalCaptures.black++; 
+        let [x, y] = pos.split(',').map(Number); let color = scoreBoard[x][y];
+        if (color === 'black') finalCaptures.white++; if (color === 'white') finalCaptures.black++; 
         scoreBoard[x][y] = null; 
     });
 
@@ -142,24 +137,15 @@ function calculateJapaneseScore(board, captures, deadStonesSet) {
     for (let x = 0; x < size; x++) {
         for (let y = 0; y < size; y++) {
             if (scoreBoard[x][y] === null && !visited[x][y]) {
-                let queue = [{x, y}];
-                visited[x][y] = true;
-                let touchesBlack = false;
-                let touchesWhite = false;
-                let emptyCount = 0;
-
+                let queue = [{x, y}]; visited[x][y] = true; let touchesBlack = false; let touchesWhite = false; let emptyCount = 0;
                 while (queue.length > 0) {
-                    let curr = queue.shift();
-                    emptyCount++;
+                    let curr = queue.shift(); emptyCount++;
                     let neighbors = [ {x: curr.x+1, y: curr.y}, {x: curr.x-1, y: curr.y}, {x: curr.x, y: curr.y+1}, {x: curr.x, y: curr.y-1} ];
                     for (let n of neighbors) {
                         if (n.x >= 0 && n.x < size && n.y >= 0 && n.y < size) {
                             if (scoreBoard[n.x][n.y] === 'black') touchesBlack = true;
                             else if (scoreBoard[n.x][n.y] === 'white') touchesWhite = true;
-                            else if (!visited[n.x][n.y]) {
-                                visited[n.x][n.y] = true;
-                                queue.push(n);
-                            }
+                            else if (!visited[n.x][n.y]) { visited[n.x][n.y] = true; queue.push(n); }
                         }
                     }
                 }
@@ -170,11 +156,22 @@ function calculateJapaneseScore(board, captures, deadStonesSet) {
     }
     
     return { 
-        blackTotal: blackTerritory + finalCaptures.black, 
-        whiteTotal: whiteTerritory + finalCaptures.white + 6.5,
-        blackTerr: blackTerritory, whiteTerr: whiteTerritory,
-        blackCaps: finalCaptures.black, whiteCaps: finalCaptures.white
+        blackTotal: blackTerritory + finalCaptures.black, whiteTotal: whiteTerritory + finalCaptures.white + komi,
+        blackTerr: blackTerritory, whiteTerr: whiteTerritory, blackCaps: finalCaptures.black, whiteCaps: finalCaptures.white
     };
+}
+
+// NEU: Handicap-Steine berechnen
+function getHandicapStones(size, count) {
+    if(count < 2) return [];
+    let stones = []; let c1 = size===19?3:size===13?3:2; let c2 = size===19?15:size===13?9:6; let mid = size===19?9:size===13?6:4;
+    if(count >= 2) stones.push({x:c2,y:c1}, {x:c1,y:c2});
+    if(count >= 3) stones.push({x:c2,y:c2});
+    if(count >= 4) stones.push({x:c1,y:c1});
+    if(count === 5 || count === 7 || count === 9) stones.push({x:mid,y:mid});
+    if(count >= 6) { stones.push({x:c1,y:mid}, {x:c2,y:mid}); }
+    if(count >= 8) { stones.push({x:mid,y:c1}, {x:mid,y:c2}); }
+    return stones.slice(0, count);
 }
 
 
@@ -204,22 +201,35 @@ function broadcastMatchmaking() {
     io.emit('update_challenges', { challenges: Object.values(challenges), activeMatches: activeList });
 }
 
+// NEU: Byo-Yomi Timer Logik
 setInterval(() => {
     for (let matchId in active1v1Matches) {
         let match = active1v1Matches[matchId];
         if (match.state === 'playing') {
-            match.timers[match.turn]--; 
-            io.to(matchId).emit('1v1_timer_update', { timers: match.timers, turn: match.turn });
-
-            if (match.timers[match.turn] <= 0) {
-                let winner = match.players[match.turn === 'black' ? 'white' : 'black'];
-                io.to(matchId).emit('1v1_game_over', { 
-                    reason: `⏱️ Zeit abgelaufen! ${winner.avatar} ${winner.name} gewinnt.`,
-                    moveList: match.moveList, size: match.size 
-                });
-                delete active1v1Matches[matchId];
-                broadcastMatchmaking();
+            let t = match.timers[match.turn];
+            
+            if (t.main > 0) {
+                t.main--;
+            } else {
+                if (t.byo > 0) t.byo--;
+                else {
+                    if (t.periods > 0) {
+                        t.periods--;
+                        t.byo = match.settings.byoTime;
+                    } else {
+                        // Timeout
+                        let winner = match.players[match.turn === 'black' ? 'white' : 'black'];
+                        io.to(matchId).emit('1v1_game_over', { 
+                            reason: `⏱️ Zeit abgelaufen! ${winner.avatar} ${winner.name} gewinnt.`,
+                            moveList: match.moveList, size: match.size 
+                        });
+                        delete active1v1Matches[matchId];
+                        broadcastMatchmaking();
+                        continue;
+                    }
+                }
             }
+            io.to(matchId).emit('1v1_timer_update', { timers: match.timers, turn: match.turn });
         }
     }
 }, 1000);
@@ -229,9 +239,15 @@ io.on('connection', (socket) => {
 
     socket.on('request_challenges', () => { broadcastMatchmaking(); });
     
+    // NEU: Nimmt Settings (Zeit, Handicap) an
     socket.on('create_challenge', (data) => { 
         const challengeId = 'chal_' + socket.id; 
-        challenges[challengeId] = { id: challengeId, challengerId: socket.id, challengerName: data.name, challengerAvatar: data.avatar, boardSize: parseInt(data.boardSize) }; 
+        challenges[challengeId] = { 
+            id: challengeId, challengerId: socket.id, challengerName: data.name, challengerAvatar: data.avatar, 
+            boardSize: parseInt(data.boardSize),
+            timeSetting: data.timeSetting, // z.B. "10m_3_30"
+            handicap: parseInt(data.handicap)
+        }; 
         broadcastMatchmaking(); 
     });
     
@@ -243,14 +259,28 @@ io.on('connection', (socket) => {
             const newRoomId = '1v1_' + Math.random().toString(36).substring(2,8);
             let emptyBoard = Array(chal.boardSize).fill(null).map(() => Array(chal.boardSize).fill(null));
             
+            // Einstellungen parsen
+            let parts = chal.timeSetting.split('_'); // [mainMin, periods, byoSec]
+            let mainT = parseInt(parts[0].replace('m','')) * 60;
+            let pCount = parseInt(parts[1]);
+            let byoT = parseInt(parts[2]);
+
+            // Handicap setzen
+            let hcapStones = getHandicapStones(chal.boardSize, chal.handicap);
+            hcapStones.forEach(st => emptyBoard[st.x][st.y] = 'black');
+            let initialTurn = chal.handicap > 0 ? 'white' : 'black';
+            let initialKomi = chal.handicap > 0 ? 0.5 : 6.5;
+
             active1v1Matches[newRoomId] = {
-                id: newRoomId, size: chal.boardSize, board: emptyBoard, turn: 'black', passes: 0,
-                state: 'playing', 
-                deadStones: new Set(),
-                accepts: { black: false, white: false },
-                history: new Set([JSON.stringify(emptyBoard)]),
-                moveList: [], // NEU: Merkt sich jeden Zug für die SGF/Analyse!
-                timers: { black: 600, white: 600 }, 
+                id: newRoomId, size: chal.boardSize, board: emptyBoard, turn: initialTurn, passes: 0,
+                state: 'playing', komi: initialKomi, handicapStones: hcapStones,
+                settings: { byoTime: byoT },
+                deadStones: new Set(), accepts: { black: false, white: false },
+                history: new Set([JSON.stringify(emptyBoard)]), moveList: [], 
+                timers: { 
+                    black: { main: mainT, byo: byoT, periods: pCount }, 
+                    white: { main: mainT, byo: byoT, periods: pCount } 
+                }, 
                 captures: { black: 0, white: 0 },   
                 players: { 
                     black: { id: chal.challengerId, name: chal.challengerName, avatar: chal.challengerAvatar }, 
@@ -263,8 +293,8 @@ io.on('connection', (socket) => {
             const opponentSocket = io.sockets.sockets.get(chal.challengerId);
             if(opponentSocket) opponentSocket.join(newRoomId);
 
-            io.to(chal.challengerId).emit('1v1_match_started', { roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, avatarBlack: chal.challengerAvatar, playerWhite: acceptorData.name, avatarWhite: acceptorData.avatar, myColor: 'black' });
-            socket.emit('1v1_match_started', { roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, avatarBlack: chal.challengerAvatar, playerWhite: acceptorData.name, avatarWhite: acceptorData.avatar, myColor: 'white' });
+            io.to(chal.challengerId).emit('1v1_match_started', { roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, avatarBlack: chal.challengerAvatar, playerWhite: acceptorData.name, avatarWhite: acceptorData.avatar, myColor: 'black', komi: initialKomi, timers: active1v1Matches[newRoomId].timers, board: emptyBoard, turn: initialTurn });
+            socket.emit('1v1_match_started', { roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, avatarBlack: chal.challengerAvatar, playerWhite: acceptorData.name, avatarWhite: acceptorData.avatar, myColor: 'white', komi: initialKomi, timers: active1v1Matches[newRoomId].timers, board: emptyBoard, turn: initialTurn });
             
             delete challenges[challengeId]; broadcastMatchmaking();
         }
@@ -279,7 +309,7 @@ io.on('connection', (socket) => {
                 roomId: matchId, size: match.size, 
                 playerBlack: match.players.black.name, avatarBlack: match.players.black.avatar, 
                 playerWhite: match.players.white.name, avatarWhite: match.players.white.avatar, 
-                myColor: 'spectator', 
+                myColor: 'spectator', komi: match.komi,
                 board: match.board, turn: match.turn, captures: match.captures, timers: match.timers,
                 state: match.state, deadStones: Array.from(match.deadStones)
             });
@@ -310,10 +340,55 @@ io.on('connection', (socket) => {
         match.captures[myColor] += capturedStones.length;
         match.board = newBoard; match.history.add(boardString); match.turn = enemyColor; match.passes = 0;
         
-        // NEU: Speichere den Zug in der Liste
-        match.moveList.push({ color: myColor, x: data.x, y: data.y });
+        // NEU: Byo-Yomi Timer Reset
+        if(match.timers[myColor].main <= 0 && match.timers[myColor].periods > 0) {
+            match.timers[myColor].byo = match.settings.byoTime;
+        }
 
+        match.moveList.push({ color: myColor, x: data.x, y: data.y });
         io.to(matchId).emit('1v1_update_board', { board: match.board, turn: match.turn, lastMove: {x: data.x, y: data.y}, captures: match.captures });
+    });
+
+    // --- NEU: UNDO LOGIK ---
+    socket.on('1v1_request_undo', (matchId) => {
+        let match = active1v1Matches[matchId]; if(!match || match.state !== 'playing') return;
+        if(match.moveList.length === 0) return;
+        let myColor = match.players.black.id === socket.id ? 'black' : 'white';
+        let enemyId = match.players[myColor === 'black' ? 'white' : 'black'].id;
+        io.to(enemyId).emit('1v1_undo_requested');
+    });
+
+    socket.on('1v1_respond_undo', (data) => {
+        let match = active1v1Matches[data.matchId]; if(!match) return;
+        let myColor = match.players.black.id === socket.id ? 'black' : 'white';
+        let enemyId = match.players[myColor === 'black' ? 'white' : 'black'].id;
+
+        if(data.accept) {
+            let lastMove = match.moveList.pop(); if(!lastMove) return;
+            
+            // Brett aus der Historie (moveList) komplett neu aufbauen, um Gefangene wiederherzustellen
+            let emptyBoard = Array(match.size).fill(null).map(() => Array(match.size).fill(null));
+            match.board = emptyBoard; match.captures = {black: 0, white: 0}; match.history = new Set([JSON.stringify(emptyBoard)]);
+            
+            if(match.handicapStones) match.handicapStones.forEach(st => match.board[st.x][st.y] = 'black');
+
+            for(let m of match.moveList) {
+                if(!m.pass && m.x !== undefined && m.y !== undefined) {
+                    match.board[m.x][m.y] = m.color;
+                    let enemy = m.color === 'black' ? 'white' : 'black';
+                    let caps = checkCaptures(match.board, m.x, m.y, enemy);
+                    caps.forEach(c => match.board[c.x][c.y] = null);
+                    match.captures[m.color] += caps.length;
+                }
+                match.history.add(JSON.stringify(match.board));
+            }
+            match.turn = match.turn === 'black' ? 'white' : 'black'; match.passes = 0;
+            
+            let currentLastMove = match.moveList.length > 0 ? match.moveList[match.moveList.length-1] : null;
+            io.to(data.matchId).emit('1v1_update_board', { board: match.board, turn: match.turn, lastMove: currentLastMove, captures: match.captures });
+        } else {
+            io.to(enemyId).emit('1v1_undo_declined');
+        }
     });
 
     socket.on('1v1_pass', (matchId) => {
@@ -324,13 +399,13 @@ io.on('connection', (socket) => {
 
         match.passes++;
         match.turn = (myColor === 'black') ? 'white' : 'black';
-        
-        // NEU: Pass in die Liste
         match.moveList.push({ color: myColor, pass: true });
 
+        // Byo-yomi Reset bei Pass
+        if(match.timers[myColor].main <= 0 && match.timers[myColor].periods > 0) match.timers[myColor].byo = match.settings.byoTime;
+
         if(match.passes >= 2) {
-            match.state = 'scoring';
-            io.to(matchId).emit('1v1_scoring_phase');
+            match.state = 'scoring'; io.to(matchId).emit('1v1_scoring_phase');
         } else {
             io.to(matchId).emit('1v1_update_board', { board: match.board, turn: match.turn, lastMove: null, captures: match.captures });
         }
@@ -364,7 +439,7 @@ io.on('connection', (socket) => {
         io.to(matchId).emit('1v1_scoring_update', { deadStones: Array.from(match.deadStones), accepts: match.accepts });
 
         if(match.accepts.black && match.accepts.white) {
-            let finalScore = calculateJapaneseScore(match.board, match.captures, match.deadStones);
+            let finalScore = calculateJapaneseScore(match.board, match.captures, match.deadStones, match.komi);
             let winnerPlayer = finalScore.blackTotal > finalScore.whiteTotal ? match.players.black : match.players.white;
             let diff = Math.abs(finalScore.blackTotal - finalScore.whiteTotal);
             
@@ -373,12 +448,11 @@ io.on('connection', (socket) => {
                 <div style='font-size:1.1rem; color:#ccc; margin-top: 15px; text-align: left; background: #111; padding: 10px; border-radius: 8px;'>
                 <b>Japanische Zählung:</b><br>
                 ⚫ Schwarz: ${finalScore.blackTotal} Punkte <br><span style='font-size:0.9rem;'>(${finalScore.blackTerr} Gebiet + ${finalScore.blackCaps} Gefangene)</span><br><br>
-                ⚪ Weiß: ${finalScore.whiteTotal} Punkte <br><span style='font-size:0.9rem;'>(${finalScore.whiteTerr} Gebiet + ${finalScore.whiteCaps} Gefangene + 6.5 Komi)</span>
+                ⚪ Weiß: ${finalScore.whiteTotal} Punkte <br><span style='font-size:0.9rem;'>(${finalScore.whiteTerr} Gebiet + ${finalScore.whiteCaps} Gefangene + ${match.komi} Komi)</span>
                 </div>`,
-                moveList: match.moveList, size: match.size // NEU: Übergabe für SGF
+                moveList: match.moveList, size: match.size 
             });
-            delete active1v1Matches[matchId];
-            broadcastMatchmaking();
+            delete active1v1Matches[matchId]; broadcastMatchmaking();
         }
     });
 
@@ -409,10 +483,7 @@ io.on('connection', (socket) => {
         if (!r.isPlaying) { let freshDeck = [...r.originalPuzzles]; shuffle(freshDeck); if (settings) { r.settings.timeLimit = parseInt(settings.timeLimit); let count = settings.puzzleCount === 'all' ? freshDeck.length : parseInt(settings.puzzleCount); r.puzzles = freshDeck.slice(0, count); } else { r.puzzles = freshDeck; } r.isPlaying = true; r.currentLevel = -1; for (let id in r.players) { r.players[id].score = 0; r.players[id].combo = 0; } broadcastLeaderboard(currentRoom); io.to(currentRoom).emit('game_starting'); setTimeout(() => nextLevel(currentRoom), 1000); }
     });
 
-    socket.on('chat_message', (data) => { 
-        let targetRoom = Array.from(socket.rooms).find(r => r !== socket.id);
-        if(targetRoom) io.to(targetRoom).emit('chat_message', data);
-    });
+    socket.on('chat_message', (data) => { let targetRoom = Array.from(socket.rooms).find(r => r !== socket.id); if(targetRoom) io.to(targetRoom).emit('chat_message', data); });
 
     socket.on('guess', (data) => {
         if (!currentRoom || !rooms[currentRoom]) return; let r = rooms[currentRoom]; const p = r.puzzles[r.currentLevel]; if (!p || !r.isPlaying) return; let player = r.players[socket.id]; const isCorrect = p.solution.some(sol => sol.x === data.x && sol.y === data.y);
