@@ -213,7 +213,10 @@ setInterval(() => {
 
             if (match.timers[match.turn] <= 0) {
                 let winner = match.players[match.turn === 'black' ? 'white' : 'black'];
-                io.to(matchId).emit('1v1_game_over', { reason: `⏱️ Zeit abgelaufen! ${winner.avatar} ${winner.name} gewinnt.` });
+                io.to(matchId).emit('1v1_game_over', { 
+                    reason: `⏱️ Zeit abgelaufen! ${winner.avatar} ${winner.name} gewinnt.`,
+                    moveList: match.moveList, size: match.size 
+                });
                 delete active1v1Matches[matchId];
                 broadcastMatchmaking();
             }
@@ -246,6 +249,7 @@ io.on('connection', (socket) => {
                 deadStones: new Set(),
                 accepts: { black: false, white: false },
                 history: new Set([JSON.stringify(emptyBoard)]),
+                moveList: [], // NEU: Merkt sich jeden Zug für die SGF/Analyse!
                 timers: { black: 600, white: 600 }, 
                 captures: { black: 0, white: 0 },   
                 players: { 
@@ -306,6 +310,9 @@ io.on('connection', (socket) => {
         match.captures[myColor] += capturedStones.length;
         match.board = newBoard; match.history.add(boardString); match.turn = enemyColor; match.passes = 0;
         
+        // NEU: Speichere den Zug in der Liste
+        match.moveList.push({ color: myColor, x: data.x, y: data.y });
+
         io.to(matchId).emit('1v1_update_board', { board: match.board, turn: match.turn, lastMove: {x: data.x, y: data.y}, captures: match.captures });
     });
 
@@ -317,6 +324,9 @@ io.on('connection', (socket) => {
 
         match.passes++;
         match.turn = (myColor === 'black') ? 'white' : 'black';
+        
+        // NEU: Pass in die Liste
+        match.moveList.push({ color: myColor, pass: true });
 
         if(match.passes >= 2) {
             match.state = 'scoring';
@@ -364,7 +374,8 @@ io.on('connection', (socket) => {
                 <b>Japanische Zählung:</b><br>
                 ⚫ Schwarz: ${finalScore.blackTotal} Punkte <br><span style='font-size:0.9rem;'>(${finalScore.blackTerr} Gebiet + ${finalScore.blackCaps} Gefangene)</span><br><br>
                 ⚪ Weiß: ${finalScore.whiteTotal} Punkte <br><span style='font-size:0.9rem;'>(${finalScore.whiteTerr} Gebiet + ${finalScore.whiteCaps} Gefangene + 6.5 Komi)</span>
-                </div>`
+                </div>`,
+                moveList: match.moveList, size: match.size // NEU: Übergabe für SGF
             });
             delete active1v1Matches[matchId];
             broadcastMatchmaking();
@@ -374,7 +385,10 @@ io.on('connection', (socket) => {
     socket.on('1v1_resign', (matchId) => {
         const match = active1v1Matches[matchId]; if(!match) return;
         const loser = (match.players.black.id === socket.id) ? match.players.black : match.players.white;
-        io.to(matchId).emit('1v1_game_over', { reason: `🏳️ ${loser.avatar} ${loser.name} hat aufgegeben.` });
+        io.to(matchId).emit('1v1_game_over', { 
+            reason: `🏳️ ${loser.avatar} ${loser.name} hat aufgegeben.`,
+            moveList: match.moveList, size: match.size 
+        });
         delete active1v1Matches[matchId]; broadcastMatchmaking();
     });
 

@@ -8,7 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
     
     <style>
-        /* Animierter Hintergrund & Schriftart */
         body { 
             background: linear-gradient(135deg, #0f1016 0%, #1a1a2e 50%, #0f1016 100%);
             background-size: 200% 200%;
@@ -20,25 +19,14 @@
             padding-top: 20px; 
             min-height: 100vh;
         }
-
-        @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        /* Weiche Einblend-Animation für alle Screens */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
         #login-screen, #menu-screen { margin-top: 100px; padding: 20px; animation: fadeIn 0.4s ease-out; }
-        #lobby-screen, #game-over-screen, #matchmaking-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; animation: fadeIn 0.4s ease-out; } 
+        #lobby-screen, #game-over-screen, #matchmaking-screen, #analysis-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; animation: fadeIn 0.4s ease-out; } 
         #game-screen, #pvp-screen { display: none; padding: 10px; width: 100%; box-sizing: border-box; animation: fadeIn 0.4s ease-out; }
         #menu-screen { display: none; } 
         
-        /* Styling für Eingabefelder */
         input, select { 
             font-family: 'Nunito', sans-serif; font-size: 1.2rem; padding: 12px; 
             border-radius: 8px; border: 2px solid #444; text-align: center; 
@@ -47,7 +35,6 @@
         }
         input:focus, select:focus { border: 2px solid #ffaa00; box-shadow: 0 0 10px rgba(255, 170, 0, 0.3); }
 
-        /* Bessere Buttons mit Schatten und Glow */
         button { 
             font-family: 'Nunito', sans-serif; font-size: 1.2rem; padding: 12px 24px; 
             margin: 5px; cursor: pointer; background: #44aaff; color: white; 
@@ -61,8 +48,10 @@
         .btn-public { background: #28a745; } .btn-public:hover { background: #218838; box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4); }
         .btn-private { background: #ffaa00; } .btn-private:hover { background: #e69500; box-shadow: 0 6px 20px rgba(255, 170, 0, 0.4); }
         .btn-1v1 { background: #9932cc; } .btn-1v1:hover { background: #8a2be2; box-shadow: 0 6px 20px rgba(153, 50, 204, 0.4); }
+        /* NEU: Button Styling für Analyse */
+        .btn-analysis { background: #e91e63; } .btn-analysis:hover { background: #c2185b; box-shadow: 0 6px 20px rgba(233, 30, 99, 0.4); }
+        .btn-nav { padding: 10px 15px; font-size: 1.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
 
-        /* Avatare */
         .avatar-options { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; font-size: 2.5rem; cursor: pointer; flex-wrap: wrap; }
         .avatar-option { opacity: 0.4; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); padding: 5px; border-radius: 12px; border: 2px solid transparent; }
         .avatar-option:hover { transform: scale(1.2); opacity: 0.8; }
@@ -71,15 +60,7 @@
         #top-bar { position: absolute; top: 10px; left: 10px; display: flex; gap: 10px; z-index: 1000; }
         .top-btn { background: rgba(50,50,50,0.8); font-size: 1rem; padding: 8px 12px; backdrop-filter: blur(5px); }
 
-        /* Glassmorphismus für Cards und Panels */
-        .glass-panel {
-            background: rgba(30, 30, 35, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
+        .glass-panel { background: rgba(30, 30, 35, 0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); }
 
         #room-code-display { font-size: 2rem; color: #ffaa00; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 8px; display: inline-block; margin-bottom: 10px; border: 2px dashed #ffaa00; letter-spacing: 2px;}
         #host-settings { padding: 20px; margin: 15px auto; max-width: 400px; display: none; }
@@ -104,9 +85,9 @@
         #timer-container { width: 100%; max-width: 600px; background: rgba(0,0,0,0.5); height: 14px; border-radius: 7px; margin: 0 auto 15px auto; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: inset 0 2px 5px rgba(0,0,0,0.5); }
         #timer-bar { height: 100%; width: 100%; background: linear-gradient(90deg, #00ff00, #00cc00); transition: width 1s linear, background 0.5s; }
 
-        #game-content, #pvp-content { display: flex; justify-content: center; align-items: flex-start; gap: 30px; max-width: 950px; margin: 0 auto 20px auto; flex-wrap: wrap; }
+        /* NEU: analysis-content dazugefügt */
+        #game-content, #pvp-content, #analysis-content { display: flex; justify-content: center; align-items: flex-start; gap: 30px; max-width: 950px; margin: 0 auto 20px auto; flex-wrap: wrap; }
         
-        /* Das Holzbrett */
         .board-container { 
             width: 100%; max-width: min(600px, 55vh); aspect-ratio: 1 / 1; 
             background: radial-gradient(circle at 30% 30%, #ebd29f, #c29b57); 
@@ -116,7 +97,7 @@
         }
         canvas { width: 100%; height: 100%; display: block; }
 
-        #leaderboard, #pvp-sidebar { padding: 20px; width: 100%; max-width: 300px; text-align: left; box-sizing: border-box; }
+        #leaderboard, #pvp-sidebar, #analysis-sidebar { padding: 20px; width: 100%; max-width: 300px; text-align: left; box-sizing: border-box; }
         #leaderboard h2 { margin-top: 0; color: #ffcc00; text-align: center; font-size: 1.5rem; border-bottom: 2px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
         .lb-row { display: flex; justify-content: space-between; font-size: 1.2rem; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed rgba(255,255,255,0.1); }
         .lb-rank { color: #888; width: 30px; font-weight: 900;}
@@ -137,7 +118,6 @@
         .podium-name { color: #fff; font-size: 1.4rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8); word-wrap: break-word; font-weight: 700; margin-bottom: 5px;}
         .podium-score { color: #44aaff; font-size: 1.2rem; text-shadow: 0 2px 4px rgba(0,0,0,0.8); margin-bottom: 10px; font-weight: 900;}
 
-        /* Wunderschöne Scrollbars */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; transition: background 0.3s;}
@@ -174,7 +154,9 @@
     <div id="menu-screen">
         <h2 style="font-size: 2rem; color: #fff;">Spielmodus wählen</h2>
         <button class="btn-1v1" id="btn-goto-matchmaking" style="padding: 20px 40px; font-size: 1.6rem; margin-bottom: 25px; border-radius: 12px; border: 2px solid rgba(255,255,255,0.2);">⚔️ 1v1 Online spielen</button><br>
-        <button class="btn-public" id="btn-public">🌍 Öffentlicher Tsumego-Rush</button><br><br>
+        <button class="btn-public" id="btn-public">🌍 Öffentlicher Tsumego-Rush</button><br>
+        
+        <button class="btn-analysis" id="btn-goto-analysis-menu" style="margin-bottom: 25px;">🔬 SGF Studio / Analyse</button><br>
         
         <div class="glass-panel" style="padding: 25px; display: inline-block; max-width: 90%;">
             <button class="btn-private" id="btn-create-private">🔒 Privaten Raum erstellen</button>
@@ -216,6 +198,44 @@
         </div>
     </div>
 
+    <div id="analysis-screen">
+        <h1 style="color: #e91e63; margin-top: 0; margin-bottom: 5px;">SGF Studio</h1>
+        <p style="color: #aaa; margin-top: 0; margin-bottom: 20px;">Analysiere Züge, spiele Varianten oder importiere Dateien.</p>
+        
+        <div id="analysis-content">
+            <div class="board-container">
+                <canvas id="analysisCanvas" width="600" height="600"></canvas>
+            </div>
+            
+            <div id="analysis-sidebar" class="glass-panel">
+                <h3 style="margin-top:0; color:#fff; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Navigation</h3>
+                
+                <div style="display: flex; justify-content: center; gap: 5px; margin-bottom: 15px;">
+                    <button class="btn-nav" id="btn-ana-start">|&lt;</button>
+                    <button class="btn-nav" id="btn-ana-prev">&lt;</button>
+                    <button class="btn-nav" id="btn-ana-next">&gt;</button>
+                    <button class="btn-nav" id="btn-ana-end">&gt;|</button>
+                </div>
+                
+                <p style="text-align:center; color:#ffaa00; font-weight:bold; margin-bottom: 20px;">Zug: <span id="ana-move-count">0</span> / <span id="ana-total-moves">0</span></p>
+
+                <h3 style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Freies Setzen</h3>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                    <button id="btn-ana-color-black" style="flex:1; background:#000; border: 2px solid #ffaa00;">Schwarz ⚫</button>
+                    <button id="btn-ana-color-white" style="flex:1; background:#fff; color:#000; border: 2px solid transparent;">Weiß ⚪</button>
+                </div>
+                
+                <h3 style="margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Dateien</h3>
+                <input type="file" id="sgf-upload-input" accept=".sgf" style="display:none;">
+                <button id="btn-ana-upload" style="width: 100%; background: #28a745; margin-bottom: 10px;">📂 SGF Hochladen</button>
+                <button id="btn-ana-download" style="width: 100%; background: #44aaff; margin-bottom: 20px;">💾 SGF Speichern</button>
+                
+                <button id="btn-ana-leave" style="width: 100%; background: #555; margin-top: 10px;">Zurück zum Menü</button>
+            </div>
+        </div>
+    </div>
+
+
     <div id="room-container" style="display: none; justify-content: center; align-items: flex-start; gap: 30px; max-width: 1250px; margin: 20px auto; padding: 0 10px; flex-wrap: wrap-reverse;">
         
         <div id="global-chat" class="glass-panel" style="display: flex; width: 100%; max-width: 320px; padding: 15px; flex-direction: column; height: min(600px, 75vh); box-sizing: border-box;">
@@ -250,7 +270,11 @@
                 <h1 style="color: #ffaa00; font-size: 4rem; margin-bottom: 0; margin-top: 0; text-shadow: 0 4px 10px rgba(0,0,0,0.5);">SPIEL BEENDET!</h1>
                 <h3 id="go-reason" style="color: #fff; margin-top: 10px; font-size: 1.5rem; font-weight: 400;">Das sind die Sieger:</h3>
                 <div class="podium" id="podium-container"></div>
-                <p style="margin-top: 40px; color: #aaa; font-style: italic;">Zurück zur Lobby in <span id="lobby-countdown">8</span> Sekunden...</p>
+                
+                <div style="margin-top: 40px; display: flex; justify-content: center; gap: 20px;">
+                    <button id="btn-go-back-lobby" style="background: #555;">🔙 Zurück zur Lobby</button>
+                    <button id="btn-go-analyze" class="btn-analysis" style="display: none;">🔬 Partie analysieren</button>
+                </div>
             </div>
 
             <div id="game-screen" style="width: 100%;">
@@ -325,6 +349,7 @@
         const loginScreen = document.getElementById('login-screen'); const menuScreen = document.getElementById('menu-screen'); 
         const matchmakingScreen = document.getElementById('matchmaking-screen'); const lobbyScreen = document.getElementById('lobby-screen'); 
         const gameScreen = document.getElementById('game-screen'); const pvpScreen = document.getElementById('pvp-screen');
+        const analysisScreen = document.getElementById('analysis-screen');
         
         let myName = ""; let myAvatar = "🦊"; let amIHost = false;
 
@@ -391,9 +416,15 @@
         window.acceptChallenge = function(challengeId) { socket.emit('accept_challenge', challengeId, {name: myName, avatar: myAvatar}); };
         window.spectateMatch = function(matchId) { socket.emit('spectate_match', matchId); };
 
+
+        // --- 1v1 PVP ENGINE ---
         const pvpCanvas = document.getElementById('pvpCanvas'); const pvpCtx = pvpCanvas.getContext('2d');
+        const padding = 30; // Global padding
         let currentPvpMatch = null; let myPvpColor = null; let pvpBoardSize = 19; let pvpCellSize = 0; let pvpHoverX = -1, pvpHoverY = -1;
         let pvpState = 'playing'; let pvpDeadStones = new Set(); let pendingMoveX = -1; let pendingMoveY = -1;
+        
+        // NEU: Globale Variable für die zuletzt beendete 1v1 Partie (für die Analyse)
+        let lastPlayedGame = { moveList: [], size: 19 };
 
         function formatTime(seconds) { let m = Math.floor(seconds / 60); let s = seconds % 60; return m + ":" + (s < 10 ? "0" : "") + s; }
 
@@ -445,11 +476,11 @@
         function drawPvpStone(x, y, color, isLastMove=false, isDead=false) {
             const cx = padding + x * pvpCellSize; const cy = padding + y * pvpCellSize; const r = pvpCellSize * 0.46; 
             if(isDead) pvpCtx.globalAlpha = 0.3; else pvpCtx.globalAlpha = 1.0;
-            pvpCtx.beginPath(); pvpCtx.arc(cx + 2, cy + 4, r, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(0,0,0,0.5)"; pvpCtx.fill(); // Schatten
+            pvpCtx.beginPath(); pvpCtx.arc(cx + 2, cy + 4, r, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(0,0,0,0.5)"; pvpCtx.fill(); 
             pvpCtx.beginPath(); pvpCtx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = pvpCtx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
             if (color === "black") { gradient.addColorStop(0, "#555"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } 
             else if (color === "white") { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#eee"); gradient.addColorStop(1, "#aaa"); }
-            else if (color === "green") { gradient.addColorStop(0, "#44aaff"); gradient.addColorStop(0.7, "#2288ff"); gradient.addColorStop(1, "#0055cc"); } // Vorschau ist jetzt Blau
+            else if (color === "green") { gradient.addColorStop(0, "#44aaff"); gradient.addColorStop(0.7, "#2288ff"); gradient.addColorStop(1, "#0055cc"); } 
             pvpCtx.fillStyle = gradient; pvpCtx.fill();
             if(isLastMove && !isDead) { pvpCtx.beginPath(); pvpCtx.arc(cx, cy, 3, 0, Math.PI * 2); pvpCtx.fillStyle = "red"; pvpCtx.fill(); }
             if(isDead) { pvpCtx.beginPath(); pvpCtx.arc(cx, cy, r*0.4, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(255,0,0,0.8)"; pvpCtx.fill(); }
@@ -499,11 +530,18 @@
             renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove);
         });
 
+        // NEU: Nimmt moveList entgegen und blendet Analyse Button ein!
         socket.on('1v1_game_over', (data) => {
             pvpState = 'playing'; pvpScreen.style.display = "none"; document.getElementById('game-over-screen').style.display = "block";
             document.getElementById('go-reason').innerHTML = data.reason; document.getElementById('podium-container').innerHTML = "";
-            let countdown = 15; document.getElementById('lobby-countdown').innerText = countdown;
-            let countInterval = setInterval(() => { countdown--; document.getElementById('lobby-countdown').innerText = countdown; if(countdown <= 0) { clearInterval(countInterval); document.getElementById('game-over-screen').style.display = "none"; menuScreen.style.display = "block"; document.getElementById('room-container').style.display = "none"; socket.emit('request_challenges'); } }, 1000);
+            
+            if(data.moveList) {
+                lastPlayedGame.moveList = data.moveList;
+                lastPlayedGame.size = data.size || pvpBoardSize;
+                document.getElementById('btn-go-analyze').style.display = "inline-block";
+            } else {
+                document.getElementById('btn-go-analyze').style.display = "none";
+            }
         });
 
         pvpCanvas.addEventListener('mousemove', (event) => {
@@ -531,17 +569,258 @@
         document.getElementById('btn-pvp-resign').addEventListener('click', () => { socket.emit('1v1_resign', currentPvpMatch); });
         document.getElementById('btn-pvp-accept').addEventListener('click', () => { socket.emit('1v1_accept_score', currentPvpMatch); });
 
+
+        // --- NEU: DAS SGF / ANALYSE STUDIO ---
+        
+        const anaCanvas = document.getElementById('analysisCanvas');
+        const anaCtx = anaCanvas.getContext('2d');
+        
+        let analysisMoves = []; // Array of {color, x, y, pass}
+        let analysisCurrentStep = 0;
+        let analysisBoardSize = 19;
+        let analysisCellSize = 0;
+        let anaHoverX = -1, anaHoverY = -1;
+        let anaManualColor = 'black'; // Togglebar für manuelles Setzen
+
+        // Hilfsfunktion zum Steine Schlagen (Client-Side für die Analyse)
+        function checkCapturesClient(board, x, y, colorTarget) {
+            let captured = []; let visited = new Set();
+            function getGroup(gx, gy) {
+                let group = []; let liberties = 0; let queue = [{x: gx, y: gy}]; visited.add(`${gx},${gy}`);
+                while(queue.length > 0) {
+                    let curr = queue.shift(); group.push(curr);
+                    const neighbors = [ {x: curr.x+1, y: curr.y}, {x: curr.x-1, y: curr.y}, {x: curr.x, y: curr.y+1}, {x: curr.x, y: curr.y-1} ];
+                    for(let n of neighbors) {
+                        if(n.x >= 0 && n.x < board.length && n.y >= 0 && n.y < board.length) {
+                            let neighborState = board[n.x][n.y];
+                            if(neighborState === null) liberties++;
+                            else if(neighborState === colorTarget && !visited.has(`${n.x},${n.y}`)) { visited.add(`${n.x},${n.y}`); queue.push(n); }
+                        }
+                    }
+                }
+                return {group, liberties};
+            }
+            const neighbors = [ {x: x+1, y: y}, {x: x-1, y: y}, {x: x, y: y+1}, {x: x, y: y-1} ];
+            for(let n of neighbors) {
+                if(n.x >= 0 && n.x < board.length && n.y >= 0 && n.y < board.length) {
+                    if(board[n.x][n.y] === colorTarget && !visited.has(`${n.x},${n.y}`)) {
+                        let {group, liberties} = getGroup(n.x, n.y);
+                        if(liberties === 0) group.forEach(stone => captured.push(stone));
+                    }
+                }
+            }
+            return captured;
+        }
+
+        // Berechnet das Brett bis zum aktuellen Step neu
+        function getAnalysisBoardState() {
+            let board = Array(analysisBoardSize).fill(null).map(() => Array(analysisBoardSize).fill(null));
+            for(let i=0; i<analysisCurrentStep; i++) {
+                let m = analysisMoves[i];
+                if(m.pass) continue;
+                board[m.x][m.y] = m.color;
+                let enemy = (m.color === 'black') ? 'white' : 'black';
+                let caps = checkCapturesClient(board, m.x, m.y, enemy);
+                caps.forEach(st => board[st.x][st.y] = null);
+                // Einfacher Suizid-Schutz (Stein wird wieder weggenommen, falls tot)
+                let suicide = checkCapturesClient(board, m.x, m.y, m.color);
+                if(suicide.length > 0 && caps.length === 0) {
+                    suicide.forEach(st => board[st.x][st.y] = null);
+                }
+            }
+            return board;
+        }
+
+        function drawAnaBoard() {
+            anaCtx.clearRect(0, 0, 600, 600); anaCtx.strokeStyle = "rgba(0,0,0,0.6)"; anaCtx.lineWidth = 1.5; anaCtx.beginPath();
+            for (let i = 0; i < analysisBoardSize; i++) { let pos = padding + i * analysisCellSize; anaCtx.moveTo(pos, padding); anaCtx.lineTo(pos, padding + (analysisBoardSize - 1) * analysisCellSize); anaCtx.moveTo(padding, pos); anaCtx.lineTo(padding + (analysisBoardSize - 1) * analysisCellSize, pos); } anaCtx.stroke();
+            let hoshi = []; if(analysisBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}]; if(analysisBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}]; if(analysisBoardSize === 9) hoshi = [{x:4,y:4}];
+            anaCtx.fillStyle = "#000"; hoshi.forEach(h => { let px = padding + h.x * analysisCellSize; let py = padding + h.y * analysisCellSize; anaCtx.beginPath(); anaCtx.arc(px, py, 4.5, 0, Math.PI * 2); anaCtx.fill(); });
+        }
+
+        function drawAnaStone(x, y, color, isLastMove=false) {
+            const cx = padding + x * analysisCellSize; const cy = padding + y * analysisCellSize; const r = analysisCellSize * 0.46; 
+            anaCtx.beginPath(); anaCtx.arc(cx + 2, cy + 4, r, 0, Math.PI * 2); anaCtx.fillStyle = "rgba(0,0,0,0.5)"; anaCtx.fill(); 
+            anaCtx.beginPath(); anaCtx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = anaCtx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
+            if (color === "black") { gradient.addColorStop(0, "#555"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } 
+            else if (color === "white") { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#eee"); gradient.addColorStop(1, "#aaa"); }
+            anaCtx.fillStyle = gradient; anaCtx.fill();
+            if(isLastMove) { anaCtx.beginPath(); anaCtx.arc(cx, cy, 3, 0, Math.PI * 2); anaCtx.fillStyle = "red"; anaCtx.fill(); }
+        }
+
+        function renderAnalysis() {
+            drawAnaBoard();
+            let board = getAnalysisBoardState();
+            let lastMove = analysisCurrentStep > 0 ? analysisMoves[analysisCurrentStep-1] : null;
+
+            for(let x=0; x<analysisBoardSize; x++) {
+                for(let y=0; y<analysisBoardSize; y++) {
+                    if(board[x][y]) {
+                        let isLast = (lastMove && !lastMove.pass && lastMove.x === x && lastMove.y === y);
+                        drawAnaStone(x, y, board[x][y], isLast);
+                    }
+                }
+            }
+
+            // Hover
+            if(anaHoverX >= 0 && anaHoverX < analysisBoardSize && anaHoverY >= 0 && anaHoverY < analysisBoardSize && !board[anaHoverX][anaHoverY]) {
+                anaCtx.globalAlpha = 0.5; drawAnaStone(anaHoverX, anaHoverY, anaManualColor); anaCtx.globalAlpha = 1.0;
+            }
+
+            document.getElementById('ana-move-count').innerText = analysisCurrentStep;
+            document.getElementById('ana-total-moves').innerText = analysisMoves.length;
+        }
+
+        // Navigation
+        document.getElementById('btn-ana-start').addEventListener('click', () => { analysisCurrentStep = 0; renderAnalysis(); });
+        document.getElementById('btn-ana-prev').addEventListener('click', () => { if(analysisCurrentStep > 0) { analysisCurrentStep--; SoundFX.play('clack'); renderAnalysis(); } });
+        document.getElementById('btn-ana-next').addEventListener('click', () => { if(analysisCurrentStep < analysisMoves.length) { analysisCurrentStep++; SoundFX.play('clack'); renderAnalysis(); } });
+        document.getElementById('btn-ana-end').addEventListener('click', () => { analysisCurrentStep = analysisMoves.length; renderAnalysis(); });
+
+        // Freies Setzen
+        document.getElementById('btn-ana-color-black').addEventListener('click', () => { 
+            anaManualColor = 'black'; 
+            document.getElementById('btn-ana-color-black').style.borderColor = "#ffaa00"; 
+            document.getElementById('btn-ana-color-white').style.borderColor = "transparent"; 
+        });
+        document.getElementById('btn-ana-color-white').addEventListener('click', () => { 
+            anaManualColor = 'white'; 
+            document.getElementById('btn-ana-color-white').style.borderColor = "#ffaa00"; 
+            document.getElementById('btn-ana-color-black').style.borderColor = "transparent"; 
+        });
+
+        anaCanvas.addEventListener('mousemove', (event) => {
+            const rect = anaCanvas.getBoundingClientRect(); const scaleX = anaCanvas.width / rect.width; const scaleY = anaCanvas.height / rect.height;
+            const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / analysisCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / analysisCellSize);
+            if (gridX !== anaHoverX || gridY !== anaHoverY) { anaHoverX = gridX; anaHoverY = gridY; renderAnalysis(); }
+        });
+        anaCanvas.addEventListener('mouseout', () => { anaHoverX = -1; anaHoverY = -1; renderAnalysis(); });
+        
+        anaCanvas.addEventListener('click', (event) => {
+            const rect = anaCanvas.getBoundingClientRect(); const scaleX = anaCanvas.width / rect.width; const scaleY = anaCanvas.height / rect.height;
+            const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / analysisCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / analysisCellSize);
+            if (gridX >= 0 && gridX < analysisBoardSize && gridY >= 0 && gridY < analysisBoardSize) { 
+                let board = getAnalysisBoardState();
+                if(board[gridX][gridY] === null) {
+                    // Schneidet die Zukunft ab, wenn man mitten drin was anderes probiert
+                    analysisMoves = analysisMoves.slice(0, analysisCurrentStep);
+                    analysisMoves.push({ color: anaManualColor, x: gridX, y: gridY });
+                    analysisCurrentStep++;
+                    
+                    // Toggle Farbe für den nächsten Zug automatisch
+                    if(anaManualColor === 'black') document.getElementById('btn-ana-color-white').click();
+                    else document.getElementById('btn-ana-color-black').click();
+                    
+                    SoundFX.play('clack');
+                    renderAnalysis();
+                }
+            }
+        });
+
+        // Oeffnen vom Menü aus
+        document.getElementById('btn-goto-analysis-menu').addEventListener('click', () => {
+            menuScreen.style.display = "none"; analysisScreen.style.display = "block";
+            analysisMoves = []; analysisCurrentStep = 0; analysisBoardSize = 19; analysisCellSize = (600 - padding * 2) / (analysisBoardSize - 1);
+            document.getElementById('btn-ana-color-black').click();
+            renderAnalysis();
+        });
+
+        // Oeffnen aus dem Game-Over (Zurückgegebene Partie)
+        document.getElementById('btn-go-analyze').addEventListener('click', () => {
+            document.getElementById('game-over-screen').style.display = "none";
+            document.getElementById('room-container').style.display = "none";
+            analysisScreen.style.display = "block";
+            
+            analysisMoves = lastPlayedGame.moveList || [];
+            analysisBoardSize = lastPlayedGame.size || 19;
+            analysisCellSize = (600 - padding * 2) / (analysisBoardSize - 1);
+            analysisCurrentStep = 0; // Wir starten am Anfang der Partie
+            
+            document.getElementById('btn-ana-color-black').click();
+            renderAnalysis();
+        });
+
+        document.getElementById('btn-go-back-lobby').addEventListener('click', () => {
+            document.getElementById('game-over-screen').style.display = "none";
+            document.getElementById('room-container').style.display = "none";
+            menuScreen.style.display = "block";
+        });
+
+        document.getElementById('btn-ana-leave').addEventListener('click', () => {
+            analysisScreen.style.display = "none"; menuScreen.style.display = "block";
+        });
+
+        // --- SGF DOWNLOAD ---
+        document.getElementById('btn-ana-download').addEventListener('click', () => {
+            let sgf = "(;GM[1]FF[4]SZ[" + analysisBoardSize + "]\n";
+            analysisMoves.forEach(m => {
+                if(m.pass) {
+                    sgf += ";" + (m.color==='black'?'B':'W') + "[]";
+                } else {
+                    let letterX = String.fromCharCode(97 + m.x); let letterY = String.fromCharCode(97 + m.y);
+                    sgf += ";" + (m.color==='black'?'B':'W') + "[" + letterX + letterY + "]";
+                }
+            });
+            sgf += ")";
+            let blob = new Blob([sgf], {type: "application/x-go-sgf"});
+            let url = URL.createObjectURL(blob);
+            let a = document.createElement("a"); a.href = url; a.download = "Go_Rush_Partie.sgf"; a.click();
+        });
+
+        // --- SGF UPLOAD ---
+        document.getElementById('btn-ana-upload').addEventListener('click', () => { document.getElementById('sgf-upload-input').click(); });
+        
+        document.getElementById('sgf-upload-input').addEventListener('change', (e) => {
+            let file = e.target.files[0];
+            if (!file) return;
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                let content = e.target.result;
+                
+                // Extrahiere Brettgröße
+                let sizeMatch = content.match(/SZ\[(\d+)\]/);
+                analysisBoardSize = sizeMatch ? parseInt(sizeMatch[1]) : 19;
+                analysisCellSize = (600 - padding * 2) / (analysisBoardSize - 1);
+                
+                // Extrahiere Züge
+                analysisMoves = [];
+                // Findet ;B[ab] oder ;W[cd]
+                let moveRegex = /;([BW])\[([a-z]?)((?:[a-z])?)\]/g;
+                let match;
+                while ((match = moveRegex.exec(content)) !== null) {
+                    let color = match[1] === 'B' ? 'black' : 'white';
+                    let coords = match[2] + (match[3]||"");
+                    if(coords === "" || coords === "tt") { // Pass
+                        analysisMoves.push({color: color, pass: true});
+                    } else {
+                        let x = coords.charCodeAt(0) - 97;
+                        let y = coords.charCodeAt(1) - 97;
+                        if(x >= 0 && x < analysisBoardSize && y >= 0 && y < analysisBoardSize) {
+                            analysisMoves.push({color: color, x: x, y: y});
+                        }
+                    }
+                }
+                
+                analysisCurrentStep = 0;
+                document.getElementById('btn-ana-color-black').click();
+                renderAnalysis();
+                document.getElementById('sgf-upload-input').value = ""; // Reset
+            };
+            reader.readAsText(file);
+        });
+
+
+        // --- CHAT & TSUMEGO LOGIK (Unverändert) ---
         const chatMessages = document.getElementById('chat-messages'); const chatInput = document.getElementById('chat-input');
         function sendChat(text) { if(text.trim() !== "") { socket.emit('chat_message', { name: myName, avatar: myAvatar, text: text.trim() }); chatInput.value = ""; } }
         document.getElementById('chat-send').addEventListener('click', () => sendChat(chatInput.value)); chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChat(chatInput.value); });
         document.querySelectorAll('.emoji-btn').forEach(btn => { btn.addEventListener('click', () => sendChat(btn.innerText)); });
         socket.on('chat_message', (data) => { const div = document.createElement('div'); div.style.marginBottom = "5px"; div.style.wordWrap = "break-word"; div.innerHTML = `<span style="color:#ffaa00; font-weight:bold;">${data.avatar} ${data.name}:</span> <span style="color:#fff;">${data.text}</span>`; chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; });
 
-        // --- TSUMEGO LOGIK ---
         socket.on('room_joined', (data) => { menuScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex"; pvpScreen.style.display = "none"; lobbyScreen.style.display = "block"; document.getElementById('game-over-screen').style.display = "none"; amIHost = data.isHost; if (data.roomId === 'public') { document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby"; document.getElementById('room-code-display').style.display = "none"; document.getElementById('host-settings').style.display = "none"; document.getElementById('waiting-msg').style.display = "none"; document.getElementById('start-btn').style.display = "inline-block"; } else { document.getElementById('room-title').innerText = "🔒 Privater Raum"; document.getElementById('room-code-display').style.display = "inline-block"; document.getElementById('the-code').innerText = data.roomId; if (amIHost) { document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; } else { document.getElementById('host-settings').style.display = "none"; document.getElementById('start-btn').style.display = "none"; document.getElementById('waiting-msg').style.display = "block"; } } });
         socket.on('you_are_host', () => { amIHost = true; document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; });
 
-        const canvas = document.getElementById('goCanvas'); const ctx = canvas.getContext('2d'); const padding = 30; 
+        const canvas = document.getElementById('goCanvas'); const ctx = canvas.getContext('2d'); 
         let viewMinX = 0, viewMaxX = 18, viewMinY = 0, viewMaxY = 18; let activeBoardSize = 19; let currentCellSize = (600 - padding * 2) / 18;
         const timerLabel = document.getElementById('timer'); const tBar = document.getElementById('timer-bar'); const msgLabel = document.getElementById('msg'); const scoreLabel = document.getElementById('score'); const lobbyPlayersList = document.getElementById('lobby-players');
         let myScore = 0; let canClick = false; let currentPuzzle = null; let lastClickX = 0; let lastClickY = 0; let hoverX = -1; let hoverY = -1; let myPlacedStone = null; let timeoutSolutions = null; let roundTimeLimit = 10; let winningHighlight = null; 
@@ -560,7 +839,17 @@
         socket.on('wrong_guess', () => { msgLabel.innerText = "Daneben! ⏳ 1.5 Sekunden Strafe..."; msgLabel.style.color = "#ff4444"; myPlacedStone = null; SoundFX.play('lose'); renderScene(); setTimeout(() => { if (msgLabel.innerText.includes("Strafe")) { canClick = true; msgLabel.innerText = "Weiter geht's! Versuch es nochmal!"; msgLabel.style.color = "#fff"; } }, 1500); });
         socket.on('round_won_by_other', (data) => { canClick = false; msgLabel.innerText = "Zu langsam! " + data.winnerName + " war schneller!"; msgLabel.style.color = "#44aaff"; SoundFX.play('lose'); winningHighlight = { x: data.x, y: data.y }; renderScene(); });
         socket.on('timeout', (solutions) => { canClick = false; msgLabel.innerText = "ZEIT ABGELAUFEN! 💀 Hier ist die Lösung:"; msgLabel.style.color = "#ff4444"; timeoutSolutions = solutions; SoundFX.play('lose'); renderScene(); });
-        socket.on('game_over', (finalLeaderboard) => { canClick = false; gameScreen.style.display = "none"; document.getElementById('game-over-screen').style.display = "block"; SoundFX.play('win'); document.getElementById('go-reason').innerText = "Das sind die Sieger:"; const podiumDiv = document.getElementById('podium-container'); podiumDiv.innerHTML = ""; if (finalLeaderboard.length > 1) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[1].avatar}<br>${finalLeaderboard[1].name}</div><div class="podium-score">${finalLeaderboard[1].score}</div><div class="podium-place place-2">2.</div></div>`; if (finalLeaderboard.length > 0) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">👑<br>${finalLeaderboard[0].avatar}<br>${finalLeaderboard[0].name}</div><div class="podium-score">${finalLeaderboard[0].score}</div><div class="podium-place place-1">1.</div></div>`; if (finalLeaderboard.length > 2) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[2].avatar}<br>${finalLeaderboard[2].name}</div><div class="podium-score">${finalLeaderboard[2].score}</div><div class="podium-place place-3">3.</div></div>`; let countdown = 8; document.getElementById('lobby-countdown').innerText = countdown; let countInterval = setInterval(() => { countdown--; document.getElementById('lobby-countdown').innerText = countdown; if(countdown <= 0) { clearInterval(countInterval); document.getElementById('game-over-screen').style.display = "none"; lobbyScreen.style.display = "block"; } }, 1000); });
+        
+        // Tsumego Game Over bleibt (hat keinen Analyze Button)
+        socket.on('game_over', (finalLeaderboard) => { 
+            canClick = false; gameScreen.style.display = "none"; document.getElementById('game-over-screen').style.display = "block"; SoundFX.play('win'); 
+            document.getElementById('go-reason').innerText = "Das sind die Sieger:"; const podiumDiv = document.getElementById('podium-container'); podiumDiv.innerHTML = ""; 
+            if (finalLeaderboard.length > 1) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[1].avatar}<br>${finalLeaderboard[1].name}</div><div class="podium-score">${finalLeaderboard[1].score}</div><div class="podium-place place-2">2.</div></div>`; 
+            if (finalLeaderboard.length > 0) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">👑<br>${finalLeaderboard[0].avatar}<br>${finalLeaderboard[0].name}</div><div class="podium-score">${finalLeaderboard[0].score}</div><div class="podium-place place-1">1.</div></div>`; 
+            if (finalLeaderboard.length > 2) podiumDiv.innerHTML += `<div style="display:flex; flex-direction:column; justify-content: flex-end;"><div class="podium-name">${finalLeaderboard[2].avatar}<br>${finalLeaderboard[2].name}</div><div class="podium-score">${finalLeaderboard[2].score}</div><div class="podium-place place-3">3.</div></div>`; 
+            document.getElementById('btn-go-analyze').style.display = "none"; // Ausblenden
+        });
+
         canvas.addEventListener('mousemove', (event) => { if (!canClick) return; const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / currentCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / currentCellSize); const realX = viewMinX + gridX; const realY = viewMinY + gridY; if (realX !== hoverX || realY !== hoverY) { hoverX = realX; hoverY = realY; renderScene(); } });
         canvas.addEventListener('mouseout', () => { hoverX = -1; hoverY = -1; renderScene(); });
         canvas.addEventListener('click', (event) => { if (!canClick) return; const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; lastClickX = (event.clientX - rect.left) * scaleX; lastClickY = (event.clientY - rect.top) * scaleY; const gridX = Math.round((lastClickX - padding) / currentCellSize); const gridY = Math.round((lastClickY - padding) / currentCellSize); const actualX = viewMinX + gridX; const actualY = viewMinY + gridY; if (actualX >= 0 && actualX <= 18 && actualY >= 0 && actualY <= 18) { let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === actualX && s.y === actualY) isOccupied = true; }); if (isOccupied) return; myPlacedStone = { x: actualX, y: actualY }; canClick = false; SoundFX.play('clack'); renderScene(); socket.emit('guess', { x: actualX, y: actualY }); } });
