@@ -73,6 +73,10 @@
         .btn-warning { background: var(--warning); color: #000; border-color: transparent; }
         .btn-warning:hover { background: #d97706; }
         
+        /* GEFIXT: Analyse Button Farbe hinzugefügt */
+        .btn-analysis { background: #e91e63; color: white; border: none;} 
+        .btn-analysis:hover { background: #db2777; box-shadow: 0 4px 12px rgba(236, 72, 153, 0.25); }
+        
         .btn-fun { background: linear-gradient(135deg, #ec4899, #8b5cf6); border: none; font-size: 1.2rem; }
         .btn-fun:hover { background: linear-gradient(135deg, #db2777, #7c3aed); box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4); }
 
@@ -200,7 +204,7 @@
             <button class="btn-fun" id="btn-goto-fun" style="width: 100%; padding: 18px; font-size: 1.2rem; color: #fff;">🎉 Fun Game Modes</button>
             
             <button class="btn-public" id="btn-public" style="width: 100%; padding: 16px;">🌍 Tsumego Rush (Öffentlich)</button>
-            <button class="btn-outline" id="btn-goto-analysis-menu" style="width: 100%; padding: 16px;">🔬 SGF Studio / Analyse</button>
+            <button class="btn-analysis" id="btn-goto-analysis-menu" style="width: 100%; padding: 16px;">🔬 SGF Studio / Analyse</button>
         </div>
         
         <div class="panel" style="margin-top: 40px; display: inline-block; width: 100%; max-width: 400px; padding: 25px; box-sizing: border-box;">
@@ -417,7 +421,6 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // --- DIE GEFEHLTEN MATHE-FUNKTIONEN FÜR RUND-GO ---
         function getPolarCoords(x, y, cx=300, cy=300) {
             let twist = (Math.PI * 2 / 24) * 0.4;
             let angle = x * (Math.PI * 2 / 24) + y * twist;
@@ -445,7 +448,6 @@
         const socket = io(); let isMuted = false;
         document.getElementById('mute-btn').addEventListener('click', () => { isMuted = !isMuted; document.getElementById('mute-btn').innerText = isMuted ? "🔇" : "🔊"; });
 
-        // NEU: Verlassen Button Logik
         document.getElementById('leave-room-btn').addEventListener('click', () => { location.reload(); });
 
         const SoundFX = {
@@ -458,6 +460,10 @@
                 else if (type === 'lose') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(100, now + 0.2); gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
             }
         };
+
+        // GEFIXT: Sobald man irgendwo klickt (egal ob im Menü oder im Spiel), wird die Audio-Engine geweckt.
+        // Das repariert den fehlenden Sound beim Auto-Login!
+        document.addEventListener('click', () => { SoundFX.init(); }, { once: true });
 
         const loginScreen = document.getElementById('login-screen'); const menuScreen = document.getElementById('menu-screen'); 
         const matchmakingScreen = document.getElementById('matchmaking-screen'); const lobbyScreen = document.getElementById('lobby-screen'); 
