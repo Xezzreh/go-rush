@@ -72,7 +72,7 @@
         .btn-success:hover { background: #059669; }
         .btn-warning { background: var(--warning); color: #000; border-color: transparent; }
         .btn-warning:hover { background: #d97706; }
-        /* NEU: Spezieller Knopf für Fun-Modes */
+        
         .btn-fun { background: linear-gradient(135deg, #ec4899, #8b5cf6); border: none; font-size: 1.2rem; }
         .btn-fun:hover { background: linear-gradient(135deg, #db2777, #7c3aed); box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4); }
 
@@ -172,6 +172,7 @@
 <body>
 
     <div id="top-bar">
+        <button class="top-btn btn-outline" id="leave-room-btn" style="display:none; color: var(--danger); border-color: rgba(239,68,68,0.3);">🚪 Verlassen</button>
         <button class="top-btn btn-outline" id="mute-btn">🔊</button>
         <button class="top-btn btn-outline" id="profile-btn" style="display:none;">👤 Profil</button> 
     </div>
@@ -291,8 +292,8 @@
                 
                 <h3 style="margin-top:0; color:var(--text-muted); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size:0.9rem; text-transform: uppercase; letter-spacing: 1px;">Freies Setzen</h3>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 25px; gap:10px;">
-                    <button id="btn-ana-color-black" style="flex:1; margin:0; background:#000; border: 2px solid var(--primary); color:#fff;">⚫</button>
-                    <button id="btn-ana-color-white" style="flex:1; margin:0; background:#fff; border: 2px solid transparent; color:#000;">⚪</button>
+                    <button id="btn-ana-color-black" style="flex:1; margin:0; background:#000; border: 2px solid var(--primary); color:#fff;">⚫ Schwarz</button>
+                    <button id="btn-ana-color-white" style="flex:1; margin:0; background:#fff; border: 2px solid transparent; color:#000;">⚪ Weiß</button>
                 </div>
                 
                 <h3 style="margin-top:0; color:var(--text-muted); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size:0.9rem; text-transform: uppercase; letter-spacing: 1px;">Dateien</h3>
@@ -416,8 +417,36 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        // --- DIE GEFEHLTEN MATHE-FUNKTIONEN FÜR RUND-GO ---
+        function getPolarCoords(x, y, cx=300, cy=300) {
+            let twist = (Math.PI * 2 / 24) * 0.4;
+            let angle = x * (Math.PI * 2 / 24) + y * twist;
+            let radius = 60 + y * 40;
+            return { px: cx + radius * Math.cos(angle), py: cy + radius * Math.sin(angle) };
+        }
+
+        function getPolarGridFromPixel(px, py, cx=300, cy=300) {
+            let dx = px - cx; let dy = py - cy;
+            let r = Math.sqrt(dx*dx + dy*dy);
+            let y = Math.round((r - 60) / 40);
+            if (y < 0 || y > 5) return null;
+            let targetAngle = Math.atan2(dy, dx);
+            if (targetAngle < 0) targetAngle += 2 * Math.PI;
+            let twist = (Math.PI * 2 / 24) * 0.4;
+            let xAngle = targetAngle - y * twist;
+            while(xAngle < 0) xAngle += 2 * Math.PI;
+            let x = Math.round(xAngle / (Math.PI * 2 / 24)) % 24;
+            let nodePt = getPolarCoords(x, y, cx, cy);
+            let dist = Math.sqrt((px - nodePt.px)**2 + (py - nodePt.py)**2);
+            if (dist > 20) return null;
+            return {x, y};
+        }
+
         const socket = io(); let isMuted = false;
         document.getElementById('mute-btn').addEventListener('click', () => { isMuted = !isMuted; document.getElementById('mute-btn').innerText = isMuted ? "🔇" : "🔊"; });
+
+        // NEU: Verlassen Button Logik
+        document.getElementById('leave-room-btn').addEventListener('click', () => { location.reload(); });
 
         const SoundFX = {
             ctx: null, init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
@@ -486,20 +515,13 @@
         document.getElementById('btn-join-private').addEventListener('click', () => { let code = document.getElementById('roomcode-input').value.trim().toUpperCase(); if (code !== "") socket.emit('join_room', { name: myName, avatar: myAvatar, roomId: code }); });
         document.getElementById('start-btn').addEventListener('click', () => { const settings = { timeLimit: document.getElementById('set-time').value, puzzleCount: document.getElementById('set-count').value }; socket.emit('start_game', settings); });
 
-        // --- NAVIGATION FUN MODES ---
         document.getElementById('btn-goto-fun').addEventListener('click', () => { menuScreen.style.display = "none"; funModesScreen.style.display = "block"; });
         document.getElementById('btn-back-from-fun').addEventListener('click', () => { funModesScreen.style.display = "none"; menuScreen.style.display = "block"; });
         
         document.getElementById('btn-create-fun-polar').addEventListener('click', () => {
-            socket.emit('create_challenge', { 
-                name: myName, avatar: myAvatar, token: myToken,
-                boardSize: 'polar', timeSetting: document.getElementById('select-time-fun').value, handicap: 0
-            });
-            funModesScreen.style.display = "none"; matchmakingScreen.style.display = "block"; 
-            document.getElementById('btn-create-challenge').style.display = "none"; document.getElementById('btn-cancel-challenge').style.display = "inline-flex"; 
-            socket.emit('request_challenges');
+            socket.emit('create_challenge', { name: myName, avatar: myAvatar, token: myToken, boardSize: 'polar', timeSetting: document.getElementById('select-time-fun').value, handicap: 0 });
+            funModesScreen.style.display = "none"; matchmakingScreen.style.display = "block"; document.getElementById('btn-create-challenge').style.display = "none"; document.getElementById('btn-cancel-challenge').style.display = "inline-flex"; socket.emit('request_challenges');
         });
-
 
         document.getElementById('btn-goto-matchmaking').addEventListener('click', () => { menuScreen.style.display = "none"; matchmakingScreen.style.display = "block"; socket.emit('request_challenges'); });
         document.getElementById('btn-back-to-menu').addEventListener('click', () => { socket.emit('cancel_challenge'); matchmakingScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('btn-create-challenge').style.display = "inline-flex"; document.getElementById('btn-cancel-challenge').style.display = "none"; });
@@ -545,31 +567,6 @@
 
         function formatTimerObj(t) { if(t.main > 0) { let m = Math.floor(t.main / 60); let s = t.main % 60; return m + ":" + (s < 10 ? "0" : "") + s; } else { return t.byo + "s (" + t.periods + "x)"; } }
 
-        // --- NEU: TRIGONOMETRIE FÜR DAS RUNDE BRETT ---
-        function getPolarCoords(x, y, cx=300, cy=300) {
-            let twist = (Math.PI * 2 / 24) * 0.4; // Dreht die Linien spiralförmig (Mandala-Effekt)
-            let angle = x * (Math.PI * 2 / 24) + y * twist;
-            let radius = 60 + y * 40; // RMin = 60, RStep = 40
-            return { px: cx + radius * Math.cos(angle), py: cy + radius * Math.sin(angle) };
-        }
-
-        function getPolarGridFromPixel(px, py, cx=300, cy=300) {
-            let dx = px - cx; let dy = py - cy;
-            let r = Math.sqrt(dx*dx + dy*dy);
-            let y = Math.round((r - 60) / 40);
-            if (y < 0 || y > 5) return null;
-            let targetAngle = Math.atan2(dy, dx);
-            if (targetAngle < 0) targetAngle += 2 * Math.PI;
-            let twist = (Math.PI * 2 / 24) * 0.4;
-            let xAngle = targetAngle - y * twist;
-            while(xAngle < 0) xAngle += 2 * Math.PI;
-            let x = Math.round(xAngle / (Math.PI * 2 / 24)) % 24;
-            let nodePt = getPolarCoords(x, y, cx, cy);
-            let dist = Math.sqrt((px - nodePt.px)**2 + (py - nodePt.py)**2);
-            if (dist > 20) return null;
-            return {x, y};
-        }
-
         socket.on('1v1_match_started', (data) => {
             matchmakingScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex";
             lobbyScreen.style.display = "none"; pvpScreen.style.display = "block"; SoundFX.play('win');
@@ -598,8 +595,6 @@
             }
         });
 
-        document.getElementById('btn-leave-spectate').addEventListener('click', () => { pvpScreen.style.display = "none"; document.getElementById('room-container').style.display = "none"; menuScreen.style.display = "block"; socket.emit('request_challenges'); });
-
         socket.on('1v1_timer_update', (data) => {
             document.getElementById('pvp-black-time').innerText = formatTimerObj(data.timers.black); document.getElementById('pvp-white-time').innerText = formatTimerObj(data.timers.white);
             document.getElementById('pvp-black-time').style.color = (data.timers.black.main <= 0 && data.timers.black.byo <= 10) ? "var(--danger)" : "var(--success)"; document.getElementById('pvp-white-time').style.color = (data.timers.white.main <= 0 && data.timers.white.byo <= 10) ? "var(--danger)" : "var(--success)";
@@ -608,7 +603,6 @@
         function drawPvpBoard() {
             pvpCtx.clearRect(0, 0, 600, 600); 
             if (pvpBoardSize === 'polar') {
-                // Schiefer Hintergrund
                 let grad = pvpCtx.createRadialGradient(300, 300, 50, 300, 300, 280);
                 grad.addColorStop(0, "#2a2d39"); grad.addColorStop(1, "#16181f");
                 pvpCtx.fillStyle = grad; pvpCtx.beginPath(); pvpCtx.arc(300, 300, 280, 0, Math.PI*2); pvpCtx.fill();
@@ -622,7 +616,6 @@
                     pvpCtx.stroke();
                 }
             } else {
-                // Standard Holz
                 pvpCtx.strokeStyle = "rgba(0,0,0,0.7)"; pvpCtx.lineWidth = 1.5; pvpCtx.beginPath();
                 for (let i = 0; i < pvpBoardSize; i++) { let pos = padding + i * pvpCellSize; pvpCtx.moveTo(pos, padding); pvpCtx.lineTo(pos, padding + (pvpBoardSize - 1) * pvpCellSize); pvpCtx.moveTo(padding, pos); pvpCtx.lineTo(padding + (pvpBoardSize - 1) * pvpCellSize, pos); } pvpCtx.stroke();
                 let hoshi = []; if(pvpBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}]; if(pvpBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}]; if(pvpBoardSize === 9) hoshi = [{x:4,y:4}];
@@ -912,7 +905,12 @@
         document.querySelectorAll('.emoji-btn').forEach(btn => { btn.addEventListener('click', () => sendChat(btn.innerText)); });
         socket.on('chat_message', (data) => { const div = document.createElement('div'); div.style.marginBottom = "8px"; div.style.wordWrap = "break-word"; div.innerHTML = `<span style="color:#64748b; font-size:0.85rem;">[${data.rank || '30k'}]</span> <span style="color:#fcd34d; font-weight:600;">${data.avatar} ${data.name}:</span> <span style="color:#f8fafc;">${data.text}</span>`; chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; });
 
-        socket.on('room_joined', (data) => { menuScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex"; pvpScreen.style.display = "none"; lobbyScreen.style.display = "block"; document.getElementById('game-over-screen').style.display = "none"; amIHost = data.isHost; if (data.roomId === 'public') { document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby"; document.getElementById('room-code-display').style.display = "none"; document.getElementById('host-settings').style.display = "none"; document.getElementById('waiting-msg').style.display = "none"; document.getElementById('start-btn').style.display = "inline-flex"; } else { document.getElementById('room-title').innerText = "🔒 Privater Raum"; document.getElementById('room-code-display').style.display = "inline-block"; document.getElementById('the-code').innerText = data.roomId; if (amIHost) { document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-flex"; document.getElementById('waiting-msg').style.display = "none"; } else { document.getElementById('host-settings').style.display = "none"; document.getElementById('start-btn').style.display = "none"; document.getElementById('waiting-msg').style.display = "block"; } } });
+        socket.on('room_joined', (data) => { 
+            menuScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex"; pvpScreen.style.display = "none"; lobbyScreen.style.display = "block"; document.getElementById('game-over-screen').style.display = "none"; 
+            amIHost = data.isHost; 
+            document.getElementById('leave-room-btn').style.display = "inline-block"; document.getElementById('profile-btn').style.display = "none";
+            if (data.roomId === 'public') { document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby"; document.getElementById('room-code-display').style.display = "none"; document.getElementById('host-settings').style.display = "none"; document.getElementById('waiting-msg').style.display = "none"; document.getElementById('start-btn').style.display = "inline-flex"; } else { document.getElementById('room-title').innerText = "🔒 Privater Raum"; document.getElementById('room-code-display').style.display = "inline-block"; document.getElementById('the-code').innerText = data.roomId; if (amIHost) { document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-flex"; document.getElementById('waiting-msg').style.display = "none"; } else { document.getElementById('host-settings').style.display = "none"; document.getElementById('start-btn').style.display = "none"; document.getElementById('waiting-msg').style.display = "block"; } } 
+        });
         socket.on('you_are_host', () => { amIHost = true; document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-flex"; document.getElementById('waiting-msg').style.display = "none"; });
 
         const canvas = document.getElementById('goCanvas'); const ctx = canvas.getContext('2d'); 
