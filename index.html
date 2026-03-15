@@ -38,39 +38,27 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* SCREENS (Zentriert für Menüs) */
-        #login-screen, #menu-screen, #matchmaking-screen { 
-            display: none; 
-            max-width: 1000px; 
-            margin: 8vh auto 0 auto; 
-            padding: 20px; 
-            text-align: center;
-            animation: fadeIn 0.3s ease-out forwards; 
+        /* SCREENS */
+        #login-screen, #menu-screen, #matchmaking-screen, #fun-modes-screen { 
+            display: none; max-width: 1000px; margin: 8vh auto 0 auto; padding: 20px; text-align: center; animation: fadeIn 0.3s ease-out forwards; 
         }
         #login-screen { display: block; }
-        
         #analysis-screen { display: none; padding: 40px 20px; text-align: center; animation: fadeIn 0.3s ease-out forwards; }
         #lobby-screen, #game-over-screen, #game-screen, #pvp-screen { display: none; width: 100%; box-sizing: border-box; animation: fadeIn 0.3s ease-out forwards; } 
 
         h1, h2, h3 { color: var(--text-main); margin-top: 0; letter-spacing: -0.02em; }
         p { color: var(--text-muted); line-height: 1.5; }
 
-        /* INPUTS & SELECTS */
         input, select { 
-            font-family: 'Inter', sans-serif; font-size: 1rem; padding: 12px 16px; 
-            border-radius: 8px; border: 1px solid var(--border-color); 
-            background: rgba(0,0,0,0.3); color: var(--text-main); outline: none; 
-            transition: all 0.2s ease; width: 100%; box-sizing: border-box; margin-bottom: 15px;
+            font-family: 'Inter', sans-serif; font-size: 1rem; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); 
+            background: rgba(0,0,0,0.3); color: var(--text-main); outline: none; transition: all 0.2s ease; width: 100%; box-sizing: border-box; margin-bottom: 15px;
         }
         input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
         option { background: var(--bg-panel); color: var(--text-main); }
 
-        /* BUTTONS */
         button { 
-            font-family: 'Inter', sans-serif; font-size: 1.05rem; padding: 12px 24px; 
-            cursor: pointer; background: var(--primary); color: white; 
-            border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; font-weight: 600; 
-            transition: all 0.2s ease; display: inline-flex; justify-content: center; align-items: center; gap: 8px;
+            font-family: 'Inter', sans-serif; font-size: 1.05rem; padding: 12px 24px; cursor: pointer; background: var(--primary); color: white; 
+            border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; font-weight: 600; transition: all 0.2s ease; display: inline-flex; justify-content: center; align-items: center; gap: 8px;
         }
         button:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25); } 
         button:active { transform: translateY(1px); box-shadow: none; } 
@@ -84,17 +72,12 @@
         .btn-success:hover { background: #059669; }
         .btn-warning { background: var(--warning); color: #000; border-color: transparent; }
         .btn-warning:hover { background: #d97706; }
+        /* NEU: Spezieller Knopf für Fun-Modes */
+        .btn-fun { background: linear-gradient(135deg, #ec4899, #8b5cf6); border: none; font-size: 1.2rem; }
+        .btn-fun:hover { background: linear-gradient(135deg, #db2777, #7c3aed); box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4); }
 
-        /* PANELS */
-        .panel { 
-            background: var(--bg-panel); 
-            border: 1px solid var(--border-color); 
-            border-radius: 12px; 
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); 
-            padding: 24px;
-        }
+        .panel { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); padding: 24px; }
 
-        /* AVATARE */
         .avatar-options { display: flex; justify-content: center; gap: 12px; margin-bottom: 25px; font-size: 2.2rem; cursor: pointer; flex-wrap: wrap; }
         .avatar-option { opacity: 0.3; transition: all 0.2s ease; padding: 8px; border-radius: 12px; border: 1px solid transparent; background: rgba(0,0,0,0.2); }
         .avatar-option:hover { opacity: 0.7; transform: translateY(-2px); }
@@ -103,36 +86,12 @@
         #top-bar { position: absolute; top: 15px; left: 15px; display: flex; gap: 10px; z-index: 1000; }
         .top-btn { font-size: 0.95rem; font-weight: 500; padding: 8px 14px; background: rgba(21, 24, 34, 0.8); backdrop-filter: blur(8px); }
 
-        /* DASHBOARD LAYOUT (Der eigentliche Spiel-Raum) */
-        #room-container { 
-            display: none; 
-            height: 100vh; 
-            width: 100vw; 
-            margin: 0; 
-            padding: 0; 
-            overflow: hidden; 
-            background: var(--bg-base);
-            flex-wrap: nowrap;
-        }
+        #room-container { display: none; height: 100vh; width: 100vw; margin: 0; padding: 0; overflow: hidden; background: var(--bg-base); flex-wrap: nowrap; }
 
-        /* LINKE SIDEBAR: Chat (GEFIXT) */
         #global-chat { 
-            width: 320px; 
-            height: calc(100vh - 85px); /* Platz für Top-Bar oben lassen */
-            margin-top: 70px; /* Schiebt Chat nach unten */
-            margin-left: 15px;
-            margin-bottom: 15px;
-            background: rgba(20, 24, 36, 0.6); 
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.06); 
-            border-radius: 16px;
-            display: flex; 
-            flex-direction: column; 
-            padding: 20px; 
-            box-sizing: border-box; 
-            flex-shrink: 0;
-            z-index: 10;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            width: 320px; height: calc(100vh - 85px); margin-top: 70px; margin-left: 15px; margin-bottom: 15px; background: rgba(20, 24, 36, 0.6); 
+            backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px; display: flex; flex-direction: column; 
+            padding: 20px; box-sizing: border-box; flex-shrink: 0; z-index: 10; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
         #chat-messages { flex-grow: 1; overflow-y: auto; text-align: left; margin-bottom: 15px; font-size: 0.95rem; line-height: 1.4; padding-right: 10px;}
         .emoji-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px; }
@@ -142,90 +101,30 @@
         #chat-input { margin: 0; background: var(--bg-base); border-color: var(--border-color); }
         #chat-send { margin: 0; padding: 10px 16px; }
 
-        /* RECHTER BEREICH: Main Column (Board & Stats) */
-        #main-column { 
-            flex-grow: 1; 
-            height: 100vh; 
-            overflow-y: auto; 
-            position: relative; 
-            display: flex; 
-            flex-direction: column; 
-            padding: 30px 20px; 
-            box-sizing: border-box; 
-        }
+        #main-column { flex-grow: 1; height: 100vh; overflow-y: auto; position: relative; display: flex; flex-direction: column; padding: 30px 20px; box-sizing: border-box; }
 
-        /* 1v1 LAYOUT */
-        #pvp-content {
-            display: flex;
-            gap: 40px;
-            justify-content: center;
-            align-items: flex-start;
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-        }
+        #pvp-content, #analysis-content, #game-content { display: flex; gap: 40px; justify-content: center; align-items: flex-start; max-width: 1200px; margin: 0 auto; width: 100%; }
 
-        .board-wrapper {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            max-width: 65vh; /* Skaliert das Brett perfekt */
-            width: 100%;
-        }
-
-        .board-container { 
-            width: 100%; 
-            aspect-ratio: 1 / 1; 
-            background: linear-gradient(135deg, var(--board-light), var(--board-dark)); 
-            border: 6px solid var(--board-border); 
-            border-radius: 4px; 
-            box-shadow: 0 15px 40px rgba(0,0,0,0.7), inset 0 0 20px rgba(0,0,0,0.1); 
-            cursor: crosshair; 
-            position: relative; 
-        }
+        .board-wrapper { flex-grow: 1; display: flex; flex-direction: column; align-items: center; max-width: 65vh; width: 100%; }
+        .board-container { width: 100%; aspect-ratio: 1 / 1; background: linear-gradient(135deg, var(--board-light), var(--board-dark)); border: 6px solid var(--board-border); border-radius: 4px; box-shadow: 0 15px 40px rgba(0,0,0,0.7), inset 0 0 20px rgba(0,0,0,0.1); cursor: crosshair; position: relative; }
         canvas { width: 100%; height: 100%; display: block; }
 
-        /* RECHTE SIDEBAR (HUD & Buttons) */
-        #pvp-sidebar {
-            width: 320px;
-            flex-shrink: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            text-align: left;
-        }
-
-        .player-card {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
+        #pvp-sidebar, #analysis-sidebar { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; text-align: left; }
+        .player-card { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .player-info { display: flex; flex-direction: column; gap: 4px; }
         .p-name { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
         .p-caps { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
         .p-time { font-size: 1.5rem; font-weight: 900; color: var(--success); font-variant-numeric: tabular-nums; }
 
-        /* Matchmaking Listen */
         .challenge-card { padding: 15px 20px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease;}
         .challenge-card:hover { border-color: rgba(255,255,255,0.15); background: #1a1e2b; }
         .challenge-info { text-align: left; }
         .challenge-info h3 { margin: 0 0 4px 0; font-size: 1.05rem; font-weight: 600; }
         .challenge-info span { color: var(--text-muted); font-size: 0.85rem; }
 
-        /* ANALYSIS SCREEN */
-        #analysis-content { display: flex; gap: 40px; justify-content: center; align-items: flex-start; max-width: 1200px; margin: 0 auto; width: 100%; }
-        #analysis-sidebar { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 15px; text-align: left; }
         .nav-buttons { display: flex; gap: 8px; justify-content: space-between; }
         .nav-buttons button { flex: 1; padding: 10px 0; margin: 0; font-size: 1.1rem; }
 
-        /* TSUMEGO SCREEN */
-        #game-content { display: flex; gap: 40px; justify-content: center; align-items: flex-start; max-width: 1200px; margin: 0 auto; width: 100%; }
         #hud { display: flex; justify-content: center; gap: 30px; font-size: 1.5rem; font-weight: 800; margin-bottom: 10px; width: 100%; }
         #timer-container { width: 100%; max-width: 600px; background: rgba(0,0,0,0.3); height: 8px; border-radius: 4px; margin: 0 auto 15px auto; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
         #timer-bar { height: 100%; width: 100%; background: var(--success); transition: width 1s linear, background 0.5s; }
@@ -235,57 +134,35 @@
         .lb-name { flex-grow: 1; font-weight: 600; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; padding-left: 10px;}
         .lb-score { color: var(--primary); font-weight: 800; }
 
-        /* EXTRAS */
         .floating-points { position: absolute; color: var(--success); font-size: 2rem; font-weight: 900; pointer-events: none; text-shadow: 0 4px 12px rgba(0,0,0,0.8); animation: floatUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; z-index: 100; }
         @keyframes floatUp { 0% { transform: translateY(0) scale(0.8); opacity: 0; } 20% { transform: translateY(-20px) scale(1.1); opacity: 1; } 100% { transform: translateY(-60px) scale(1); opacity: 0; } }
 
+        .podium { display: flex; justify-content: center; align-items: flex-end; gap: 15px; margin: 40px auto; height: 180px; max-width: 500px; }
+        .podium-place { width: 110px; text-align: center; border-radius: 8px 8px 0 0; color: #0f111a; font-weight: 700; padding-top: 15px; font-size: 1.5rem; display: flex; flex-direction: column; justify-content: flex-start; box-shadow: 0 -5px 20px rgba(0,0,0,0.4); transition: transform 0.5s;}
+        .place-1 { height: 160px; background: linear-gradient(180deg, #fcd34d 0%, #d97706 100%); z-index: 3; animation: popUp 0.6s ease-out;}
+        .place-2 { height: 110px; background: linear-gradient(180deg, #e2e8f0 0%, #94a3b8 100%); z-index: 2; animation: popUp 0.8s ease-out;}
+        .place-3 { height: 80px; background: linear-gradient(180deg, #fdba74 0%, #b45309 100%); z-index: 1; animation: popUp 1s ease-out;}
+        @keyframes popUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1;} }
+        .podium-name { color: #f8fafc; font-size: 1.2rem; text-shadow: 0 2px 4px rgba(0,0,0,0.6); word-wrap: break-word; font-weight: 600; margin-bottom: 5px;}
+        .podium-score { color: #60a5fa; font-size: 1.1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.6); margin-bottom: 10px; font-weight: 700;}
+
         #undo-popup { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15, 17, 26, 0.95); border: 1px solid var(--warning); padding: 25px; border-radius: 12px; z-index: 2000; box-shadow: 0 10px 40px rgba(0,0,0,0.8); display: none; backdrop-filter: blur(10px); width: 80%; text-align: center;}
+        .gdpr-text { font-size: 0.85rem; color: var(--text-muted); margin-top: 20px; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.5; }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-        .gdpr-text { font-size: 0.85rem; color: var(--text-muted); margin-top: 20px; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.5; }
-
-        /* =========================================
-           MOBILE RESPONSIVE
-           ========================================= */
         @media (max-width: 900px) {
             body { overflow-y: auto; } 
-            #room-container {
-                flex-direction: column-reverse;
-                height: auto;
-                min-height: 100vh;
-                overflow: visible;
-                padding: 10px;
-            }
-            #global-chat {
-                width: 100%;
-                height: 350px;
-                margin: 0 0 20px 0; /* Reset margin auf dem Handy */
-                border: 1px solid var(--border-color);
-            }
-            #main-column {
-                height: auto;
-                padding: 15px 10px;
-            }
-            #pvp-content, #analysis-content, #game-content {
-                flex-direction: column;
-                align-items: center;
-                gap: 20px;
-            }
-            .board-wrapper {
-                max-width: 100%;
-            }
-            .board-container {
-                width: 96vw;
-                height: auto;
-            }
-            #pvp-sidebar, #analysis-sidebar, #leaderboard {
-                width: 100%;
-                max-width: 96vw;
-            }
+            #room-container { flex-direction: column-reverse; height: auto; min-height: 100vh; overflow: visible; padding: 10px; }
+            #global-chat { width: 100%; height: 350px; margin: 0 0 20px 0; border: 1px solid var(--border-color); }
+            #main-column { height: auto; padding: 15px 10px; }
+            #pvp-content, #analysis-content, #game-content { flex-direction: column; align-items: center; gap: 20px; }
+            .board-wrapper { max-width: 100%; }
+            .board-container { width: 96vw; height: auto; }
+            #pvp-sidebar, #analysis-sidebar, #leaderboard { width: 100%; max-width: 96vw; }
             #pvp-sidebar { flex-direction: row; flex-wrap: wrap; }
             .player-card { flex: 1; min-width: 140px; padding: 12px; }
             .panel { width: 100%; }
@@ -319,8 +196,10 @@
         
         <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; max-width: 400px; margin: 0 auto;">
             <button class="btn-1v1" id="btn-goto-matchmaking" style="width: 100%; padding: 18px; font-size: 1.2rem;">⚔️ 1v1 Arena</button>
+            <button class="btn-fun" id="btn-goto-fun" style="width: 100%; padding: 18px; font-size: 1.2rem; color: #fff;">🎉 Fun Game Modes</button>
+            
             <button class="btn-public" id="btn-public" style="width: 100%; padding: 16px;">🌍 Tsumego Rush (Öffentlich)</button>
-            <button class="btn-analysis" id="btn-goto-analysis-menu" style="width: 100%; padding: 16px;">🔬 SGF Studio / Analyse</button>
+            <button class="btn-outline" id="btn-goto-analysis-menu" style="width: 100%; padding: 16px;">🔬 SGF Studio / Analyse</button>
         </div>
         
         <div class="panel" style="margin-top: 40px; display: inline-block; width: 100%; max-width: 400px; padding: 25px; box-sizing: border-box;">
@@ -372,6 +251,29 @@
         </div>
     </div>
 
+    <div id="fun-modes-screen">
+        <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1000px; margin: 0 auto 20px auto;">
+            <h1 style="color: var(--text-main); margin: 0;">🎉 Fun Game Modes</h1>
+            <button id="btn-back-from-fun" class="btn-outline" style="margin:0;">Zurück</button>
+        </div>
+        <p style="color: var(--text-muted); max-width: 900px; margin: 0 auto 30px auto; text-align: left; font-size: 1rem;">Verrückte Bretter und neue Regeln. Nichts für schwache Nerven!</p>
+        
+        <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 30px;">
+            <div class="panel" style="width: 350px; border-top: 4px solid #db2777;">
+                <h2 style="margin-top:0; color:#f8fafc;">Rund-Go</h2>
+                <h4 style="margin-top:-10px; color:#ec4899; font-weight:500;">"Mandala Schiefertafel"</h4>
+                <div style="font-size: 4rem; margin: 20px 0;">🌀</div>
+                <p style="font-size: 0.95rem; margin-bottom: 25px;">Ein randloses Brett! Die Linien sind gebogen und wickeln sich im Kreis. Es gibt keine Ecken, nur unendlichen Kampf.</p>
+                <select id="select-time-fun" style="margin-bottom:20px;">
+                    <option value="10m_0_0" selected>10 Min Sudden Death</option>
+                    <option value="10m_3_30">10 Min + 3x 30s Byo-Yomi</option>
+                    <option value="3m_3_20">3 Min + 3x 20s Blitz</option>
+                </select>
+                <button class="btn-fun" id="btn-create-fun-polar" style="width: 100%; color:#fff;">Gegner suchen</button>
+            </div>
+        </div>
+    </div>
+
     <div id="analysis-screen">
         <h1 style="color: var(--text-main); margin-top: 0; margin-bottom: 5px;">SGF Studio</h1>
         <p style="color: var(--text-muted); margin-top: 0; margin-bottom: 30px;">Analysiere Züge, spiele Varianten oder importiere Dateien.</p>
@@ -397,7 +299,6 @@
                 <input type="file" id="sgf-upload-input" accept=".sgf" style="display:none;">
                 <button id="btn-ana-upload" class="btn-success" style="width: 100%; margin: 0 0 10px 0;">📂 SGF Laden</button>
                 <button id="btn-ana-download" class="btn-outline" style="width: 100%; margin: 0 0 25px 0;">💾 Speichern</button>
-                
                 <button id="btn-ana-leave" class="btn-outline" style="width: 100%; margin: 0; color: var(--danger); border-color: rgba(239,68,68,0.3);">Zurück zum Menü</button>
             </div>
         </div>
@@ -417,7 +318,7 @@
 
         <div id="main-column">
             
-            <div id="lobby-screen" class="panel" style="max-width: 600px;">
+            <div id="lobby-screen" class="panel" style="max-width: 600px; margin: 0 auto;">
                 <h2 id="room-title" style="margin-top: 0; font-size: 2rem;">Wartezimmer</h2>
                 <div id="room-code-display" style="display:none;">Code: <span id="the-code"></span></div> 
                 <div id="host-settings" style="border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 20px;">
@@ -447,9 +348,7 @@
                 <p id="msg">Mache dich bereit...</p>
                 <div id="game-content">
                     <div class="board-wrapper"><div class="board-container"><canvas id="goCanvas" width="600" height="600"></canvas></div></div>
-                    <div id="leaderboard" class="panel">
-                        <h2 style="color:var(--text-main);">Rangliste</h2><div id="lb-list"></div>
-                    </div>
+                    <div id="leaderboard" class="panel"><h2 style="color:var(--text-main);">Rangliste</h2><div id="lb-list"></div></div>
                 </div>
             </div>
 
@@ -472,7 +371,6 @@
                     </div>
                     
                     <div id="pvp-sidebar">
-                        
                         <div class="player-card">
                             <div class="player-info">
                                 <div id="pvp-white-name" class="p-name">⚪ Weiß</div>
@@ -510,7 +408,6 @@
                             <button id="btn-leave-spectate" class="btn-outline" style="display:none; width: 100%; margin-top:10px;">Zuschauen beenden</button>
                         </div>
                     </div>
-
                 </div>
             </div>
 
@@ -536,7 +433,7 @@
         const loginScreen = document.getElementById('login-screen'); const menuScreen = document.getElementById('menu-screen'); 
         const matchmakingScreen = document.getElementById('matchmaking-screen'); const lobbyScreen = document.getElementById('lobby-screen'); 
         const gameScreen = document.getElementById('game-screen'); const pvpScreen = document.getElementById('pvp-screen');
-        const analysisScreen = document.getElementById('analysis-screen');
+        const analysisScreen = document.getElementById('analysis-screen'); const funModesScreen = document.getElementById('fun-modes-screen');
         
         let myName = ""; let myAvatar = "🦊"; let amIHost = false; 
         let myToken = ""; let myRank = "30k"; let myElo = 1000;
@@ -545,7 +442,6 @@
             const savedName = localStorage.getItem('goRushName'); const savedAvatar = localStorage.getItem('goRushAvatar');
             if (savedName && savedAvatar) {
                 myName = savedName; myAvatar = savedAvatar;
-                
                 myToken = localStorage.getItem('goRushToken');
                 if(!myToken) { myToken = Math.random().toString(36).substring(2) + Date.now().toString(36); localStorage.setItem('goRushToken', myToken); }
                 
@@ -553,7 +449,6 @@
                 document.querySelectorAll('.avatar-option').forEach(opt => { opt.classList.remove('selected'); if(opt.innerText === myAvatar) opt.classList.add('selected'); });
                 
                 socket.emit('login', { token: myToken, name: myName, avatar: myAvatar });
-                
                 loginScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('profile-btn').style.display = "inline-block";
                 document.getElementById('btn-delete-profile').style.display = "inline-block";
             }
@@ -569,27 +464,20 @@
             SoundFX.init(); myName = document.getElementById('username').value.trim(); 
             if (myName !== "") { 
                 localStorage.setItem('goRushName', myName); localStorage.setItem('goRushAvatar', myAvatar); 
-                
                 myToken = localStorage.getItem('goRushToken');
                 if(!myToken) { myToken = Math.random().toString(36).substring(2) + Date.now().toString(36); localStorage.setItem('goRushToken', myToken); }
                 
                 socket.emit('login', { token: myToken, name: myName, avatar: myAvatar });
-                
                 loginScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('profile-btn').style.display = "inline-block"; 
                 document.getElementById('btn-delete-profile').style.display = "inline-block";
             } 
         });
 
-        socket.on('update_stats', (data) => {
-            myElo = data.elo; myRank = data.rank;
-            document.getElementById('profile-btn').innerHTML = `👤 [${myRank}] Profil`;
-        });
+        socket.on('update_stats', (data) => { myElo = data.elo; myRank = data.rank; document.getElementById('profile-btn').innerHTML = `👤 [${myRank}] Profil`; });
 
         document.getElementById('btn-delete-profile').addEventListener('click', () => {
             if(confirm("Willst du deinen Account (inklusive Elo und Siegen) unwiderruflich löschen?")) {
-                socket.emit('delete_profile', myToken);
-                localStorage.removeItem('goRushName'); localStorage.removeItem('goRushAvatar'); localStorage.removeItem('goRushToken');
-                location.reload();
+                socket.emit('delete_profile', myToken); localStorage.removeItem('goRushName'); localStorage.removeItem('goRushAvatar'); localStorage.removeItem('goRushToken'); location.reload();
             }
         });
 
@@ -598,38 +486,50 @@
         document.getElementById('btn-join-private').addEventListener('click', () => { let code = document.getElementById('roomcode-input').value.trim().toUpperCase(); if (code !== "") socket.emit('join_room', { name: myName, avatar: myAvatar, roomId: code }); });
         document.getElementById('start-btn').addEventListener('click', () => { const settings = { timeLimit: document.getElementById('set-time').value, puzzleCount: document.getElementById('set-count').value }; socket.emit('start_game', settings); });
 
-        document.getElementById('btn-goto-matchmaking').addEventListener('click', () => { menuScreen.style.display = "none"; matchmakingScreen.style.display = "block"; socket.emit('request_challenges'); });
-        document.getElementById('btn-back-to-menu').addEventListener('click', () => { socket.emit('cancel_challenge'); matchmakingScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('btn-create-challenge').style.display = "inline-block"; document.getElementById('btn-cancel-challenge').style.display = "none"; });
+        // --- NAVIGATION FUN MODES ---
+        document.getElementById('btn-goto-fun').addEventListener('click', () => { menuScreen.style.display = "none"; funModesScreen.style.display = "block"; });
+        document.getElementById('btn-back-from-fun').addEventListener('click', () => { funModesScreen.style.display = "none"; menuScreen.style.display = "block"; });
         
-        document.getElementById('btn-create-challenge').addEventListener('click', () => { 
+        document.getElementById('btn-create-fun-polar').addEventListener('click', () => {
             socket.emit('create_challenge', { 
                 name: myName, avatar: myAvatar, token: myToken,
-                boardSize: document.getElementById('select-boardsize').value,
-                timeSetting: document.getElementById('select-time').value,
-                handicap: document.getElementById('select-handicap').value
-            }); 
-            document.getElementById('btn-create-challenge').style.display = "none"; document.getElementById('btn-cancel-challenge').style.display = "inline-block"; 
+                boardSize: 'polar', timeSetting: document.getElementById('select-time-fun').value, handicap: 0
+            });
+            funModesScreen.style.display = "none"; matchmakingScreen.style.display = "block"; 
+            document.getElementById('btn-create-challenge').style.display = "none"; document.getElementById('btn-cancel-challenge').style.display = "inline-flex"; 
+            socket.emit('request_challenges');
         });
-        document.getElementById('btn-cancel-challenge').addEventListener('click', () => { socket.emit('cancel_challenge'); document.getElementById('btn-create-challenge').style.display = "inline-block"; document.getElementById('btn-cancel-challenge').style.display = "none"; });
+
+
+        document.getElementById('btn-goto-matchmaking').addEventListener('click', () => { menuScreen.style.display = "none"; matchmakingScreen.style.display = "block"; socket.emit('request_challenges'); });
+        document.getElementById('btn-back-to-menu').addEventListener('click', () => { socket.emit('cancel_challenge'); matchmakingScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('btn-create-challenge').style.display = "inline-flex"; document.getElementById('btn-cancel-challenge').style.display = "none"; });
+        
+        document.getElementById('btn-create-challenge').addEventListener('click', () => { 
+            socket.emit('create_challenge', { name: myName, avatar: myAvatar, token: myToken, boardSize: document.getElementById('select-boardsize').value, timeSetting: document.getElementById('select-time').value, handicap: document.getElementById('select-handicap').value }); 
+            document.getElementById('btn-create-challenge').style.display = "none"; document.getElementById('btn-cancel-challenge').style.display = "inline-flex"; 
+        });
+        document.getElementById('btn-cancel-challenge').addEventListener('click', () => { socket.emit('cancel_challenge'); document.getElementById('btn-create-challenge').style.display = "inline-flex"; document.getElementById('btn-cancel-challenge').style.display = "none"; });
         
         socket.on('update_challenges', (data) => {
             const cList = document.getElementById('challenge-list'); cList.innerHTML = "";
-            if(data.challenges.length === 0) { cList.innerHTML = '<p style="color: #475569; font-style: italic;">Aktuell sucht niemand.</p>'; } 
+            if(data.challenges.length === 0) { cList.innerHTML = '<p style="color: var(--text-muted); font-style: italic;">Aktuell sucht niemand.</p>'; } 
             else { 
                 data.challenges.forEach(c => { 
                     const isMe = (c.challengerId === socket.id); 
+                    let boardStr = c.boardSize === 'polar' ? '🌀 Rund-Go (Polar)' : `${c.boardSize}x${c.boardSize}`;
                     const btnHtml = isMe ? `<button disabled class="btn-outline">Deine Suche</button>` : `<button onclick="acceptChallenge('${c.id}')" class="btn-success">Annehmen</button>`; 
-                    cList.innerHTML += `<div class="challenge-card panel"><div class="challenge-info"><h3>${c.challengerAvatar} ${c.challengerName}</h3><span>Brettgröße: ${c.boardSize}x${c.boardSize}</span></div><div>${btnHtml}</div></div>`; 
+                    cList.innerHTML += `<div class="challenge-card panel"><div class="challenge-info"><h3>${c.challengerAvatar} ${c.challengerName}</h3><span>Brett: ${boardStr}</span></div><div>${btnHtml}</div></div>`; 
                 }); 
             }
             
             const mList = document.getElementById('active-matches-list'); mList.innerHTML = "";
-            if(data.activeMatches.length === 0) { mList.innerHTML = '<p style="color: #475569; font-style: italic;">Aktuell laufen keine Spiele.</p>'; }
+            if(data.activeMatches.length === 0) { mList.innerHTML = '<p style="color: var(--text-muted); font-style: italic;">Aktuell laufen keine Spiele.</p>'; }
             else {
                 data.activeMatches.forEach(m => {
                     const isMyGame = (m.playerBlack.id === socket.id || m.playerWhite.id === socket.id);
                     if(isMyGame) return; 
-                    mList.innerHTML += `<div class="challenge-card panel" style="border-left: 4px solid var(--primary);"><div class="challenge-info"><h3>${m.playerBlack.avatar} ${m.playerBlack.name} <br><span style="color:var(--text-muted); font-size:0.85rem; font-weight:400;">vs</span><br> ${m.playerWhite.avatar} ${m.playerWhite.name}</h3><span>Brett: ${m.size}x${m.size}</span></div><div><button onclick="spectateMatch('${m.id}')">👀 Zuschauen</button></div></div>`;
+                    let boardStr = m.size === 'polar' ? '🌀 Rund-Go' : `${m.size}x${m.size}`;
+                    mList.innerHTML += `<div class="challenge-card panel" style="border-left: 4px solid var(--primary);"><div class="challenge-info"><h3>${m.playerBlack.avatar} ${m.playerBlack.name} <br><span style="color:var(--text-muted); font-size:0.85rem; font-weight:400;">vs</span><br> ${m.playerWhite.avatar} ${m.playerWhite.name}</h3><span>Brett: ${boardStr}</span></div><div><button onclick="spectateMatch('${m.id}')">👀 Zuschauen</button></div></div>`;
                 });
             }
         });
@@ -643,12 +543,31 @@
         let pvpState = 'playing'; let pvpDeadStones = new Set(); let pendingMoveX = -1; let pendingMoveY = -1;
         let lastPlayedGame = { moveList: [], size: 19 };
 
-        function formatTimerObj(t) { 
-            if(t.main > 0) {
-                let m = Math.floor(t.main / 60); let s = t.main % 60; return m + ":" + (s < 10 ? "0" : "") + s; 
-            } else {
-                return t.byo + "s (" + t.periods + "x)";
-            }
+        function formatTimerObj(t) { if(t.main > 0) { let m = Math.floor(t.main / 60); let s = t.main % 60; return m + ":" + (s < 10 ? "0" : "") + s; } else { return t.byo + "s (" + t.periods + "x)"; } }
+
+        // --- NEU: TRIGONOMETRIE FÜR DAS RUNDE BRETT ---
+        function getPolarCoords(x, y, cx=300, cy=300) {
+            let twist = (Math.PI * 2 / 24) * 0.4; // Dreht die Linien spiralförmig (Mandala-Effekt)
+            let angle = x * (Math.PI * 2 / 24) + y * twist;
+            let radius = 60 + y * 40; // RMin = 60, RStep = 40
+            return { px: cx + radius * Math.cos(angle), py: cy + radius * Math.sin(angle) };
+        }
+
+        function getPolarGridFromPixel(px, py, cx=300, cy=300) {
+            let dx = px - cx; let dy = py - cy;
+            let r = Math.sqrt(dx*dx + dy*dy);
+            let y = Math.round((r - 60) / 40);
+            if (y < 0 || y > 5) return null;
+            let targetAngle = Math.atan2(dy, dx);
+            if (targetAngle < 0) targetAngle += 2 * Math.PI;
+            let twist = (Math.PI * 2 / 24) * 0.4;
+            let xAngle = targetAngle - y * twist;
+            while(xAngle < 0) xAngle += 2 * Math.PI;
+            let x = Math.round(xAngle / (Math.PI * 2 / 24)) % 24;
+            let nodePt = getPolarCoords(x, y, cx, cy);
+            let dist = Math.sqrt((px - nodePt.px)**2 + (py - nodePt.py)**2);
+            if (dist > 20) return null;
+            return {x, y};
         }
 
         socket.on('1v1_match_started', (data) => {
@@ -657,16 +576,17 @@
             
             myPvpColor = data.myColor;
             if(myPvpColor === 'spectator') {
-                document.getElementById('pvp-playing-actions').style.display = "none"; document.getElementById('pvp-scoring-actions').style.display = "none"; document.getElementById('btn-leave-spectate').style.display = "block";
+                document.getElementById('pvp-playing-actions').style.display = "none"; document.getElementById('pvp-scoring-actions').style.display = "none"; document.getElementById('btn-leave-spectate').style.display = "inline-flex";
             } else {
                 document.getElementById('pvp-playing-actions').style.display = "flex"; document.getElementById('pvp-scoring-actions').style.display = "none"; document.getElementById('btn-leave-spectate').style.display = "none";
             }
             
             document.getElementById('btn-pvp-accept').innerText = "Zählung akzeptieren"; document.getElementById('btn-pvp-accept').className = "btn-success"; document.getElementById('pvp-accept-status').innerText = "";
-            document.getElementById('pvp-confirm-area').style.display = "none"; pendingMoveX = -1; pendingMoveY = -1;
-            document.getElementById('undo-popup').style.display = "none";
+            document.getElementById('pvp-confirm-area').style.display = "none"; pendingMoveX = -1; pendingMoveY = -1; document.getElementById('undo-popup').style.display = "none";
             
-            currentPvpMatch = data.roomId; pvpBoardSize = data.size; pvpCellSize = (600 - padding * 2) / (pvpBoardSize - 1);
+            currentPvpMatch = data.roomId; pvpBoardSize = data.size; 
+            if(pvpBoardSize !== 'polar') pvpCellSize = (600 - padding * 2) / (pvpBoardSize - 1);
+            
             document.getElementById('pvp-black-name').innerText = `⚫ ${data.avatarBlack} ${data.playerBlack}`; document.getElementById('pvp-white-name').innerText = `⚪ ${data.avatarWhite} ${data.playerWhite}`;
             
             if(data.board) {
@@ -686,14 +606,37 @@
         });
 
         function drawPvpBoard() {
-            pvpCtx.clearRect(0, 0, 600, 600); pvpCtx.strokeStyle = "rgba(0,0,0,0.7)"; pvpCtx.lineWidth = 1.5; pvpCtx.beginPath();
-            for (let i = 0; i < pvpBoardSize; i++) { let pos = padding + i * pvpCellSize; pvpCtx.moveTo(pos, padding); pvpCtx.lineTo(pos, padding + (pvpBoardSize - 1) * pvpCellSize); pvpCtx.moveTo(padding, pos); pvpCtx.lineTo(padding + (pvpBoardSize - 1) * pvpCellSize, pos); } pvpCtx.stroke();
-            let hoshi = []; if(pvpBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}]; if(pvpBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}]; if(pvpBoardSize === 9) hoshi = [{x:4,y:4}];
-            pvpCtx.fillStyle = "#000"; hoshi.forEach(h => { let px = padding + h.x * pvpCellSize; let py = padding + h.y * pvpCellSize; pvpCtx.beginPath(); pvpCtx.arc(px, py, 4.5, 0, Math.PI * 2); pvpCtx.fill(); });
+            pvpCtx.clearRect(0, 0, 600, 600); 
+            if (pvpBoardSize === 'polar') {
+                // Schiefer Hintergrund
+                let grad = pvpCtx.createRadialGradient(300, 300, 50, 300, 300, 280);
+                grad.addColorStop(0, "#2a2d39"); grad.addColorStop(1, "#16181f");
+                pvpCtx.fillStyle = grad; pvpCtx.beginPath(); pvpCtx.arc(300, 300, 280, 0, Math.PI*2); pvpCtx.fill();
+                pvpCtx.strokeStyle = "#0d0f14"; pvpCtx.lineWidth = 4; pvpCtx.beginPath(); pvpCtx.arc(300, 300, 278, 0, Math.PI*2); pvpCtx.stroke();
+                
+                pvpCtx.strokeStyle = "rgba(255,255,255,0.2)"; pvpCtx.lineWidth = 1.5;
+                for(let i=0; i<6; i++) { pvpCtx.beginPath(); pvpCtx.arc(300, 300, 60 + i*40, 0, Math.PI*2); pvpCtx.stroke(); }
+                for(let i=0; i<24; i++) {
+                    pvpCtx.beginPath(); let start = getPolarCoords(i, 0); pvpCtx.moveTo(start.px, start.py);
+                    for(let j=1; j<=5; j++) { let pt = getPolarCoords(i, j); pvpCtx.lineTo(pt.px, pt.py); }
+                    pvpCtx.stroke();
+                }
+            } else {
+                // Standard Holz
+                pvpCtx.strokeStyle = "rgba(0,0,0,0.7)"; pvpCtx.lineWidth = 1.5; pvpCtx.beginPath();
+                for (let i = 0; i < pvpBoardSize; i++) { let pos = padding + i * pvpCellSize; pvpCtx.moveTo(pos, padding); pvpCtx.lineTo(pos, padding + (pvpBoardSize - 1) * pvpCellSize); pvpCtx.moveTo(padding, pos); pvpCtx.lineTo(padding + (pvpBoardSize - 1) * pvpCellSize, pos); } pvpCtx.stroke();
+                let hoshi = []; if(pvpBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}]; if(pvpBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}]; if(pvpBoardSize === 9) hoshi = [{x:4,y:4}];
+                pvpCtx.fillStyle = "#000"; hoshi.forEach(h => { let px = padding + h.x * pvpCellSize; let py = padding + h.y * pvpCellSize; pvpCtx.beginPath(); pvpCtx.arc(px, py, 4.5, 0, Math.PI * 2); pvpCtx.fill(); });
+            }
         }
 
         function drawPvpStone(x, y, color, isLastMove=false, isDead=false) {
-            const cx = padding + x * pvpCellSize; const cy = padding + y * pvpCellSize; const r = pvpCellSize * 0.47; 
+            let cx, cy, r;
+            if (pvpBoardSize === 'polar') {
+                let pt = getPolarCoords(x, y); cx = pt.px; cy = pt.py; r = 16;
+            } else {
+                cx = padding + x * pvpCellSize; cy = padding + y * pvpCellSize; r = pvpCellSize * 0.47; 
+            }
             if(isDead) pvpCtx.globalAlpha = 0.3; else pvpCtx.globalAlpha = 1.0;
             pvpCtx.beginPath(); pvpCtx.arc(cx + 2, cy + 4, r, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(0,0,0,0.5)"; pvpCtx.fill(); 
             pvpCtx.beginPath(); pvpCtx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = pvpCtx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
@@ -708,14 +651,15 @@
 
         function renderPvpScene(board, turn, lastMove) {
             drawPvpBoard();
-            for(let x=0; x<pvpBoardSize; x++) {
-                for(let y=0; y<pvpBoardSize; y++) {
+            let w = pvpBoardSize === 'polar' ? 24 : pvpBoardSize; let h = pvpBoardSize === 'polar' ? 6 : pvpBoardSize;
+            for(let x=0; x<w; x++) {
+                for(let y=0; y<h; y++) {
                     if(board[x][y]) { let isLast = (lastMove && lastMove.x === x && lastMove.y === y); let isDead = pvpDeadStones.has(`${x},${y}`); drawPvpStone(x, y, board[x][y], isLast, isDead); }
                 }
             }
             if(pvpState === 'playing' && turn === myPvpColor && pendingMoveX !== -1) {
                 pvpCtx.globalAlpha = 0.8; drawPvpStone(pendingMoveX, pendingMoveY, 'green'); pvpCtx.globalAlpha = 1.0;
-            } else if(pvpState === 'playing' && turn === myPvpColor && pvpHoverX >= 0 && pvpHoverX < pvpBoardSize && pvpHoverY >= 0 && pvpHoverY < pvpBoardSize && pendingMoveX === -1) {
+            } else if(pvpState === 'playing' && turn === myPvpColor && pvpHoverX !== -1 && pvpHoverY !== -1 && pendingMoveX === -1) {
                 if(board[pvpHoverX][pvpHoverY] === null) { pvpCtx.globalAlpha = 0.5; drawPvpStone(pvpHoverX, pvpHoverY, myPvpColor); pvpCtx.globalAlpha = 1.0; }
             }
             
@@ -766,16 +710,32 @@
         pvpCanvas.addEventListener('mousemove', (event) => {
             if(pvpState !== 'playing' || myPvpColor === 'spectator') return;
             const rect = pvpCanvas.getBoundingClientRect(); const scaleX = pvpCanvas.width / rect.width; const scaleY = pvpCanvas.height / rect.height;
-            const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / pvpCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / pvpCellSize);
+            let gridX, gridY;
+            if (pvpBoardSize === 'polar') {
+                let px = (event.clientX - rect.left) * scaleX; let py = (event.clientY - rect.top) * scaleY;
+                let pt = getPolarGridFromPixel(px, py);
+                if(pt) { gridX = pt.x; gridY = pt.y; } else { gridX = -1; gridY = -1; }
+            } else {
+                gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / pvpCellSize); gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / pvpCellSize);
+            }
             if (gridX !== pvpHoverX || gridY !== pvpHoverY) { pvpHoverX = gridX; pvpHoverY = gridY; if(currentPvpBoardState.length > 0) renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove); }
         });
         pvpCanvas.addEventListener('mouseout', () => { pvpHoverX = -1; pvpHoverY = -1; if(currentPvpBoardState.length > 0) renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove); });
         pvpCanvas.addEventListener('click', (event) => {
             if(myPvpColor === 'spectator') return;
             const rect = pvpCanvas.getBoundingClientRect(); const scaleX = pvpCanvas.width / rect.width; const scaleY = pvpCanvas.height / rect.height;
-            const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / pvpCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / pvpCellSize);
+            let gridX, gridY; let maxW, maxH;
+            if (pvpBoardSize === 'polar') {
+                let px = (event.clientX - rect.left) * scaleX; let py = (event.clientY - rect.top) * scaleY;
+                let pt = getPolarGridFromPixel(px, py);
+                if(pt) { gridX = pt.x; gridY = pt.y; } else { gridX = -1; gridY = -1; }
+                maxW = 24; maxH = 6;
+            } else {
+                gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / pvpCellSize); gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / pvpCellSize);
+                maxW = pvpBoardSize; maxH = pvpBoardSize;
+            }
             
-            if (gridX >= 0 && gridX < pvpBoardSize && gridY >= 0 && gridY < pvpBoardSize) { 
+            if (gridX >= 0 && gridX < maxW && gridY >= 0 && gridY < maxH) { 
                 if (pvpState === 'playing' && currentPvpTurn === myPvpColor && currentPvpBoardState[gridX][gridY] === null) { 
                     pendingMoveX = gridX; pendingMoveY = gridY; document.getElementById('pvp-confirm-area').style.display = "block"; renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove);
                 } 
@@ -792,51 +752,82 @@
         const anaCanvas = document.getElementById('analysisCanvas'); const anaCtx = anaCanvas.getContext('2d');
         let analysisMoves = []; let analysisCurrentStep = 0; let analysisBoardSize = 19; let analysisCellSize = 0; let anaHoverX = -1, anaHoverY = -1; let anaManualColor = 'black'; 
 
-        function checkCapturesClient(board, x, y, colorTarget) {
+        function checkCapturesClient(board, x, y, colorTarget, size) {
             let captured = []; let visited = new Set();
             function getGroup(gx, gy) {
                 let group = []; let liberties = 0; let queue = [{x: gx, y: gy}]; visited.add(`${gx},${gy}`);
                 while(queue.length > 0) {
                     let curr = queue.shift(); group.push(curr);
-                    const neighbors = [ {x: curr.x+1, y: curr.y}, {x: curr.x-1, y: curr.y}, {x: curr.x, y: curr.y+1}, {x: curr.x, y: curr.y-1} ];
+                    let neighbors = [];
+                    if (size === 'polar') {
+                        neighbors.push({x: (curr.x + 1) % 24, y: curr.y}); neighbors.push({x: (curr.x - 1 + 24) % 24, y: curr.y});
+                        if (curr.y < 5) neighbors.push({x: curr.x, y: curr.y + 1}); if (curr.y > 0) neighbors.push({x: curr.x, y: curr.y - 1});
+                    } else {
+                        neighbors.push({x: curr.x+1, y: curr.y}); neighbors.push({x: curr.x-1, y: curr.y}); neighbors.push({x: curr.x, y: curr.y+1}); neighbors.push({x: curr.x, y: curr.y-1});
+                        neighbors = neighbors.filter(pt => pt.x >= 0 && pt.x < size && pt.y >= 0 && pt.y < size);
+                    }
                     for(let n of neighbors) {
-                        if(n.x >= 0 && n.x < board.length && n.y >= 0 && n.y < board.length) {
-                            let neighborState = board[n.x][n.y]; if(neighborState === null) liberties++;
-                            else if(neighborState === colorTarget && !visited.has(`${n.x},${n.y}`)) { visited.add(`${n.x},${n.y}`); queue.push(n); }
-                        }
+                        let neighborState = board[n.x][n.y]; if(neighborState === null) liberties++;
+                        else if(neighborState === colorTarget && !visited.has(`${n.x},${n.y}`)) { visited.add(`${n.x},${n.y}`); queue.push(n); }
                     }
                 }
                 return {group, liberties};
             }
-            const neighbors = [ {x: x+1, y: y}, {x: x-1, y: y}, {x: x, y: y+1}, {x: x, y: y-1} ];
-            for(let n of neighbors) {
-                if(n.x >= 0 && n.x < board.length && n.y >= 0 && n.y < board.length) {
-                    if(board[n.x][n.y] === colorTarget && !visited.has(`${n.x},${n.y}`)) { let {group, liberties} = getGroup(n.x, n.y); if(liberties === 0) group.forEach(stone => captured.push(stone)); }
-                }
+            let n = [];
+            if (size === 'polar') {
+                n.push({x: (x + 1) % 24, y: y}); n.push({x: (x - 1 + 24) % 24, y: y});
+                if (y < 5) n.push({x: x, y: y + 1}); if (y > 0) n.push({x: x, y: y - 1});
+            } else {
+                n.push({x: x+1, y: y}); n.push({x: x-1, y: y}); n.push({x: x, y: y+1}); n.push({x: x, y: y-1});
+                n = n.filter(pt => pt.x >= 0 && pt.x < size && pt.y >= 0 && pt.y < size);
+            }
+            for(let neighbor of n) {
+                if(board[neighbor.x][neighbor.y] === colorTarget && !visited.has(`${neighbor.x},${neighbor.y}`)) { let {group, liberties} = getGroup(neighbor.x, neighbor.y); if(liberties === 0) group.forEach(stone => captured.push(stone)); }
             }
             return captured;
         }
 
         function getAnalysisBoardState() {
-            let board = Array(analysisBoardSize).fill(null).map(() => Array(analysisBoardSize).fill(null));
+            let w = analysisBoardSize === 'polar' ? 24 : analysisBoardSize; let h = analysisBoardSize === 'polar' ? 6 : analysisBoardSize;
+            let board = Array(w).fill(null).map(() => Array(h).fill(null));
             for(let i=0; i<analysisCurrentStep; i++) {
                 let m = analysisMoves[i]; if(m.pass) continue;
                 board[m.x][m.y] = m.color; let enemy = (m.color === 'black') ? 'white' : 'black';
-                let caps = checkCapturesClient(board, m.x, m.y, enemy); caps.forEach(st => board[st.x][st.y] = null);
-                let suicide = checkCapturesClient(board, m.x, m.y, m.color); if(suicide.length > 0 && caps.length === 0) { suicide.forEach(st => board[st.x][st.y] = null); }
+                let caps = checkCapturesClient(board, m.x, m.y, enemy, analysisBoardSize); caps.forEach(st => board[st.x][st.y] = null);
+                let suicide = checkCapturesClient(board, m.x, m.y, m.color, analysisBoardSize); if(suicide.length > 0 && caps.length === 0) { suicide.forEach(st => board[st.x][st.y] = null); }
             }
             return board;
         }
 
         function drawAnaBoard() {
-            anaCtx.clearRect(0, 0, 600, 600); anaCtx.strokeStyle = "rgba(0,0,0,0.7)"; anaCtx.lineWidth = 1.5; anaCtx.beginPath();
-            for (let i = 0; i < analysisBoardSize; i++) { let pos = padding + i * analysisCellSize; anaCtx.moveTo(pos, padding); anaCtx.lineTo(pos, padding + (analysisBoardSize - 1) * analysisCellSize); anaCtx.moveTo(padding, pos); anaCtx.lineTo(padding + (analysisBoardSize - 1) * analysisCellSize, pos); } anaCtx.stroke();
-            let hoshi = []; if(analysisBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}]; if(analysisBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}]; if(analysisBoardSize === 9) hoshi = [{x:4,y:4}];
-            anaCtx.fillStyle = "#000"; hoshi.forEach(h => { let px = padding + h.x * analysisCellSize; let py = padding + h.y * analysisCellSize; anaCtx.beginPath(); anaCtx.arc(px, py, 4.5, 0, Math.PI * 2); anaCtx.fill(); });
+            anaCtx.clearRect(0, 0, 600, 600); 
+            if (analysisBoardSize === 'polar') {
+                let grad = anaCtx.createRadialGradient(300, 300, 50, 300, 300, 280);
+                grad.addColorStop(0, "#2a2d39"); grad.addColorStop(1, "#16181f");
+                anaCtx.fillStyle = grad; anaCtx.beginPath(); anaCtx.arc(300, 300, 280, 0, Math.PI*2); anaCtx.fill();
+                anaCtx.strokeStyle = "#0d0f14"; anaCtx.lineWidth = 4; anaCtx.beginPath(); anaCtx.arc(300, 300, 278, 0, Math.PI*2); anaCtx.stroke();
+                
+                anaCtx.strokeStyle = "rgba(255,255,255,0.2)"; anaCtx.lineWidth = 1.5;
+                for(let i=0; i<6; i++) { anaCtx.beginPath(); anaCtx.arc(300, 300, 60 + i*40, 0, Math.PI*2); anaCtx.stroke(); }
+                for(let i=0; i<24; i++) {
+                    anaCtx.beginPath(); let start = getPolarCoords(i, 0); anaCtx.moveTo(start.px, start.py);
+                    for(let j=1; j<=5; j++) { let pt = getPolarCoords(i, j); anaCtx.lineTo(pt.px, pt.py); }
+                    anaCtx.stroke();
+                }
+            } else {
+                anaCtx.strokeStyle = "rgba(0,0,0,0.7)"; anaCtx.lineWidth = 1.5; anaCtx.beginPath();
+                for (let i = 0; i < analysisBoardSize; i++) { let pos = padding + i * analysisCellSize; anaCtx.moveTo(pos, padding); anaCtx.lineTo(pos, padding + (analysisBoardSize - 1) * analysisCellSize); anaCtx.moveTo(padding, pos); anaCtx.lineTo(padding + (analysisBoardSize - 1) * analysisCellSize, pos); } anaCtx.stroke();
+                let hoshi = []; if(analysisBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}]; if(analysisBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}]; if(analysisBoardSize === 9) hoshi = [{x:4,y:4}];
+                anaCtx.fillStyle = "#000"; hoshi.forEach(h => { let px = padding + h.x * analysisCellSize; let py = padding + h.y * analysisCellSize; anaCtx.beginPath(); anaCtx.arc(px, py, 4.5, 0, Math.PI * 2); anaCtx.fill(); });
+            }
         }
 
         function drawAnaStone(x, y, color, isLastMove=false) {
-            const cx = padding + x * analysisCellSize; const cy = padding + y * analysisCellSize; const r = analysisCellSize * 0.47; 
+            let cx, cy, r;
+            if (analysisBoardSize === 'polar') {
+                let pt = getPolarCoords(x, y); cx = pt.px; cy = pt.py; r = 16;
+            } else { cx = padding + x * analysisCellSize; cy = padding + y * analysisCellSize; r = analysisCellSize * 0.47;  }
+            
             anaCtx.beginPath(); anaCtx.arc(cx + 2, cy + 4, r, 0, Math.PI * 2); anaCtx.fillStyle = "rgba(0,0,0,0.5)"; anaCtx.fill(); 
             anaCtx.beginPath(); anaCtx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = anaCtx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
             if (color === "black") { gradient.addColorStop(0, "#444"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } 
@@ -847,8 +838,9 @@
 
         function renderAnalysis() {
             drawAnaBoard(); let board = getAnalysisBoardState(); let lastMove = analysisCurrentStep > 0 ? analysisMoves[analysisCurrentStep-1] : null;
-            for(let x=0; x<analysisBoardSize; x++) { for(let y=0; y<analysisBoardSize; y++) { if(board[x][y]) { let isLast = (lastMove && !lastMove.pass && lastMove.x === x && lastMove.y === y); drawAnaStone(x, y, board[x][y], isLast); } } }
-            if(anaHoverX >= 0 && anaHoverX < analysisBoardSize && anaHoverY >= 0 && anaHoverY < analysisBoardSize && !board[anaHoverX][anaHoverY]) { anaCtx.globalAlpha = 0.5; drawAnaStone(anaHoverX, anaHoverY, anaManualColor); anaCtx.globalAlpha = 1.0; }
+            let w = analysisBoardSize === 'polar' ? 24 : analysisBoardSize; let h = analysisBoardSize === 'polar' ? 6 : analysisBoardSize;
+            for(let x=0; x<w; x++) { for(let y=0; y<h; y++) { if(board[x][y]) { let isLast = (lastMove && !lastMove.pass && lastMove.x === x && lastMove.y === y); drawAnaStone(x, y, board[x][y], isLast); } } }
+            if(anaHoverX !== -1 && anaHoverY !== -1 && !board[anaHoverX][anaHoverY]) { anaCtx.globalAlpha = 0.5; drawAnaStone(anaHoverX, anaHoverY, anaManualColor); anaCtx.globalAlpha = 1.0; }
             document.getElementById('ana-move-count').innerText = analysisCurrentStep; document.getElementById('ana-total-moves').innerText = analysisMoves.length;
         }
 
@@ -860,11 +852,26 @@
         document.getElementById('btn-ana-color-black').addEventListener('click', () => { anaManualColor = 'black'; document.getElementById('btn-ana-color-black').style.borderColor = "var(--primary)"; document.getElementById('btn-ana-color-white').style.borderColor = "transparent"; });
         document.getElementById('btn-ana-color-white').addEventListener('click', () => { anaManualColor = 'white'; document.getElementById('btn-ana-color-white').style.borderColor = "var(--primary)"; document.getElementById('btn-ana-color-black').style.borderColor = "transparent"; });
 
-        anaCanvas.addEventListener('mousemove', (event) => { const rect = anaCanvas.getBoundingClientRect(); const scaleX = anaCanvas.width / rect.width; const scaleY = anaCanvas.height / rect.height; const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / analysisCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / analysisCellSize); if (gridX !== anaHoverX || gridY !== anaHoverY) { anaHoverX = gridX; anaHoverY = gridY; renderAnalysis(); } });
+        anaCanvas.addEventListener('mousemove', (event) => { 
+            const rect = anaCanvas.getBoundingClientRect(); const scaleX = anaCanvas.width / rect.width; const scaleY = anaCanvas.height / rect.height; 
+            let gridX, gridY;
+            if (analysisBoardSize === 'polar') {
+                let pt = getPolarGridFromPixel((event.clientX - rect.left) * scaleX, (event.clientY - rect.top) * scaleY);
+                if(pt) { gridX = pt.x; gridY = pt.y; } else { gridX = -1; gridY = -1; }
+            } else { gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / analysisCellSize); gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / analysisCellSize); }
+            if (gridX !== anaHoverX || gridY !== anaHoverY) { anaHoverX = gridX; anaHoverY = gridY; renderAnalysis(); } 
+        });
         anaCanvas.addEventListener('mouseout', () => { anaHoverX = -1; anaHoverY = -1; renderAnalysis(); });
         anaCanvas.addEventListener('click', (event) => {
-            const rect = anaCanvas.getBoundingClientRect(); const scaleX = anaCanvas.width / rect.width; const scaleY = anaCanvas.height / rect.height; const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / analysisCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / analysisCellSize);
-            if (gridX >= 0 && gridX < analysisBoardSize && gridY >= 0 && gridY < analysisBoardSize) { 
+            const rect = anaCanvas.getBoundingClientRect(); const scaleX = anaCanvas.width / rect.width; const scaleY = anaCanvas.height / rect.height; 
+            let gridX, gridY, maxW, maxH;
+            if (analysisBoardSize === 'polar') {
+                let pt = getPolarGridFromPixel((event.clientX - rect.left) * scaleX, (event.clientY - rect.top) * scaleY);
+                if(pt) { gridX = pt.x; gridY = pt.y; } else { return; } maxW = 24; maxH = 6;
+            } else { 
+                gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / analysisCellSize); gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / analysisCellSize); maxW = analysisBoardSize; maxH = analysisBoardSize; 
+            }
+            if (gridX >= 0 && gridX < maxW && gridY >= 0 && gridY < maxH) { 
                 let board = getAnalysisBoardState();
                 if(board[gridX][gridY] === null) {
                     analysisMoves = analysisMoves.slice(0, analysisCurrentStep); analysisMoves.push({ color: anaManualColor, x: gridX, y: gridY }); analysisCurrentStep++;
@@ -875,7 +882,7 @@
         });
 
         document.getElementById('btn-goto-analysis-menu').addEventListener('click', () => { menuScreen.style.display = "none"; analysisScreen.style.display = "block"; analysisMoves = []; analysisCurrentStep = 0; analysisBoardSize = 19; analysisCellSize = (600 - padding * 2) / (analysisBoardSize - 1); document.getElementById('btn-ana-color-black').click(); renderAnalysis(); });
-        document.getElementById('btn-go-analyze').addEventListener('click', () => { document.getElementById('game-over-screen').style.display = "none"; document.getElementById('room-container').style.display = "none"; analysisScreen.style.display = "block"; analysisMoves = lastPlayedGame.moveList || []; analysisBoardSize = lastPlayedGame.size || 19; analysisCellSize = (600 - padding * 2) / (analysisBoardSize - 1); analysisCurrentStep = 0; document.getElementById('btn-ana-color-black').click(); renderAnalysis(); });
+        document.getElementById('btn-go-analyze').addEventListener('click', () => { document.getElementById('game-over-screen').style.display = "none"; document.getElementById('room-container').style.display = "none"; analysisScreen.style.display = "block"; analysisMoves = lastPlayedGame.moveList || []; analysisBoardSize = lastPlayedGame.size || 19; if(analysisBoardSize !== 'polar') analysisCellSize = (600 - padding * 2) / (analysisBoardSize - 1); analysisCurrentStep = 0; document.getElementById('btn-ana-color-black').click(); renderAnalysis(); });
         document.getElementById('btn-go-back-lobby').addEventListener('click', () => { document.getElementById('game-over-screen').style.display = "none"; document.getElementById('room-container').style.display = "none"; menuScreen.style.display = "block"; });
         document.getElementById('btn-ana-leave').addEventListener('click', () => { analysisScreen.style.display = "none"; menuScreen.style.display = "block"; });
 
@@ -889,11 +896,11 @@
         document.getElementById('sgf-upload-input').addEventListener('change', (e) => {
             let file = e.target.files[0]; if (!file) return; let reader = new FileReader();
             reader.onload = function(e) {
-                let content = e.target.result; let sizeMatch = content.match(/SZ\[(\d+)\]/); analysisBoardSize = sizeMatch ? parseInt(sizeMatch[1]) : 19; analysisCellSize = (600 - padding * 2) / (analysisBoardSize - 1);
+                let content = e.target.result; let sizeMatch = content.match(/SZ\[(.*?)\]/); analysisBoardSize = sizeMatch ? sizeMatch[1] : 19; if(analysisBoardSize !== 'polar') { analysisBoardSize = parseInt(analysisBoardSize); analysisCellSize = (600 - padding * 2) / (analysisBoardSize - 1); }
                 analysisMoves = []; let moveRegex = /;([BW])\[([a-z]?)((?:[a-z])?)\]/g; let match;
                 while ((match = moveRegex.exec(content)) !== null) {
                     let color = match[1] === 'B' ? 'black' : 'white'; let coords = match[2] + (match[3]||"");
-                    if(coords === "" || coords === "tt") { analysisMoves.push({color: color, pass: true}); } else { let x = coords.charCodeAt(0) - 97; let y = coords.charCodeAt(1) - 97; if(x >= 0 && x < analysisBoardSize && y >= 0 && y < analysisBoardSize) { analysisMoves.push({color: color, x: x, y: y}); } }
+                    if(coords === "" || coords === "tt") { analysisMoves.push({color: color, pass: true}); } else { let x = coords.charCodeAt(0) - 97; let y = coords.charCodeAt(1) - 97; if(analysisBoardSize==='polar' || (x >= 0 && x < analysisBoardSize && y >= 0 && y < analysisBoardSize)) { analysisMoves.push({color: color, x: x, y: y}); } }
                 }
                 analysisCurrentStep = 0; document.getElementById('btn-ana-color-black').click(); renderAnalysis(); document.getElementById('sgf-upload-input').value = ""; 
             }; reader.readAsText(file);
@@ -905,8 +912,8 @@
         document.querySelectorAll('.emoji-btn').forEach(btn => { btn.addEventListener('click', () => sendChat(btn.innerText)); });
         socket.on('chat_message', (data) => { const div = document.createElement('div'); div.style.marginBottom = "8px"; div.style.wordWrap = "break-word"; div.innerHTML = `<span style="color:#64748b; font-size:0.85rem;">[${data.rank || '30k'}]</span> <span style="color:#fcd34d; font-weight:600;">${data.avatar} ${data.name}:</span> <span style="color:#f8fafc;">${data.text}</span>`; chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; });
 
-        socket.on('room_joined', (data) => { menuScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex"; pvpScreen.style.display = "none"; lobbyScreen.style.display = "block"; document.getElementById('game-over-screen').style.display = "none"; amIHost = data.isHost; if (data.roomId === 'public') { document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby"; document.getElementById('room-code-display').style.display = "none"; document.getElementById('host-settings').style.display = "none"; document.getElementById('waiting-msg').style.display = "none"; document.getElementById('start-btn').style.display = "inline-block"; } else { document.getElementById('room-title').innerText = "🔒 Privater Raum"; document.getElementById('room-code-display').style.display = "inline-block"; document.getElementById('the-code').innerText = data.roomId; if (amIHost) { document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; } else { document.getElementById('host-settings').style.display = "none"; document.getElementById('start-btn').style.display = "none"; document.getElementById('waiting-msg').style.display = "block"; } } });
-        socket.on('you_are_host', () => { amIHost = true; document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-block"; document.getElementById('waiting-msg').style.display = "none"; });
+        socket.on('room_joined', (data) => { menuScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex"; pvpScreen.style.display = "none"; lobbyScreen.style.display = "block"; document.getElementById('game-over-screen').style.display = "none"; amIHost = data.isHost; if (data.roomId === 'public') { document.getElementById('room-title').innerText = "🌍 Öffentliche Lobby"; document.getElementById('room-code-display').style.display = "none"; document.getElementById('host-settings').style.display = "none"; document.getElementById('waiting-msg').style.display = "none"; document.getElementById('start-btn').style.display = "inline-flex"; } else { document.getElementById('room-title').innerText = "🔒 Privater Raum"; document.getElementById('room-code-display').style.display = "inline-block"; document.getElementById('the-code').innerText = data.roomId; if (amIHost) { document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-flex"; document.getElementById('waiting-msg').style.display = "none"; } else { document.getElementById('host-settings').style.display = "none"; document.getElementById('start-btn').style.display = "none"; document.getElementById('waiting-msg').style.display = "block"; } } });
+        socket.on('you_are_host', () => { amIHost = true; document.getElementById('host-settings').style.display = "block"; document.getElementById('start-btn').style.display = "inline-flex"; document.getElementById('waiting-msg').style.display = "none"; });
 
         const canvas = document.getElementById('goCanvas'); const ctx = canvas.getContext('2d'); 
         let viewMinX = 0, viewMaxX = 18, viewMinY = 0, viewMaxY = 18; let activeBoardSize = 19; let currentCellSize = (600 - padding * 2) / 18;
