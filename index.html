@@ -105,7 +105,7 @@
 
         /* DASHBOARD LAYOUT (Der eigentliche Spiel-Raum) */
         #room-container { 
-            display: none; /* Wird per JS auf 'flex' gesetzt */
+            display: none; 
             height: 100vh; 
             width: 100vw; 
             margin: 0; 
@@ -115,18 +115,24 @@
             flex-wrap: nowrap;
         }
 
-        /* LINKE SIDEBAR: Chat */
+        /* LINKE SIDEBAR: Chat (GEFIXT) */
         #global-chat { 
             width: 320px; 
-            height: 100vh; 
-            background: var(--bg-panel); 
-            border-right: 1px solid var(--border-color); 
+            height: calc(100vh - 85px); /* Platz für Top-Bar oben lassen */
+            margin-top: 70px; /* Schiebt Chat nach unten */
+            margin-left: 15px;
+            margin-bottom: 15px;
+            background: rgba(20, 24, 36, 0.6); 
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.06); 
+            border-radius: 16px;
             display: flex; 
             flex-direction: column; 
             padding: 20px; 
             box-sizing: border-box; 
             flex-shrink: 0;
             z-index: 10;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
         #chat-messages { flex-grow: 1; overflow-y: auto; text-align: left; margin-bottom: 15px; font-size: 0.95rem; line-height: 1.4; padding-right: 10px;}
         .emoji-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px; }
@@ -243,21 +249,22 @@
         .gdpr-text { font-size: 0.85rem; color: var(--text-muted); margin-top: 20px; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.5; }
 
         /* =========================================
-           MOBILE RESPONSIVE (Fixes Stapelung)
+           MOBILE RESPONSIVE
            ========================================= */
         @media (max-width: 900px) {
-            body { overflow-y: auto; } /* Auf dem Handy normal scrollen */
+            body { overflow-y: auto; } 
             #room-container {
                 flex-direction: column-reverse;
                 height: auto;
                 min-height: 100vh;
                 overflow: visible;
+                padding: 10px;
             }
             #global-chat {
                 width: 100%;
                 height: 350px;
-                border-right: none;
-                border-top: 1px solid var(--border-color);
+                margin: 0 0 20px 0; /* Reset margin auf dem Handy */
+                border: 1px solid var(--border-color);
             }
             #main-column {
                 height: auto;
@@ -279,7 +286,6 @@
                 width: 100%;
                 max-width: 96vw;
             }
-            /* Player cards side by side on mobile */
             #pvp-sidebar { flex-direction: row; flex-wrap: wrap; }
             .player-card { flex: 1; min-width: 140px; padding: 12px; }
             .panel { width: 100%; }
@@ -689,7 +695,7 @@
         function drawPvpStone(x, y, color, isLastMove=false, isDead=false) {
             const cx = padding + x * pvpCellSize; const cy = padding + y * pvpCellSize; const r = pvpCellSize * 0.47; 
             if(isDead) pvpCtx.globalAlpha = 0.3; else pvpCtx.globalAlpha = 1.0;
-            pvpCtx.beginPath(); pvpCtx.arc(cx + 2, cy + 4, r, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(0,0,0,0.4)"; pvpCtx.fill(); 
+            pvpCtx.beginPath(); pvpCtx.arc(cx + 2, cy + 4, r, 0, Math.PI * 2); pvpCtx.fillStyle = "rgba(0,0,0,0.5)"; pvpCtx.fill(); 
             pvpCtx.beginPath(); pvpCtx.arc(cx, cy, r, 0, Math.PI * 2); const gradient = pvpCtx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
             if (color === "black") { gradient.addColorStop(0, "#444"); gradient.addColorStop(0.3, "#111"); gradient.addColorStop(1, "#000"); } 
             else if (color === "white") { gradient.addColorStop(0, "#fff"); gradient.addColorStop(0.7, "#f1f5f9"); gradient.addColorStop(1, "#cbd5e1"); }
