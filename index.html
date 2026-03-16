@@ -581,7 +581,11 @@
             return {x, y};
         }
 
-const SoundFX = {
+        const socket = io(); let isMuted = false;
+        document.getElementById('mute-btn').addEventListener('click', () => { isMuted = !isMuted; document.getElementById('mute-btn').innerText = isMuted ? "🔇" : "🔊"; });
+        document.getElementById('leave-room-btn').addEventListener('click', () => { location.reload(); });
+
+        const SoundFX = {
             ctx: null, init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
             play(type) {
                 if (!this.ctx || isMuted) return; 
@@ -590,13 +594,12 @@ const SoundFX = {
                 else if (type === 'win') { osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(659.25, now + 0.1); osc.frequency.setValueAtTime(783.99, now + 0.2); gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(0.3, now + 0.05); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5); osc.start(now); osc.stop(now + 0.5); }
                 else if (type === 'lose') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(100, now + 0.2); gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
             },
-            // NEU: Sprachausgabe für das Byo-Yomi
             speak(text) {
                 if (isMuted) return;
-                window.speechSynthesis.cancel(); // Bricht vorherige Ansagen ab, damit es sich nicht überschneidet
+                window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'en-US'; // Englische Turnier-Stimme ("Ten... Nine...")
-                utterance.rate = 1.3;     // Etwas schneller und knackiger
+                utterance.lang = 'en-US';
+                utterance.rate = 1.3;
                 utterance.pitch = 1.1;
                 window.speechSynthesis.speak(utterance);
             }
@@ -613,9 +616,7 @@ const SoundFX = {
         let myName = ""; let myAvatar = "🦊"; let amIHost = false; 
         let myToken = ""; let myRank = "30k"; let myElo = 1000; let myCoins = 0; let myInventory = []; let myEquipped = {};
         
-        // NEU: Globale Variablen für Profil Stats
         let myWins = 0; let myLosses = 0; let myHistory = [];
-        
         let pageClickX = 0; let pageClickY = 0;
 
         window.onload = () => {
@@ -634,7 +635,6 @@ const SoundFX = {
             }
         };
 
-        // GEÄNDERT: Profil-Button öffnet jetzt die Modal-Karte
         document.getElementById('profile-btn').addEventListener('click', () => { 
             document.getElementById('prof-avatar').innerText = myAvatar;
             document.getElementById('prof-name').innerText = myName;
@@ -667,7 +667,6 @@ const SoundFX = {
             document.getElementById('profile-modal').style.display = "flex"; 
         });
 
-        // Der alte Button im Modal, um das Profil wirklich zu bearbeiten
         document.getElementById('btn-edit-profile').addEventListener('click', () => {
             document.getElementById('profile-modal').style.display = "none";
             menuScreen.style.display = "none"; 
@@ -711,10 +710,8 @@ const SoundFX = {
                 else { btn.innerText = `${price} 🪙 (Zu teuer)`; btn.className = "btn-shop btn-outline"; btn.disabled = true; }
             });
 
-            // Missions-Button anzeigen
             document.getElementById('btn-missions').style.display = "inline-block";
             
-            // Quests rendern & Badge berechnen
             const mList = document.getElementById('missions-list');
             const mBadge = document.getElementById('missions-badge');
             if (mList && data.quests) {
@@ -745,7 +742,6 @@ const SoundFX = {
                     `;
                 }
                 
-                // Badge Update (Die kleine rote Zahl)
                 if (claimableCount > 0) {
                     mBadge.innerText = claimableCount;
                     mBadge.style.display = "flex";
@@ -772,7 +768,6 @@ const SoundFX = {
             }
         });
 
-        // ANGEPASST: Feedback über die neue /send-message API Route senden
         document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -898,9 +893,33 @@ const SoundFX = {
             }
         });
 
+        // NEU: Variablen, um sich zu merken, was zuletzt gesagt wurde (BYO-YOMI)
+        let lastSpokenTime = -1;
+        let lastSpokenTurn = null;
+
         socket.on('1v1_timer_update', (data) => {
             document.getElementById('pvp-black-time').innerText = formatTimerObj(data.timers.black); document.getElementById('pvp-white-time').innerText = formatTimerObj(data.timers.white);
             document.getElementById('pvp-black-time').style.color = (data.timers.black.main <= 0 && data.timers.black.byo <= 10) ? "var(--danger)" : "var(--success)"; document.getElementById('pvp-white-time').style.color = (data.timers.white.main <= 0 && data.timers.white.byo <= 10) ? "var(--danger)" : "var(--success)";
+            
+            // Byo-Yomi Sprachausgabe
+            if (pvpState === 'playing') {
+                let activeTimer = data.timers[data.turn];
+                let timeLeft = activeTimer.main > 0 ? activeTimer.main : activeTimer.byo;
+
+                if (data.turn !== lastSpokenTurn) {
+                    lastSpokenTurn = data.turn;
+                    lastSpokenTime = -1;
+                }
+
+                if (timeLeft <= 10 && timeLeft > 0 && timeLeft !== lastSpokenTime) {
+                    lastSpokenTime = timeLeft;
+                    if (timeLeft === 10) {
+                        SoundFX.speak("Ten seconds");
+                    } else {
+                        SoundFX.speak(timeLeft.toString());
+                    }
+                }
+            }
         });
 
         function drawPvpBoard() {
@@ -1337,13 +1356,13 @@ const SoundFX = {
             const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; lastClickX = (event.clientX - rect.left) * scaleX; lastClickY = (event.clientY - rect.top) * scaleY; const gridX = Math.round((lastClickX - padding) / currentCellSize); const gridY = Math.round((lastClickY - padding) / currentCellSize); const actualX = viewMinX + gridX; const actualY = viewMinY + gridY; if (actualX >= 0 && actualX <= 18 && actualY >= 0 && actualY <= 18) { let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === actualX && s.y === actualY) isOccupied = true; }); if (isOccupied) return; myPlacedStone = { x: actualX, y: actualY }; canClick = false; SoundFX.play('clack'); renderScene(); socket.emit('guess', { x: actualX, y: actualY }); } 
         });
 
-        // NEU: Button öffnet das Modal
+        // Button öffnet das Modal
         document.getElementById('btn-missions').addEventListener('click', () => {
             document.getElementById('missions-modal').style.display = "flex";
             SoundFX.play('clack');
         });
 
-        // NEU: Quest abholen (mit Coin-Flug Animation!)
+        // Quest abholen (mit Coin-Flug Animation!)
         window.claimQuest = function(questId, event) {
             socket.emit('claim_quest', { token: myToken, questId: questId });
             
@@ -1369,7 +1388,7 @@ const SoundFX = {
             setTimeout(() => { coinDiv.remove(); }, 710);
         };
 
-        // NEU: Feedback wenn Claim bestätigt
+        // Feedback wenn Claim bestätigt
         socket.on('quest_claimed', (data) => {
             SoundFX.play('win');
             // Das Wallet (Coin Display) kurz aufblinken lassen
