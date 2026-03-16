@@ -264,10 +264,12 @@ setInterval(() => {
 io.on('connection', (socket) => {
     let currentRoom = null; 
 
-    // NEU: Feedback speichern
+// NEU: Feedback speichern (GEFIXT mit absolutem Pfad)
     socket.on('submit_feedback', (data) => {
         let entry = `[${new Date().toISOString()}] Von: ${data.name}\nNachricht: ${data.text}\n---------------------------\n`;
-        fs.appendFileSync('feedback.txt', entry);
+        const feedbackFile = path.join(__dirname, 'feedback.txt');
+        fs.appendFileSync(feedbackFile, entry);
+        console.log(`📩 Neues Feedback von ${data.name} empfangen und in feedback.txt gespeichert!`);
     });
 
     socket.on('login', (data) => {
