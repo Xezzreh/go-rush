@@ -43,7 +43,7 @@ function finishMatch(matchId, winnerColor, reasonStr) {
     let loser = match.players[winnerColor === 'black' ? 'white' : 'black'];
     
     let wToken = winner.token; let lToken = loser.token;
-    if(userDB[wToken] && userDB[lToken] && wToken !== lToken) { // Wenn man nicht gegen sich selbst spielt
+    if(userDB[wToken] && userDB[lToken] && wToken !== lToken) { 
         let w = userDB[wToken]; let l = userDB[lToken];
         let expW = 1 / (1 + Math.pow(10, (l.elo - w.elo) / 400));
         let expL = 1 / (1 + Math.pow(10, (w.elo - l.elo) / 400));
@@ -52,9 +52,18 @@ function finishMatch(matchId, winnerColor, reasonStr) {
         let pointChangeL = Math.round(32 * (0 - expL));
         
         w.elo += pointChangeW; l.elo += pointChangeL;
-        w.wins++; l.losses++;
-        w.coins = (w.coins || 0) + 100;
-        l.coins = (l.coins || 0) + 20;
+        w.wins = (w.wins || 0) + 1; l.losses = (l.losses || 0) + 1;
+        w.coins = (w.coins || 0) + 100; l.coins = (l.coins || 0) + 20;
+
+        // NEU: Match History speichern
+        let dateStr = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        w.matchHistory = w.matchHistory || [];
+        w.matchHistory.unshift({ opponent: loser.name, result: 'Sieg', eloChange: '+' + pointChangeW, date: dateStr });
+        if(w.matchHistory.length > 5) w.matchHistory.pop();
+
+        l.matchHistory = l.matchHistory || [];
+        l.matchHistory.unshift({ opponent: winner.name, result: 'Niederlage', eloChange: pointChangeL, date: dateStr });
+        if(l.matchHistory.length > 5) l.matchHistory.pop();
         
         saveDB();
         
@@ -255,10 +264,18 @@ setInterval(() => {
 io.on('connection', (socket) => {
     let currentRoom = null; 
 
+    // NEU: Feedback speichern
+    socket.on('submit_feedback', (data) => {
+        let entry = `[${new Date().toISOString()}] Von: ${data.name}\nNachricht: ${data.text}\n---------------------------\n`;
+        fs.appendFileSync('feedback.txt', entry);
+    });
+
     socket.on('login', (data) => {
         let today = new Date().toISOString().split('T')[0];
-        if(!userDB[data.token]) { userDB[data.token] = { elo: 1000, wins: 0, losses: 0, coins: 0, inventory: [], equipped: {title: null, aura: null}, lastLogin: null }; }
-        let u = userDB[data.token]; u.coins = u.coins || 0; u.inventory = u.inventory || []; u.equipped = u.equipped || {title: null, aura: null};
+        if(!userDB[data.token]) { userDB[data.token] = { elo: 1000, wins: 0, losses: 0, coins: 0, inventory: [], equipped: {title: null, aura: null}, lastLogin: null, matchHistory: [] }; }
+        let u = userDB[data.token]; 
+        u.coins = u.coins || 0; u.inventory = u.inventory || []; u.equipped = u.equipped || {title: null, aura: null};
+        u.wins = u.wins || 0; u.losses = u.losses || 0; u.matchHistory = u.matchHistory || [];
         
         let dailyReward = 0;
         if(u.lastLogin !== today) { u.coins += 50; u.lastLogin = today; dailyReward = 50; }
@@ -286,7 +303,6 @@ io.on('connection', (socket) => {
 
     socket.on('create_challenge', (data) => { 
         const challengeId = 'chal_' + socket.id; 
-        // GEFIXT: boardSize wird nun direkt hier in eine Zahl umgewandelt (außer bei 'polar')
         let parsedSize = data.boardSize === 'polar' ? 'polar' : parseInt(data.boardSize);
         challenges[challengeId] = { 
             id: challengeId, challengerId: socket.id, challengerName: data.name, challengerAvatar: data.avatar, token: data.token, 
@@ -323,7 +339,6 @@ io.on('connection', (socket) => {
             if(currentRoom && rooms[currentRoom]) { delete rooms[currentRoom].players[socket.id]; socket.leave(currentRoom); broadcastLeaderboard(currentRoom); }
             socket.join(newRoomId); const opponentSocket = io.sockets.sockets.get(chal.challengerId); if(opponentSocket) opponentSocket.join(newRoomId);
 
-            // GEFIXT: state: 'playing' wird jetzt direkt an den Client mitgeliefert!
             io.to(chal.challengerId).emit('1v1_match_started', { roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, avatarBlack: chal.challengerAvatar, playerWhite: acceptorData.name, avatarWhite: acceptorData.avatar, myColor: 'black', komi: initialKomi, timers: active1v1Matches[newRoomId].timers, board: emptyBoard, turn: initialTurn, state: 'playing' });
             socket.emit('1v1_match_started', { roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, avatarBlack: chal.challengerAvatar, playerWhite: acceptorData.name, avatarWhite: acceptorData.avatar, myColor: 'white', komi: initialKomi, timers: active1v1Matches[newRoomId].timers, board: emptyBoard, turn: initialTurn, state: 'playing' });
             delete challenges[challengeId]; broadcastMatchmaking();
