@@ -279,9 +279,11 @@
         <div class="panel" style="margin-top: 20px; display: inline-block; width: 100%; max-width: 400px; padding: 25px; box-sizing: border-box; border-color: var(--primary);">
             <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--text-main);">💡 Ideen oder Bugs?</h3>
             <p style="font-size: 0.85rem; margin-bottom: 15px;">Schreib eine Nachricht direkt an den Entwickler.</p>
-            <textarea id="feedback-text" rows="3" placeholder="Ich hätte gerne Feature XYZ..." style="resize: none;"></textarea>
-            <button id="btn-send-feedback" class="btn-primary" style="width: 100%; margin: 0;">Nachricht senden</button>
-            <p id="feedback-status" style="font-size: 0.85rem; color: var(--success); margin-top: 10px; display: none;">✅ Danke für dein Feedback!</p>
+            <form id="feedbackForm">
+                <textarea id="feedback-text" rows="3" placeholder="Ich hätte gerne Feature XYZ..." style="resize: none;" required></textarea>
+                <button type="submit" id="btn-send-feedback" class="btn-primary" style="width: 100%; margin: 0;">Nachricht senden</button>
+            </form>
+            <p id="feedback-status" style="font-size: 0.85rem; color: var(--success); margin-top: 10px; display: none;"></p>
         </div>
     </div>
 
@@ -694,14 +696,42 @@
             }
         });
 
-        // NEU: Feedback Senden Logik
-        document.getElementById('btn-send-feedback').addEventListener('click', () => {
+        // ANGEPASST: Feedback über die neue /send-message API Route senden
+        document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('btn-send-feedback');
+            const statusMsg = document.getElementById('feedback-status');
             const text = document.getElementById('feedback-text').value.trim();
+            
             if(text !== "") {
-                socket.emit('submit_feedback', { name: myName, text: text });
-                document.getElementById('feedback-text').value = "";
-                document.getElementById('feedback-status').style.display = "block";
-                setTimeout(() => { document.getElementById('feedback-status').style.display = "none"; }, 3000);
+                btn.disabled = true;
+                btn.innerText = "Sendet...";
+
+                try {
+                    const response = await fetch('/send-message', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: myName, message: text })
+                    });
+
+                    if (response.ok) {
+                        document.getElementById('feedback-text').value = "";
+                        statusMsg.innerText = "✅ Danke für dein Feedback!";
+                        statusMsg.style.color = "var(--success)";
+                    } else {
+                        statusMsg.innerText = "❌ Fehler beim Senden.";
+                        statusMsg.style.color = "var(--danger)";
+                    }
+                } catch (error) {
+                    statusMsg.innerText = "❌ Fehler beim Senden.";
+                    statusMsg.style.color = "var(--danger)";
+                }
+
+                statusMsg.style.display = "block";
+                btn.disabled = false;
+                btn.innerText = "Nachricht senden";
+                setTimeout(() => { statusMsg.style.display = "none"; }, 4000);
             }
         });
 

@@ -1,24 +1,39 @@
 // --- server.js ---
-require('dotenv').config(); // NEU: Lädt die geheimen Variablen aus der .env Datei
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const fs = require('fs'); 
 const path = require('path'); 
-const nodemailer = require('nodemailer'); // Postbote
+const { Resend } = require('resend'); // NEU: Resend geladen
 
-// NEU: E-Mail-Postbote einrichten (greift auf .env zu)
-const transporter = nodemailer.createTransport({
-    service: 'gmail', 
-    auth: {
-        user: process.env.EMAIL_USER, // Holt die Mail-Adresse aus der .env
-        pass: process.env.EMAIL_PASS  // Holt das App-Passwort aus der .env
-    }
-});
+// HIER DEINEN API-KEY EINFÜGEN! (Z.B. 're_123456789...')
+const resend = new Resend('re_dGC46f9v_46CfzH6CS9j9KUYRf4mGhRtk'); 
+
+app.use(express.json()); // Damit der Server die JSON-Daten vom Frontend lesen kann
 
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
+});
+
+// NEU: Diese Route empfängt das Feedback aus der index.html
+app.post('/send-message', async (req, res) => {
+    const userName = req.body.name || "Unbekannter Spieler";
+    const userMessage = req.body.message;
+
+    try {
+        const data = await resend.emails.send({
+            from: 'Go-Rush Server <onboarding@resend.dev>', 
+            to: 'go.rush.server@gmail.com',  // Deine Ziel-E-Mail
+            subject: `💡 Neues Feedback von ${userName}`,
+            text: `Spieler: ${userName}\n\nNachricht:\n${userMessage}`
+        });
+        console.log("E-Mail gesendet:", data);
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error("Fehler beim E-Mail-Versand:", error);
+        res.status(500).json({ success: false });
+    }
 });
 
 const dbFile = path.join(__dirname, 'database.json');
@@ -66,7 +81,6 @@ function finishMatch(matchId, winnerColor, reasonStr) {
         w.wins = (w.wins || 0) + 1; l.losses = (l.losses || 0) + 1;
         w.coins = (w.coins || 0) + 100; l.coins = (l.coins || 0) + 20;
 
-        // NEU: Match History speichern
         let dateStr = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
         w.matchHistory = w.matchHistory || [];
         w.matchHistory.unshift({ opponent: loser.name, result: 'Sieg', eloChange: '+' + pointChangeW, date: dateStr });
@@ -274,24 +288,6 @@ setInterval(() => {
 
 io.on('connection', (socket) => {
     let currentRoom = null; 
-
-    // NEU: Feedback als E-Mail senden (Nutzt jetzt die .env Datei!)
-    socket.on('submit_feedback', (data) => {
-        const mailOptions = {
-            from: process.env.EMAIL_USER,       // Dein Absender (aus der .env)
-            to: process.env.EMAIL_USER,         // Schickt die Mail an sich selbst (aus der .env)
-            subject: `💡 Neues Go-Rush Feedback von ${data.name}`,
-            text: `Spieler: ${data.name}\n\nNachricht:\n${data.text}`
-        };
-
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                console.log('❌ Fehler beim E-Mail-Versand:', error);
-            } else {
-                console.log('✅ E-Mail erfolgreich gesendet:', info.response);
-            }
-        });
-    });
 
     socket.on('login', (data) => {
         let today = new Date().toISOString().split('T')[0];
