@@ -5,6 +5,16 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const fs = require('fs'); 
 const path = require('path'); 
+const nodemailer = require('nodemailer'); // Postbote
+
+// NEU: E-Mail-Postbote einrichten
+const transporter = nodemailer.createTransport({
+    service: 'gmail', // Wenn du kein Gmail nutzt, musst du hier host/port eintragen
+    auth: {
+        user: 'DEINE_EMAIL@gmail.com', // Trage hier deine echte E-Mail ein
+        pass: 'DEIN_16_STELLIGES_APP_PASSWORT' // Das Passwort aus Schritt 2 (ohne Leerzeichen)
+    }
+});
 
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
@@ -264,12 +274,22 @@ setInterval(() => {
 io.on('connection', (socket) => {
     let currentRoom = null; 
 
-// NEU: Feedback speichern (GEFIXT mit absolutem Pfad)
+    // NEU: Feedback als E-Mail senden
     socket.on('submit_feedback', (data) => {
-        let entry = `[${new Date().toISOString()}] Von: ${data.name}\nNachricht: ${data.text}\n---------------------------\n`;
-        const feedbackFile = path.join(__dirname, 'feedback.txt');
-        fs.appendFileSync(feedbackFile, entry);
-        console.log(`📩 Neues Feedback von ${data.name} empfangen und in feedback.txt gespeichert!`);
+        const mailOptions = {
+            from: 'DEINE_EMAIL@gmail.com',       // Dein Absender
+            to: 'DEINE_EMAIL@gmail.com',         // Wo soll die Mail ankommen? (Wahrscheinlich an dich selbst)
+            subject: `💡 Neues Go-Rush Feedback von ${data.name}`,
+            text: `Spieler: ${data.name}\n\nNachricht:\n${data.text}`
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.log('❌ Fehler beim E-Mail-Versand:', error);
+            } else {
+                console.log('✅ E-Mail erfolgreich gesendet:', info.response);
+            }
+        });
     });
 
     socket.on('login', (data) => {
