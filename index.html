@@ -37,9 +37,10 @@
         }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulseAura { 0% { box-shadow: 0 0 10px #ef4444; } 50% { box-shadow: 0 0 25px #ef4444; } 100% { box-shadow: 0 0 10px #ef4444; } }
 
         /* SCREENS */
-        #login-screen, #menu-screen, #matchmaking-screen, #fun-modes-screen { 
+        #login-screen, #menu-screen, #matchmaking-screen, #fun-modes-screen, #shop-screen { 
             display: none; max-width: 1000px; margin: 8vh auto 0 auto; padding: 20px; text-align: center; animation: fadeIn 0.3s ease-out forwards; 
         }
         #login-screen { display: block; }
@@ -72,15 +73,16 @@
         .btn-success:hover { background: #059669; }
         .btn-warning { background: var(--warning); color: #000; border-color: transparent; }
         .btn-warning:hover { background: #d97706; }
-        
-        /* GEFIXT: Analyse Button Farbe hinzugefügt */
         .btn-analysis { background: #e91e63; color: white; border: none;} 
         .btn-analysis:hover { background: #db2777; box-shadow: 0 4px 12px rgba(236, 72, 153, 0.25); }
-        
         .btn-fun { background: linear-gradient(135deg, #ec4899, #8b5cf6); border: none; font-size: 1.2rem; }
         .btn-fun:hover { background: linear-gradient(135deg, #db2777, #7c3aed); box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4); }
 
         .panel { background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); padding: 24px; }
+
+        /* AUREN CSS */
+        .aura-gold { box-shadow: 0 0 15px #fcd34d; border: 2px solid #f59e0b; border-radius: 50%; background: rgba(245,158,11,0.2); }
+        .aura-fire { box-shadow: 0 0 20px #ef4444; border: 2px solid #ef4444; border-radius: 50%; background: rgba(239,68,68,0.2); animation: pulseAura 1.5s infinite; }
 
         .avatar-options { display: flex; justify-content: center; gap: 12px; margin-bottom: 25px; font-size: 2.2rem; cursor: pointer; flex-wrap: wrap; }
         .avatar-option { opacity: 0.3; transition: all 0.2s ease; padding: 8px; border-radius: 12px; border: 1px solid transparent; background: rgba(0,0,0,0.2); }
@@ -151,6 +153,9 @@
         .podium-score { color: #60a5fa; font-size: 1.1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.6); margin-bottom: 10px; font-weight: 700;}
 
         #undo-popup { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15, 17, 26, 0.95); border: 1px solid var(--warning); padding: 25px; border-radius: 12px; z-index: 2000; box-shadow: 0 10px 40px rgba(0,0,0,0.8); display: none; backdrop-filter: blur(10px); width: 80%; text-align: center;}
+        
+        #daily-popup { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 3000; display: none; justify-content: center; align-items: center; }
+
         .gdpr-text { font-size: 0.85rem; color: var(--text-muted); margin-top: 20px; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.5; }
 
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -175,10 +180,20 @@
 </head>
 <body>
 
+    <div id="daily-popup">
+        <div class="panel" style="text-align: center; border-top: 4px solid var(--warning); max-width: 400px;">
+            <h2 style="font-size: 2.5rem; margin-bottom:5px; color:var(--text-main);">🎁 Daily Login!</h2>
+            <p style="font-size: 1.1rem; color:var(--text-muted);">Willkommen zurück! Du erhältst:</p>
+            <div style="font-size: 3.5rem; color: var(--warning); font-weight: 900; text-shadow: 0 4px 15px rgba(245,158,11,0.4); margin: 20px 0;">+50 🪙</div>
+            <button class="btn-success" onclick="document.getElementById('daily-popup').style.display='none';" style="width: 100%; font-size:1.2rem; padding:15px;">Einsammeln</button>
+        </div>
+    </div>
+
     <div id="top-bar">
         <button class="top-btn btn-outline" id="leave-room-btn" style="display:none; color: var(--danger); border-color: rgba(239,68,68,0.3);">🚪 Verlassen</button>
         <button class="top-btn btn-outline" id="mute-btn">🔊</button>
         <button class="top-btn btn-outline" id="profile-btn" style="display:none;">👤 Profil</button> 
+        <button class="top-btn btn-outline" id="coin-display" style="display:none; color: var(--warning); border-color: rgba(245,158,11,0.3); pointer-events: none;">🪙 0</button> 
     </div>
 
     <div id="login-screen">
@@ -202,9 +217,9 @@
         <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; max-width: 400px; margin: 0 auto;">
             <button class="btn-1v1" id="btn-goto-matchmaking" style="width: 100%; padding: 18px; font-size: 1.2rem;">⚔️ 1v1 Arena</button>
             <button class="btn-fun" id="btn-goto-fun" style="width: 100%; padding: 18px; font-size: 1.2rem; color: #fff;">🎉 Fun Game Modes</button>
-            
             <button class="btn-public" id="btn-public" style="width: 100%; padding: 16px;">🌍 Tsumego Rush (Öffentlich)</button>
             <button class="btn-analysis" id="btn-goto-analysis-menu" style="width: 100%; padding: 16px;">🔬 SGF Studio / Analyse</button>
+            <button class="btn-outline" id="btn-goto-shop" style="width: 100%; padding: 16px; border-color: var(--warning); color: var(--warning);">🛒 Shop & Prestige</button>
         </div>
         
         <div class="panel" style="margin-top: 40px; display: inline-block; width: 100%; max-width: 400px; padding: 25px; box-sizing: border-box;">
@@ -214,6 +229,46 @@
                 <input type="text" id="roomcode-input" placeholder="CODE..." style="margin: 0; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
                 <button id="btn-join-private" class="btn-outline" style="margin: 0; white-space: nowrap;">Beitreten</button>
             </div>
+        </div>
+    </div>
+
+    <div id="shop-screen">
+        <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1000px; margin: 0 auto 20px auto;">
+            <h1 style="color: var(--warning); margin: 0;">🛒 Drip Shop</h1>
+            <button id="btn-back-from-shop" class="btn-outline" style="margin:0;">Zurück</button>
+        </div>
+        <p style="color: var(--text-muted); max-width: 900px; margin: 0 auto 30px auto; text-align: left; font-size: 1rem;">Gib deine hart verdienten Coins für Chat-Titel und leuchtende Avatar-Auren aus.</p>
+        
+        <div style="display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; max-width: 1000px; margin: 0 auto;">
+            
+            <div class="panel" style="flex: 1; min-width: 320px; border-top: 3px solid var(--primary);">
+                <h3 style="margin-top:0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Chat-Titel</h3>
+                
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <span style="font-weight:700;">[Ronin]</span>
+                    <button class="btn-shop" data-id="title_ronin" data-price="200" style="background:var(--bg-base); border:1px solid var(--primary); padding:8px 15px;">200 🪙</button>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <span style="font-weight:700; color:var(--warning);">[Go-Gott]</span>
+                    <button class="btn-shop" data-id="title_gott" data-price="1000" style="background:var(--bg-base); border:1px solid var(--primary); padding:8px 15px;">1000 🪙</button>
+                </div>
+            </div>
+
+            <div class="panel" style="flex: 1; min-width: 320px; border-top: 3px solid var(--danger);">
+                <h3 style="margin-top:0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Avatar-Auren</h3>
+                
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <span class="aura-gold" style="font-size:1.5rem;">🦊</span>
+                    <span style="font-weight:700;">Goldene Aura</span>
+                    <button class="btn-shop" data-id="aura_gold" data-price="500" style="background:var(--bg-base); border:1px solid var(--primary); padding:8px 15px;">500 🪙</button>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <span class="aura-fire" style="font-size:1.5rem;">🐉</span>
+                    <span style="font-weight:700; color:var(--danger);">Feuer Aura</span>
+                    <button class="btn-shop" data-id="aura_fire" data-price="1500" style="background:var(--bg-base); border:1px solid var(--primary); padding:8px 15px;">1500 🪙</button>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -447,7 +502,6 @@
 
         const socket = io(); let isMuted = false;
         document.getElementById('mute-btn').addEventListener('click', () => { isMuted = !isMuted; document.getElementById('mute-btn').innerText = isMuted ? "🔇" : "🔊"; });
-
         document.getElementById('leave-room-btn').addEventListener('click', () => { location.reload(); });
 
         const SoundFX = {
@@ -461,17 +515,16 @@
             }
         };
 
-        // GEFIXT: Sobald man irgendwo klickt (egal ob im Menü oder im Spiel), wird die Audio-Engine geweckt.
-        // Das repariert den fehlenden Sound beim Auto-Login!
         document.addEventListener('click', () => { SoundFX.init(); }, { once: true });
 
         const loginScreen = document.getElementById('login-screen'); const menuScreen = document.getElementById('menu-screen'); 
         const matchmakingScreen = document.getElementById('matchmaking-screen'); const lobbyScreen = document.getElementById('lobby-screen'); 
         const gameScreen = document.getElementById('game-screen'); const pvpScreen = document.getElementById('pvp-screen');
         const analysisScreen = document.getElementById('analysis-screen'); const funModesScreen = document.getElementById('fun-modes-screen');
+        const shopScreen = document.getElementById('shop-screen');
         
         let myName = ""; let myAvatar = "🦊"; let amIHost = false; 
-        let myToken = ""; let myRank = "30k"; let myElo = 1000;
+        let myToken = ""; let myRank = "30k"; let myElo = 1000; let myCoins = 0; let myInventory = []; let myEquipped = {};
 
         window.onload = () => {
             const savedName = localStorage.getItem('goRushName'); const savedAvatar = localStorage.getItem('goRushAvatar');
@@ -485,11 +538,11 @@
                 
                 socket.emit('login', { token: myToken, name: myName, avatar: myAvatar });
                 loginScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('profile-btn').style.display = "inline-block";
-                document.getElementById('btn-delete-profile').style.display = "inline-block";
+                document.getElementById('btn-delete-profile').style.display = "inline-block"; document.getElementById('coin-display').style.display = "inline-block";
             }
         };
 
-        document.getElementById('profile-btn').addEventListener('click', () => { menuScreen.style.display = "none"; loginScreen.style.display = "block"; document.getElementById('profile-btn').style.display = "none"; });
+        document.getElementById('profile-btn').addEventListener('click', () => { menuScreen.style.display = "none"; loginScreen.style.display = "block"; document.getElementById('profile-btn').style.display = "none"; document.getElementById('coin-display').style.display = "none"; });
 
         document.querySelectorAll('.avatar-option').forEach(el => {
             el.addEventListener('click', (e) => { document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected')); e.target.classList.add('selected'); myAvatar = e.target.innerText; });
@@ -504,11 +557,51 @@
                 
                 socket.emit('login', { token: myToken, name: myName, avatar: myAvatar });
                 loginScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('profile-btn').style.display = "inline-block"; 
-                document.getElementById('btn-delete-profile').style.display = "inline-block";
+                document.getElementById('btn-delete-profile').style.display = "inline-block"; document.getElementById('coin-display').style.display = "inline-block";
             } 
         });
 
-        socket.on('update_stats', (data) => { myElo = data.elo; myRank = data.rank; document.getElementById('profile-btn').innerHTML = `👤 [${myRank}] Profil`; });
+        // NEU: REWARDS & SHOP UPDATE
+        socket.on('daily_reward', (amount) => {
+            SoundFX.play('win');
+            document.getElementById('daily-popup').style.display = "flex";
+        });
+
+        socket.on('update_stats', (data) => { 
+            myElo = data.elo; myRank = data.rank; myCoins = data.coins || 0; myInventory = data.inventory || []; myEquipped = data.equipped || {};
+            document.getElementById('profile-btn').innerHTML = `👤 [${myRank}] Profil`; 
+            document.getElementById('coin-display').innerText = `🪙 ${myCoins}`;
+            
+            // Update Shop Buttons
+            document.querySelectorAll('.btn-shop').forEach(btn => {
+                let itemId = btn.getAttribute('data-id');
+                let price = parseInt(btn.getAttribute('data-price'));
+                let type = itemId.startsWith('title') ? 'title' : 'aura';
+                
+                if(myEquipped[type] === itemId) {
+                    btn.innerText = "Aktiviert ✅"; btn.className = "btn-shop btn-success"; btn.disabled = false;
+                } else if(myInventory.includes(itemId)) {
+                    btn.innerText = "Ausrüsten"; btn.className = "btn-shop btn-outline"; btn.disabled = false;
+                } else if(myCoins >= price) {
+                    btn.innerText = `${price} 🪙 Kaufen`; btn.className = "btn-shop"; btn.style.background = "var(--bg-base)"; btn.style.borderColor = "var(--primary)"; btn.disabled = false;
+                } else {
+                    btn.innerText = `${price} 🪙 (Zu teuer)`; btn.className = "btn-shop btn-outline"; btn.disabled = true;
+                }
+            });
+        });
+
+        // NEU: SHOP LOGIK
+        document.getElementById('btn-goto-shop').addEventListener('click', () => { menuScreen.style.display = "none"; shopScreen.style.display = "block"; });
+        document.getElementById('btn-back-from-shop').addEventListener('click', () => { shopScreen.style.display = "none"; menuScreen.style.display = "block"; });
+        
+        document.querySelectorAll('.btn-shop').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                let itemId = e.target.getAttribute('data-id');
+                if (myInventory.includes(itemId)) { socket.emit('equip_item', {token: myToken, itemId: itemId}); } 
+                else { socket.emit('buy_item', {token: myToken, itemId: itemId}); SoundFX.play('win'); }
+            });
+        });
+
 
         document.getElementById('btn-delete-profile').addEventListener('click', () => {
             if(confirm("Willst du deinen Account (inklusive Elo und Siegen) unwiderruflich löschen?")) {
@@ -516,9 +609,9 @@
             }
         });
 
-        document.getElementById('btn-public').addEventListener('click', () => { socket.emit('join_room', { name: myName, avatar: myAvatar, roomId: 'public' }); });
-        document.getElementById('btn-create-private').addEventListener('click', () => { const randomCode = Math.random().toString(36).substring(2, 6).toUpperCase(); socket.emit('join_room', { name: myName, avatar: myAvatar, roomId: randomCode }); });
-        document.getElementById('btn-join-private').addEventListener('click', () => { let code = document.getElementById('roomcode-input').value.trim().toUpperCase(); if (code !== "") socket.emit('join_room', { name: myName, avatar: myAvatar, roomId: code }); });
+        document.getElementById('btn-public').addEventListener('click', () => { socket.emit('join_room', { name: myName, avatar: myAvatar, token: myToken, roomId: 'public' }); });
+        document.getElementById('btn-create-private').addEventListener('click', () => { const randomCode = Math.random().toString(36).substring(2, 6).toUpperCase(); socket.emit('join_room', { name: myName, avatar: myAvatar, token: myToken, roomId: randomCode }); });
+        document.getElementById('btn-join-private').addEventListener('click', () => { let code = document.getElementById('roomcode-input').value.trim().toUpperCase(); if (code !== "") socket.emit('join_room', { name: myName, avatar: myAvatar, token: myToken, roomId: code }); });
         document.getElementById('start-btn').addEventListener('click', () => { const settings = { timeLimit: document.getElementById('set-time').value, puzzleCount: document.getElementById('set-count').value }; socket.emit('start_game', settings); });
 
         document.getElementById('btn-goto-fun').addEventListener('click', () => { menuScreen.style.display = "none"; funModesScreen.style.display = "block"; });
@@ -906,10 +999,19 @@
         });
 
         const chatMessages = document.getElementById('chat-messages'); const chatInput = document.getElementById('chat-input');
-        function sendChat(text) { if(text.trim() !== "") { socket.emit('chat_message', { name: myName, avatar: myAvatar, rank: myRank, text: text.trim() }); chatInput.value = ""; } }
+        function sendChat(text) { if(text.trim() !== "") { socket.emit('chat_message', { name: myName, avatar: myAvatar, rank: myRank, text: text.trim(), token: myToken }); chatInput.value = ""; } }
         document.getElementById('chat-send').addEventListener('click', () => sendChat(chatInput.value)); chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendChat(chatInput.value); });
         document.querySelectorAll('.emoji-btn').forEach(btn => { btn.addEventListener('click', () => sendChat(btn.innerText)); });
-        socket.on('chat_message', (data) => { const div = document.createElement('div'); div.style.marginBottom = "8px"; div.style.wordWrap = "break-word"; div.innerHTML = `<span style="color:#64748b; font-size:0.85rem;">[${data.rank || '30k'}]</span> <span style="color:#fcd34d; font-weight:600;">${data.avatar} ${data.name}:</span> <span style="color:#f8fafc;">${data.text}</span>`; chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; });
+        
+        socket.on('chat_message', (data) => { 
+            const div = document.createElement('div'); div.style.marginBottom = "10px"; div.style.wordWrap = "break-word"; 
+            
+            let auraHtml = data.aura ? `<span class="${data.aura}" style="padding:2px 4px;">${data.avatar}</span>` : `${data.avatar}`;
+            let titleHtml = data.title ? `<span style="color:var(--warning); font-weight:700;">${data.title}</span>` : '';
+            
+            div.innerHTML = `<span style="color:#64748b; font-size:0.85rem;">[${data.rank || '30k'}]</span> ${titleHtml} ${auraHtml} <span style="color:#fcd34d; font-weight:600;">${data.name}:</span> <span style="color:#f8fafc;">${data.text}</span>`; 
+            chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight; 
+        });
 
         socket.on('room_joined', (data) => { 
             menuScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex"; pvpScreen.style.display = "none"; lobbyScreen.style.display = "block"; document.getElementById('game-over-screen').style.display = "none"; 
