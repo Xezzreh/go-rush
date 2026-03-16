@@ -84,6 +84,19 @@
         .aura-gold { box-shadow: 0 0 15px #fcd34d; border: 2px solid #f59e0b; border-radius: 50%; background: rgba(245,158,11,0.2); }
         .aura-fire { box-shadow: 0 0 20px #ef4444; border: 2px solid #ef4444; border-radius: 50%; background: rgba(239,68,68,0.2); animation: pulseAura 1.5s infinite; }
 
+        .notification-badge {
+            position: absolute; top: -8px; right: -8px; background: var(--danger); color: white;
+            border-radius: 50%; width: 22px; height: 22px; font-size: 0.8rem; font-weight: 900;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 0 12px rgba(239,68,68,0.8); animation: pulseAura 1.5s infinite;
+        }
+        .quest-card {
+            display: flex; justify-content: space-between; align-items: center; 
+            background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 12px;
+            transition: all 0.3s ease; border: 1px solid transparent;
+        }
+        .quest-card.done { border-color: var(--success); box-shadow: inset 0 0 15px rgba(16,185,129,0.1); }
+
         .avatar-options { display: flex; justify-content: center; gap: 12px; margin-bottom: 25px; font-size: 2.2rem; cursor: pointer; flex-wrap: wrap; }
         .avatar-option { opacity: 0.3; transition: all 0.2s ease; padding: 8px; border-radius: 12px; border: 1px solid transparent; background: rgba(0,0,0,0.2); }
         .avatar-option:hover { opacity: 0.7; transform: translateY(-2px); }
@@ -230,7 +243,16 @@
             <h2 style="font-size: 2.5rem; margin-bottom:5px; color:var(--text-main);">🎁 Daily Login!</h2>
             <p style="font-size: 1.1rem; color:var(--text-muted);">Willkommen zurück! Du erhältst:</p>
             <div style="font-size: 3.5rem; color: var(--warning); font-weight: 900; text-shadow: 0 4px 15px rgba(245,158,11,0.4); margin: 20px 0;">+50 🪙</div>
-            <button class="btn-success" onclick="document.getElementById('daily-popup').style.display='none';" style="width: 100%; font-size:1.2rem; padding:15px;">Einsammeln</button>
+            <button class="btn-success" onclick="document.getElementById('daily-popup').style.display='none'; document.getElementById('missions-modal').style.display='flex'; SoundFX.play('clack');" style="width: 100%; font-size:1.2rem; padding:15px;">Einsammeln</button>
+        </div>
+    </div>
+
+    <div id="missions-modal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 4000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+        <div class="panel" style="width: 100%; max-width: 450px; text-align: left; position: relative; border-top: 4px solid var(--success); animation: bump 0.4s ease-out;">
+            <button onclick="document.getElementById('missions-modal').style.display='none'" style="position: absolute; top: 15px; right: 15px; background: transparent; border: none; color: var(--text-muted); font-size: 1.5rem; padding: 0;">✖</button>
+            <h2 style="margin-top:0; color:var(--text-main); text-align:center; font-size: 2rem;">📜 Daily Missions</h2>
+            <p style="text-align:center; color:var(--text-muted); font-size:0.95rem; margin-bottom:25px;">Erfülle Aufgaben für fette Belohnungen!</p>
+            <div id="missions-list"></div>
         </div>
     </div>
 
@@ -238,6 +260,10 @@
         <button class="top-btn btn-outline" id="leave-room-btn" style="display:none; color: var(--danger); border-color: rgba(239,68,68,0.3);">🚪 Verlassen</button>
         <button class="top-btn btn-outline" id="mute-btn">🔊</button>
         <button class="top-btn btn-outline" id="profile-btn" style="display:none;">👤 Profil</button> 
+        <button class="top-btn btn-outline" id="btn-missions" style="display:none; position: relative; border-color: var(--success); color: var(--success);">
+            📜 Quests
+            <div id="missions-badge" class="notification-badge" style="display: none;">0</div>
+        </button>
         <button class="top-btn btn-outline" id="coin-display" style="display:none; color: var(--warning); border-color: rgba(245,158,11,0.3); transition: all 0.2s;">🪙 0</button> 
     </div>
 
@@ -642,6 +668,7 @@
             loginScreen.style.display = "block"; 
             document.getElementById('profile-btn').style.display = "none"; 
             document.getElementById('coin-display').style.display = "none"; 
+            document.getElementById('btn-missions').style.display = "none";
         });
 
         document.querySelectorAll('.avatar-option').forEach(el => {
@@ -677,6 +704,49 @@
                 else if(myCoins >= price) { btn.innerText = `${price} 🪙 Kaufen`; btn.className = "btn-shop"; btn.style.background = "var(--bg-base)"; btn.style.borderColor = "var(--primary)"; btn.disabled = false; } 
                 else { btn.innerText = `${price} 🪙 (Zu teuer)`; btn.className = "btn-shop btn-outline"; btn.disabled = true; }
             });
+
+            // Missions-Button anzeigen
+            document.getElementById('btn-missions').style.display = "inline-block";
+            
+            // Quests rendern & Badge berechnen
+            const mList = document.getElementById('missions-list');
+            const mBadge = document.getElementById('missions-badge');
+            if (mList && data.quests) {
+                mList.innerHTML = "";
+                let claimableCount = 0;
+                
+                for (let key in data.quests) {
+                    if(key === 'date') continue;
+                    let q = data.quests[key];
+                    let isDone = q.current >= q.target;
+                    let canClaim = isDone && !q.claimed;
+                    if (canClaim) claimableCount++;
+                    
+                    let btnHtml = "";
+                    if (q.claimed) {
+                        btnHtml = `<span style="color:var(--success); font-weight:700; font-size:0.9rem;">Erledigt ✅</span>`;
+                    } else if (isDone) {
+                        btnHtml = `<button class="btn-success" onclick="claimQuest('${key}', event)" style="font-size:0.85rem; padding: 8px 16px; margin:0; box-shadow: 0 0 15px rgba(16,185,129,0.5); animation: pulseAura 1.5s infinite;">+${q.reward} 🪙</button>`;
+                    } else {
+                        btnHtml = `<span style="font-size:0.9rem; color:var(--text-muted); font-weight:600;">${q.current} / ${q.target}</span>`;
+                    }
+                    
+                    mList.innerHTML += `
+                        <div class="quest-card ${isDone && !q.claimed ? 'done' : ''}">
+                            <div style="font-size: 0.95rem; font-weight: 500; color: ${q.claimed ? 'var(--text-muted)' : 'var(--text-main)'};">${q.desc}</div>
+                            <div>${btnHtml}</div>
+                        </div>
+                    `;
+                }
+                
+                // Badge Update (Die kleine rote Zahl)
+                if (claimableCount > 0) {
+                    mBadge.innerText = claimableCount;
+                    mBadge.style.display = "flex";
+                } else {
+                    mBadge.style.display = "none";
+                }
+            }
         });
 
         document.getElementById('btn-goto-shop').addEventListener('click', () => { menuScreen.style.display = "none"; shopScreen.style.display = "block"; });
@@ -1259,6 +1329,50 @@
             pageClickX = event.pageX; pageClickY = event.pageY;
 
             const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; lastClickX = (event.clientX - rect.left) * scaleX; lastClickY = (event.clientY - rect.top) * scaleY; const gridX = Math.round((lastClickX - padding) / currentCellSize); const gridY = Math.round((lastClickY - padding) / currentCellSize); const actualX = viewMinX + gridX; const actualY = viewMinY + gridY; if (actualX >= 0 && actualX <= 18 && actualY >= 0 && actualY <= 18) { let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === actualX && s.y === actualY) isOccupied = true; }); if (isOccupied) return; myPlacedStone = { x: actualX, y: actualY }; canClick = false; SoundFX.play('clack'); renderScene(); socket.emit('guess', { x: actualX, y: actualY }); } 
+        });
+
+        // NEU: Button öffnet das Modal
+        document.getElementById('btn-missions').addEventListener('click', () => {
+            document.getElementById('missions-modal').style.display = "flex";
+            SoundFX.play('clack');
+        });
+
+        // NEU: Quest abholen (mit Coin-Flug Animation!)
+        window.claimQuest = function(questId, event) {
+            socket.emit('claim_quest', { token: myToken, questId: questId });
+            
+            // Game Juice: Fliegende Münze vom Klick zum Coin-Display!
+            const coinDiv = document.createElement('div');
+            coinDiv.className = 'flying-coin';
+            coinDiv.innerText = "🪙";
+            coinDiv.style.left = event.pageX + "px";
+            coinDiv.style.top = event.pageY + "px";
+            document.body.appendChild(coinDiv);
+
+            setTimeout(() => {
+                const wallet = document.getElementById('coin-display');
+                if(wallet) {
+                    const rect = wallet.getBoundingClientRect();
+                    coinDiv.style.left = (rect.left + rect.width / 2 - 15) + "px";
+                    coinDiv.style.top = (rect.top + rect.height / 2 - 15) + "px";
+                    coinDiv.style.transform = "scale(0.5)";
+                    coinDiv.style.opacity = "0";
+                }
+            }, 10);
+
+            setTimeout(() => { coinDiv.remove(); }, 710);
+        };
+
+        // NEU: Feedback wenn Claim bestätigt
+        socket.on('quest_claimed', (data) => {
+            SoundFX.play('win');
+            // Das Wallet (Coin Display) kurz aufblinken lassen
+            const wallet = document.getElementById('coin-display');
+            if(wallet) {
+                wallet.classList.remove('coin-bump');
+                void wallet.offsetWidth; 
+                wallet.classList.add('coin-bump');
+            }
         });
     </script>
 </body>

@@ -99,6 +99,16 @@ function finishMatch(matchId, winnerColor, reasonStr) {
         l.matchHistory = l.matchHistory || [];
         l.matchHistory.unshift({ opponent: winner.name, result: 'Niederlage', eloChange: pointChangeL, date: dateStr });
         if(l.matchHistory.length > 5) l.matchHistory.pop();
+
+        // NEU: Quests für 1v1 hochzählen
+        let todayStr = new Date().toISOString().split('T')[0];
+        if (w.quests && w.quests.date === todayStr) {
+            if (w.quests.play.current < w.quests.play.target) w.quests.play.current++;
+            if (w.quests.win.current < w.quests.win.target) w.quests.win.current++;
+        }
+        if (l.quests && l.quests.date === todayStr) {
+            if (l.quests.play.current < l.quests.play.target) l.quests.play.current++;
+        }
         
         saveDB();
         
@@ -306,12 +316,37 @@ io.on('connection', (socket) => {
         u.coins = u.coins || 0; u.inventory = u.inventory || []; u.equipped = u.equipped || {title: null, aura: null};
         u.wins = u.wins || 0; u.losses = u.losses || 0; u.matchHistory = u.matchHistory || [];
         
+        // NEU: Tägliche Missionen (Game Juice)
+        if(!u.quests || u.quests.date !== today) {
+            u.quests = {
+                date: today,
+                play: { current: 0, target: 3, reward: 50, claimed: false, desc: "⚔️ Spiele 3x 1v1-Arena" },
+                win: { current: 0, target: 1, reward: 50, claimed: false, desc: "🏆 Gewinne 1x 1v1-Arena" },
+                tsumego: { current: 0, target: 5, reward: 30, claimed: false, desc: "🧩 Löse 5 Tsumegos" }
+            };
+        }
+
         let dailyReward = 0;
         if(u.lastLogin !== today) { u.coins += 50; u.lastLogin = today; dailyReward = 50; }
         u.rank = getRank(u.elo); saveDB();
         
         socket.emit('update_stats', u);
         if(dailyReward > 0) socket.emit('daily_reward', dailyReward);
+    });
+
+    // NEU: Belohnung abholen
+    socket.on('claim_quest', (data) => {
+        let u = userDB[data.token];
+        if(u && u.quests && u.quests[data.questId]) {
+            let q = u.quests[data.questId];
+            if(q.current >= q.target && !q.claimed) {
+                q.claimed = true;
+                u.coins += q.reward;
+                saveDB();
+                socket.emit('update_stats', u);
+                socket.emit('quest_claimed', { reward: q.reward, id: data.questId });
+            }
+        }
     });
 
     socket.on('delete_profile', (token) => { if(userDB[token]) { delete userDB[token]; saveDB(); } });
@@ -534,9 +569,16 @@ io.on('connection', (socket) => {
             player.combo += 1; let basePoints = 100 + (r.timeLeft * (100 / r.settings.timeLimit)); let comboBonus = (player.combo > 1) ? (player.combo - 1) * 50 : 0; let totalPoints = Math.round(basePoints + comboBonus); player.score += totalPoints; 
             
             if (userDB[player.token]) {
-                userDB[player.token].coins = (userDB[player.token].coins || 0) + 2;
+                let uDB = userDB[player.token];
+                uDB.coins = (uDB.coins || 0) + 2;
+                
+                // NEU: Tsumego Quest hochzählen
+                if(uDB.quests && uDB.quests.date === new Date().toISOString().split('T')[0]) {
+                    if(uDB.quests.tsumego.current < uDB.quests.tsumego.target) uDB.quests.tsumego.current++;
+                }
+
                 saveDB();
-                io.to(player.id).emit('update_stats', userDB[player.token]);
+                io.to(player.id).emit('update_stats', uDB);
             }
 
             socket.emit('correct_guess', { points: totalPoints, combo: player.combo }); socket.to(currentRoom).emit('round_won_by_other', { winnerName: player.name, x: data.x, y: data.y }); for (let id in r.players) { if (id !== socket.id) r.players[id].combo = 0; } broadcastLeaderboard(currentRoom); nextLevel(currentRoom); 
