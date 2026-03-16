@@ -140,8 +140,14 @@
         .lb-name { flex-grow: 1; font-weight: 600; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; padding-left: 10px;}
         .lb-score { color: var(--primary); font-weight: 800; }
 
-        .floating-points { position: absolute; color: var(--success); font-size: 2rem; font-weight: 900; pointer-events: none; text-shadow: 0 4px 12px rgba(0,0,0,0.8); animation: floatUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; z-index: 100; }
+        /* NEU: Repariertes Styling für fliegende Punkte und die neuen Coins */
+        .floating-points { position: absolute; color: var(--success); font-size: 2rem; font-weight: 900; pointer-events: none; text-shadow: 0 4px 12px rgba(0,0,0,0.8); animation: floatUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; z-index: 9998; }
         @keyframes floatUp { 0% { transform: translateY(0) scale(0.8); opacity: 0; } 20% { transform: translateY(-20px) scale(1.1); opacity: 1; } 100% { transform: translateY(-60px) scale(1); opacity: 0; } }
+
+        .flying-coin { position: absolute; color: var(--warning); font-size: 1.8rem; font-weight: 900; pointer-events: none; text-shadow: 0 4px 12px rgba(0,0,0,0.8); z-index: 9999; transition: left 0.7s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.7s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.7s, opacity 0.7s; }
+        
+        .coin-bump { animation: bump 0.4s ease-out; }
+        @keyframes bump { 0% { transform: scale(1); } 50% { transform: scale(1.3); background: rgba(245,158,11,0.2); } 100% { transform: scale(1); } }
 
         .podium { display: flex; justify-content: center; align-items: flex-end; gap: 15px; margin: 40px auto; height: 180px; max-width: 500px; }
         .podium-place { width: 110px; text-align: center; border-radius: 8px 8px 0 0; color: #0f111a; font-weight: 700; padding-top: 15px; font-size: 1.5rem; display: flex; flex-direction: column; justify-content: flex-start; box-shadow: 0 -5px 20px rgba(0,0,0,0.4); transition: transform 0.5s;}
@@ -193,7 +199,7 @@
         <button class="top-btn btn-outline" id="leave-room-btn" style="display:none; color: var(--danger); border-color: rgba(239,68,68,0.3);">🚪 Verlassen</button>
         <button class="top-btn btn-outline" id="mute-btn">🔊</button>
         <button class="top-btn btn-outline" id="profile-btn" style="display:none;">👤 Profil</button> 
-        <button class="top-btn btn-outline" id="coin-display" style="display:none; color: var(--warning); border-color: rgba(245,158,11,0.3); pointer-events: none;">🪙 0</button> 
+        <button class="top-btn btn-outline" id="coin-display" style="display:none; color: var(--warning); border-color: rgba(245,158,11,0.3); transition: all 0.2s;">🪙 0</button> 
     </div>
 
     <div id="login-screen">
@@ -365,7 +371,6 @@
     </div>
 
     <div id="room-container">
-        
         <div id="global-chat">
             <h3 style="margin: 0 0 15px 0; color: var(--text-main); font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">💬 Raum Chat</h3>
             <div id="chat-messages"></div>
@@ -502,6 +507,7 @@
 
         const socket = io(); let isMuted = false;
         document.getElementById('mute-btn').addEventListener('click', () => { isMuted = !isMuted; document.getElementById('mute-btn').innerText = isMuted ? "🔇" : "🔊"; });
+
         document.getElementById('leave-room-btn').addEventListener('click', () => { location.reload(); });
 
         const SoundFX = {
@@ -525,6 +531,9 @@
         
         let myName = ""; let myAvatar = "🦊"; let amIHost = false; 
         let myToken = ""; let myRank = "30k"; let myElo = 1000; let myCoins = 0; let myInventory = []; let myEquipped = {};
+
+        // NEU: Globale Variablen für den echten Maus-Klick auf dem Bildschirm
+        let pageClickX = 0; let pageClickY = 0;
 
         window.onload = () => {
             const savedName = localStorage.getItem('goRushName'); const savedAvatar = localStorage.getItem('goRushAvatar');
@@ -561,7 +570,6 @@
             } 
         });
 
-        // NEU: REWARDS & SHOP UPDATE
         socket.on('daily_reward', (amount) => {
             SoundFX.play('win');
             document.getElementById('daily-popup').style.display = "flex";
@@ -572,7 +580,6 @@
             document.getElementById('profile-btn').innerHTML = `👤 [${myRank}] Profil`; 
             document.getElementById('coin-display').innerText = `🪙 ${myCoins}`;
             
-            // Update Shop Buttons
             document.querySelectorAll('.btn-shop').forEach(btn => {
                 let itemId = btn.getAttribute('data-id');
                 let price = parseInt(btn.getAttribute('data-price'));
@@ -590,7 +597,6 @@
             });
         });
 
-        // NEU: SHOP LOGIK
         document.getElementById('btn-goto-shop').addEventListener('click', () => { menuScreen.style.display = "none"; shopScreen.style.display = "block"; });
         document.getElementById('btn-back-from-shop').addEventListener('click', () => { shopScreen.style.display = "none"; menuScreen.style.display = "block"; });
         
@@ -1036,14 +1042,69 @@
         socket.on('game_already_started', () => { loginScreen.style.display = "none"; menuScreen.style.display = "none"; lobbyScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex"; gameScreen.style.display = "block"; });
         socket.on('new_round', (data) => { canClick = true; currentPuzzle = data.puzzle; roundTimeLimit = data.maxTime; myPlacedStone = null; timeoutSolutions = null; winningHighlight = null; hoverX = -1; hoverY = -1; msgLabel.innerText = data.puzzle.msg; msgLabel.style.color = "#f8fafc"; calculateZoomView(data.puzzle); renderScene(); });
         socket.on('timer', (timeLeft) => { timerLabel.innerText = "Zeit: " + timeLeft; let pct = (timeLeft / roundTimeLimit) * 100; tBar.style.width = pct + "%"; if (pct > 50) tBar.style.background = "#10b981"; else if (pct > 25) tBar.style.background = "#f59e0b"; else tBar.style.background = "#ef4444"; timerLabel.style.color = timeLeft <= (roundTimeLimit * 0.3) ? "#ef4444" : "#f59e0b"; });
-        socket.on('correct_guess', (data) => { canClick = false; myScore += data.points; scoreLabel.innerText = "Score: " + myScore; let winText = "RICHTIG! +" + data.points + " Punkte!"; if (data.combo > 1) winText += " 🔥 COMBO x" + data.combo; msgLabel.innerText = winText; msgLabel.style.color = "#10b981"; SoundFX.play('win'); const floatDiv = document.createElement('div'); floatDiv.className = 'floating-points'; floatDiv.innerText = "+" + data.points; if (data.combo > 1) floatDiv.innerText += " 🔥"; floatDiv.style.left = lastClickX + "px"; floatDiv.style.top = lastClickY + "px"; document.getElementById('board-container').appendChild(floatDiv); setTimeout(() => { floatDiv.remove(); }, 1000); renderScene(); });
+        
+        socket.on('correct_guess', (data) => { 
+            canClick = false; myScore += data.points; scoreLabel.innerText = "Score: " + myScore; 
+            let winText = "RICHTIG! +" + data.points + " Punkte!"; 
+            if (data.combo > 1) winText += " 🔥 COMBO x" + data.combo; 
+            msgLabel.innerText = winText; msgLabel.style.color = "#10b981"; 
+            SoundFX.play('win'); 
+
+            // 1. GEFIXT: Schwebende Punkte direkt an der Maus
+            const floatDiv = document.createElement('div'); 
+            floatDiv.className = 'floating-points'; 
+            floatDiv.innerText = "+" + data.points + (data.combo > 1 ? " 🔥" : ""); 
+            floatDiv.style.left = pageClickX + "px"; 
+            floatDiv.style.top = pageClickY + "px"; 
+            document.body.appendChild(floatDiv); 
+            setTimeout(() => { floatDiv.remove(); }, 1000); 
+
+            // 2. NEU: Die fliegenden Coins!
+            const coinDiv = document.createElement('div');
+            coinDiv.className = 'flying-coin';
+            coinDiv.innerText = "+2 🪙";
+            coinDiv.style.left = pageClickX + "px";
+            coinDiv.style.top = (pageClickY + 30) + "px";
+            document.body.appendChild(coinDiv);
+
+            setTimeout(() => {
+                const wallet = document.getElementById('coin-display');
+                if(wallet) {
+                    const rect = wallet.getBoundingClientRect();
+                    coinDiv.style.left = (rect.left + rect.width / 2 - 15) + "px";
+                    coinDiv.style.top = (rect.top + rect.height / 2 - 15) + "px";
+                    coinDiv.style.transform = "scale(0.5)";
+                    coinDiv.style.opacity = "0";
+                }
+            }, 10);
+
+            setTimeout(() => {
+                coinDiv.remove();
+                const wallet = document.getElementById('coin-display');
+                if(wallet) {
+                    wallet.classList.remove('coin-bump');
+                    void wallet.offsetWidth; 
+                    wallet.classList.add('coin-bump');
+                }
+            }, 710); 
+
+            renderScene(); 
+        });
+
         socket.on('wrong_guess', () => { msgLabel.innerText = "Daneben! ⏳ 1.5 Sekunden Strafe..."; msgLabel.style.color = "#ef4444"; myPlacedStone = null; SoundFX.play('lose'); renderScene(); setTimeout(() => { if (msgLabel.innerText.includes("Strafe")) { canClick = true; msgLabel.innerText = "Weiter geht's! Versuch es nochmal!"; msgLabel.style.color = "#f8fafc"; } }, 1500); });
         socket.on('round_won_by_other', (data) => { canClick = false; msgLabel.innerText = "Zu langsam! " + data.winnerName + " war schneller!"; msgLabel.style.color = "#3b82f6"; SoundFX.play('lose'); winningHighlight = { x: data.x, y: data.y }; renderScene(); });
         socket.on('timeout', (solutions) => { canClick = false; msgLabel.innerText = "ZEIT ABGELAUFEN! 💀 Hier ist die Lösung:"; msgLabel.style.color = "#ef4444"; timeoutSolutions = solutions; SoundFX.play('lose'); renderScene(); });
         
         canvas.addEventListener('mousemove', (event) => { if (!canClick) return; const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; const gridX = Math.round(((event.clientX - rect.left) * scaleX - padding) / currentCellSize); const gridY = Math.round(((event.clientY - rect.top) * scaleY - padding) / currentCellSize); const realX = viewMinX + gridX; const realY = viewMinY + gridY; if (realX !== hoverX || realY !== hoverY) { hoverX = realX; hoverY = realY; renderScene(); } });
         canvas.addEventListener('mouseout', () => { hoverX = -1; hoverY = -1; renderScene(); });
-        canvas.addEventListener('click', (event) => { if (!canClick) return; const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; lastClickX = (event.clientX - rect.left) * scaleX; lastClickY = (event.clientY - rect.top) * scaleY; const gridX = Math.round((lastClickX - padding) / currentCellSize); const gridY = Math.round((lastClickY - padding) / currentCellSize); const actualX = viewMinX + gridX; const actualY = viewMinY + gridY; if (actualX >= 0 && actualX <= 18 && actualY >= 0 && actualY <= 18) { let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === actualX && s.y === actualY) isOccupied = true; }); if (isOccupied) return; myPlacedStone = { x: actualX, y: actualY }; canClick = false; SoundFX.play('clack'); renderScene(); socket.emit('guess', { x: actualX, y: actualY }); } });
+        canvas.addEventListener('click', (event) => { 
+            if (!canClick) return; 
+            
+            // GEFIXT: Speichere die exakte Position auf dem Bildschirm für das Pop-up!
+            pageClickX = event.pageX; pageClickY = event.pageY;
+
+            const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; lastClickX = (event.clientX - rect.left) * scaleX; lastClickY = (event.clientY - rect.top) * scaleY; const gridX = Math.round((lastClickX - padding) / currentCellSize); const gridY = Math.round((lastClickY - padding) / currentCellSize); const actualX = viewMinX + gridX; const actualY = viewMinY + gridY; if (actualX >= 0 && actualX <= 18 && actualY >= 0 && actualY <= 18) { let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === actualX && s.y === actualY) isOccupied = true; }); if (isOccupied) return; myPlacedStone = { x: actualX, y: actualY }; canClick = false; SoundFX.play('clack'); renderScene(); socket.emit('guess', { x: actualX, y: actualY }); } 
+        });
     </script>
 </body>
 </html>
