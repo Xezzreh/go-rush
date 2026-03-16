@@ -43,7 +43,7 @@ function finishMatch(matchId, winnerColor, reasonStr) {
     let loser = match.players[winnerColor === 'black' ? 'white' : 'black'];
     
     let wToken = winner.token; let lToken = loser.token;
-    if(userDB[wToken] && userDB[lToken]) {
+    if(userDB[wToken] && userDB[lToken] && wToken !== lToken) { // Wenn man nicht gegen sich selbst spielt
         let w = userDB[wToken]; let l = userDB[lToken];
         let expW = 1 / (1 + Math.pow(10, (l.elo - w.elo) / 400));
         let expL = 1 / (1 + Math.pow(10, (w.elo - l.elo) / 400));
@@ -160,7 +160,6 @@ function getGroupOfColor(board, startX, startY, size) {
     return group;
 }
 
-// NEU: Diese Funktion gibt jetzt eine "territoryMap" mit zurück, damit der Client es zeichnen kann!
 function calculateJapaneseScore(board, captures, deadStonesSet, komi, size) {
     let w = size === 'polar' ? 24 : size; let h = size === 'polar' ? 6 : size;
     let blackTerritory = 0; let whiteTerritory = 0;
@@ -287,7 +286,12 @@ io.on('connection', (socket) => {
 
     socket.on('create_challenge', (data) => { 
         const challengeId = 'chal_' + socket.id; 
-        challenges[challengeId] = { id: challengeId, challengerId: socket.id, challengerName: data.name, challengerAvatar: data.avatar, token: data.token, boardSize: data.boardSize, timeSetting: data.timeSetting, handicap: parseInt(data.handicap) }; 
+        // GEFIXT: boardSize wird nun direkt hier in eine Zahl umgewandelt (außer bei 'polar')
+        let parsedSize = data.boardSize === 'polar' ? 'polar' : parseInt(data.boardSize);
+        challenges[challengeId] = { 
+            id: challengeId, challengerId: socket.id, challengerName: data.name, challengerAvatar: data.avatar, token: data.token, 
+            boardSize: parsedSize, timeSetting: data.timeSetting, handicap: parseInt(data.handicap) 
+        }; 
         broadcastMatchmaking(); 
     });
     
@@ -299,7 +303,7 @@ io.on('connection', (socket) => {
             const newRoomId = '1v1_' + Math.random().toString(36).substring(2,8);
             let emptyBoard;
             if(chal.boardSize === 'polar') { emptyBoard = Array(24).fill(null).map(() => Array(6).fill(null)); } 
-            else { let s = parseInt(chal.boardSize); emptyBoard = Array(s).fill(null).map(() => Array(s).fill(null)); }
+            else { emptyBoard = Array(chal.boardSize).fill(null).map(() => Array(chal.boardSize).fill(null)); }
             
             let parts = chal.timeSetting.split('_'); let mainT = parseInt(parts[0].replace('m','')) * 60; let pCount = parseInt(parts[1]); let byoT = parseInt(parts[2]);
             let hcapStones = getHandicapStones(chal.boardSize, chal.handicap);
@@ -319,8 +323,9 @@ io.on('connection', (socket) => {
             if(currentRoom && rooms[currentRoom]) { delete rooms[currentRoom].players[socket.id]; socket.leave(currentRoom); broadcastLeaderboard(currentRoom); }
             socket.join(newRoomId); const opponentSocket = io.sockets.sockets.get(chal.challengerId); if(opponentSocket) opponentSocket.join(newRoomId);
 
-            io.to(chal.challengerId).emit('1v1_match_started', { roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, avatarBlack: chal.challengerAvatar, playerWhite: acceptorData.name, avatarWhite: acceptorData.avatar, myColor: 'black', komi: initialKomi, timers: active1v1Matches[newRoomId].timers, board: emptyBoard, turn: initialTurn });
-            socket.emit('1v1_match_started', { roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, avatarBlack: chal.challengerAvatar, playerWhite: acceptorData.name, avatarWhite: acceptorData.avatar, myColor: 'white', komi: initialKomi, timers: active1v1Matches[newRoomId].timers, board: emptyBoard, turn: initialTurn });
+            // GEFIXT: state: 'playing' wird jetzt direkt an den Client mitgeliefert!
+            io.to(chal.challengerId).emit('1v1_match_started', { roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, avatarBlack: chal.challengerAvatar, playerWhite: acceptorData.name, avatarWhite: acceptorData.avatar, myColor: 'black', komi: initialKomi, timers: active1v1Matches[newRoomId].timers, board: emptyBoard, turn: initialTurn, state: 'playing' });
+            socket.emit('1v1_match_started', { roomId: newRoomId, size: chal.boardSize, playerBlack: chal.challengerName, avatarBlack: chal.challengerAvatar, playerWhite: acceptorData.name, avatarWhite: acceptorData.avatar, myColor: 'white', komi: initialKomi, timers: active1v1Matches[newRoomId].timers, board: emptyBoard, turn: initialTurn, state: 'playing' });
             delete challenges[challengeId]; broadcastMatchmaking();
         }
     });
@@ -406,7 +411,6 @@ io.on('connection', (socket) => {
         match.passes++; match.turn = (myColor === 'black') ? 'white' : 'black'; match.moveList.push({ color: myColor, pass: true });
         if(match.timers[myColor].main <= 0 && match.timers[myColor].periods > 0) match.timers[myColor].byo = match.settings.byoTime;
         
-        // NEU: Wenn das Spiel in die Zählphase geht, sende das Map-Data direkt mit
         if(match.passes >= 2) { 
             match.state = 'scoring'; 
             let scoreData = calculateJapaneseScore(match.board, match.captures, match.deadStones, match.komi, match.size);
@@ -429,7 +433,6 @@ io.on('connection', (socket) => {
         });
         match.accepts.black = false; match.accepts.white = false;
         
-        // NEU: Aktualisiertes Territory an Client schicken
         let scoreData = calculateJapaneseScore(match.board, match.captures, match.deadStones, match.komi, match.size);
         io.to(matchId).emit('1v1_scoring_update', { deadStones: Array.from(match.deadStones), accepts: match.accepts, scoreData: scoreData });
     });

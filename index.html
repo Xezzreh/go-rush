@@ -465,7 +465,6 @@
                             
                             <div id="pvp-scoring-actions" style="display:none; flex-direction: column; gap: 10px;">
                                 <div id="live-score-preview" style="font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: var(--text-main); text-align: center;"></div>
-                                
                                 <p style="font-size:0.9rem; color:var(--text-muted); margin:0;">Klicke auf tote Steine. Danach bestätigen.</p>
                                 <button id="btn-pvp-accept" class="btn-success" style="margin: 0;">Zählung akzeptieren</button>
                                 <p id="pvp-accept-status" style="font-size: 0.9rem; font-weight: 600; color:var(--warning); margin:0; text-align: center;"></p>
@@ -654,8 +653,6 @@
         let currentPvpMatch = null; let myPvpColor = null; let pvpBoardSize = 19; let pvpCellSize = 0; let pvpHoverX = -1, pvpHoverY = -1;
         let pvpState = 'playing'; let pvpDeadStones = new Set(); let pendingMoveX = -1; let pendingMoveY = -1;
         let lastPlayedGame = { moveList: [], size: 19 };
-        
-        // NEU: Globale Variable für das ScoreData, das vom Server kommt
         let currentScoreData = null;
 
         function formatTimerObj(t) { if(t.main > 0) { let m = Math.floor(t.main / 60); let s = t.main % 60; return m + ":" + (s < 10 ? "0" : "") + s; } else { return t.byo + "s (" + t.periods + "x)"; } }
@@ -675,13 +672,13 @@
             document.getElementById('pvp-confirm-area').style.display = "none"; pendingMoveX = -1; pendingMoveY = -1; document.getElementById('undo-popup').style.display = "none";
             currentScoreData = null;
             
-            currentPvpMatch = data.roomId; pvpBoardSize = data.size; 
+            currentPvpMatch = data.roomId; pvpBoardSize = data.size === 'polar' ? 'polar' : parseInt(data.size); 
             if(pvpBoardSize !== 'polar') pvpCellSize = (600 - padding * 2) / (pvpBoardSize - 1);
             
             document.getElementById('pvp-black-name').innerText = `⚫ ${data.avatarBlack} ${data.playerBlack}`; document.getElementById('pvp-white-name').innerText = `⚪ ${data.avatarWhite} ${data.playerWhite}`;
             
             if(data.board) {
-                currentPvpBoardState = data.board; currentPvpTurn = data.turn; pvpState = data.state; pvpDeadStones = new Set(data.deadStones || []);
+                currentPvpBoardState = data.board; currentPvpTurn = data.turn; pvpState = data.state || 'playing'; pvpDeadStones = new Set(data.deadStones || []);
                 document.getElementById('pvp-black-caps').innerText = data.captures ? data.captures.black : "0"; 
                 document.getElementById('pvp-white-caps').innerText = data.captures ? data.captures.white : "0";
                 if(data.timers) { document.getElementById('pvp-black-time').innerText = formatTimerObj(data.timers.black); document.getElementById('pvp-white-time').innerText = formatTimerObj(data.timers.white); }
@@ -712,7 +709,10 @@
             } else {
                 pvpCtx.strokeStyle = "rgba(0,0,0,0.7)"; pvpCtx.lineWidth = 1.5; pvpCtx.beginPath();
                 for (let i = 0; i < pvpBoardSize; i++) { let pos = padding + i * pvpCellSize; pvpCtx.moveTo(pos, padding); pvpCtx.lineTo(pos, padding + (pvpBoardSize - 1) * pvpCellSize); pvpCtx.moveTo(padding, pos); pvpCtx.lineTo(padding + (pvpBoardSize - 1) * pvpCellSize, pos); } pvpCtx.stroke();
-                let hoshi = []; if(pvpBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}]; if(pvpBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}]; if(pvpBoardSize === 9) hoshi = [{x:4,y:4}];
+                let hoshi = []; 
+                if(pvpBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}]; 
+                if(pvpBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}]; 
+                if(pvpBoardSize === 9) hoshi = [{x:2,y:2},{x:6,y:2},{x:4,y:4},{x:2,y:6},{x:6,y:6}]; 
                 pvpCtx.fillStyle = "#000"; hoshi.forEach(h => { let px = padding + h.x * pvpCellSize; let py = padding + h.y * pvpCellSize; pvpCtx.beginPath(); pvpCtx.arc(px, py, 4.5, 0, Math.PI * 2); pvpCtx.fill(); });
             }
         }
@@ -739,7 +739,6 @@
         function renderPvpScene(board, turn, lastMove) {
             drawPvpBoard();
             
-            // NEU: Wenn wir im Scoring Modus sind, male die Live-Territory Quadrate!
             if(pvpState === 'scoring' && currentScoreData && currentScoreData.territoryMap) {
                 pvpCtx.globalAlpha = 0.6;
                 currentScoreData.territoryMap.forEach(pt => {
@@ -793,7 +792,6 @@
         document.getElementById('btn-undo-no').addEventListener('click', () => { document.getElementById('undo-popup').style.display = "none"; socket.emit('1v1_respond_undo', {matchId: currentPvpMatch, accept: false}); });
         document.getElementById('btn-pvp-undo').addEventListener('click', () => { socket.emit('1v1_request_undo', currentPvpMatch); });
 
-        // NEU: Empfange das ScoreData für die Vorschau
         socket.on('1v1_scoring_phase', (data) => { 
             pvpState = 'scoring'; 
             if(data && data.scoreData) currentScoreData = data.scoreData;
@@ -936,7 +934,10 @@
             } else {
                 anaCtx.strokeStyle = "rgba(0,0,0,0.7)"; anaCtx.lineWidth = 1.5; anaCtx.beginPath();
                 for (let i = 0; i < analysisBoardSize; i++) { let pos = padding + i * analysisCellSize; anaCtx.moveTo(pos, padding); anaCtx.lineTo(pos, padding + (analysisBoardSize - 1) * analysisCellSize); anaCtx.moveTo(padding, pos); anaCtx.lineTo(padding + (analysisBoardSize - 1) * analysisCellSize, pos); } anaCtx.stroke();
-                let hoshi = []; if(analysisBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}]; if(analysisBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}]; if(analysisBoardSize === 9) hoshi = [{x:4,y:4}];
+                let hoshi = []; 
+                if(analysisBoardSize === 19) hoshi = [{x:3,y:3},{x:9,y:3},{x:15,y:3},{x:3,y:9},{x:9,y:9},{x:15,y:9},{x:3,y:15},{x:9,y:15},{x:15,y:15}]; 
+                if(analysisBoardSize === 13) hoshi = [{x:3,y:3},{x:9,y:3},{x:6,y:6},{x:3,y:9},{x:9,y:9}]; 
+                if(analysisBoardSize === 9) hoshi = [{x:2,y:2},{x:6,y:2},{x:4,y:4},{x:2,y:6},{x:6,y:6}]; 
                 anaCtx.fillStyle = "#000"; hoshi.forEach(h => { let px = padding + h.x * analysisCellSize; let py = padding + h.y * analysisCellSize; anaCtx.beginPath(); anaCtx.arc(px, py, 4.5, 0, Math.PI * 2); anaCtx.fill(); });
             }
         }
