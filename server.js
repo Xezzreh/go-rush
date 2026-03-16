@@ -1,4 +1,5 @@
 // --- server.js ---
+require('dotenv').config(); // NEU: Lädt die geheimen Variablen aus der .env Datei
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
@@ -7,12 +8,12 @@ const fs = require('fs');
 const path = require('path'); 
 const nodemailer = require('nodemailer'); // Postbote
 
-// NEU: E-Mail-Postbote einrichten
+// NEU: E-Mail-Postbote einrichten (greift auf .env zu)
 const transporter = nodemailer.createTransport({
-    service: 'gmail', // Wenn du kein Gmail nutzt, musst du hier host/port eintragen
+    service: 'gmail', 
     auth: {
-        user: 'DEINE_EMAIL@gmail.com', // Trage hier deine echte E-Mail ein
-        pass: 'DEIN_16_STELLIGES_APP_PASSWORT' // Das Passwort aus Schritt 2 (ohne Leerzeichen)
+        user: process.env.EMAIL_USER, // Holt die Mail-Adresse aus der .env
+        pass: process.env.EMAIL_PASS  // Holt das App-Passwort aus der .env
     }
 });
 
@@ -274,11 +275,11 @@ setInterval(() => {
 io.on('connection', (socket) => {
     let currentRoom = null; 
 
-    // NEU: Feedback als E-Mail senden
+    // NEU: Feedback als E-Mail senden (Nutzt jetzt die .env Datei!)
     socket.on('submit_feedback', (data) => {
         const mailOptions = {
-            from: 'DEINE_EMAIL@gmail.com',       // Dein Absender
-            to: 'DEINE_EMAIL@gmail.com',         // Wo soll die Mail ankommen? (Wahrscheinlich an dich selbst)
+            from: process.env.EMAIL_USER,       // Dein Absender (aus der .env)
+            to: process.env.EMAIL_USER,         // Schickt die Mail an sich selbst (aus der .env)
             subject: `💡 Neues Go-Rush Feedback von ${data.name}`,
             text: `Spieler: ${data.name}\n\nNachricht:\n${data.text}`
         };
