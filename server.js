@@ -5,10 +5,10 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const fs = require('fs'); 
 const path = require('path'); 
-const { Resend } = require('resend'); // NEU: Resend geladen
+const { Resend } = require('resend'); // WICHTIG: Das fehlte!
 
-// HIER DEINEN API-KEY EINFÜGEN! (Z.B. 're_123456789...')
-const resend = new Resend('re_dGC46f9v_46CfzH6CS9j9KUYRf4mGhRtk'); 
+// Wir holen den Key jetzt sicher aus den geheimen Render-Einstellungen
+const resend = new Resend(process.env.RESEND_API_KEY); 
 
 app.use(express.json()); // Damit der Server die JSON-Daten vom Frontend lesen kann
 
@@ -20,6 +20,16 @@ app.get('/', (req, res) => {
 app.post('/send-message', async (req, res) => {
     const userName = req.body.name || "Unbekannter Spieler";
     const userMessage = req.body.message;
+
+    // --- UNSER SPION FÜR DIE LOGS ---
+    console.log("=== API KEY CHECK ===");
+    console.log("Wurde ein Key gefunden?:", process.env.RESEND_API_KEY ? "JA ✅" : "NEIN ❌ (Ist undefined)");
+    if (process.env.RESEND_API_KEY) {
+        console.log("Länge des Keys:", process.env.RESEND_API_KEY.length, "Zeichen");
+        console.log("Fängt an mit:", process.env.RESEND_API_KEY.substring(0, 4));
+    }
+    console.log("=======================");
+    // --------------------------------
 
     try {
         const data = await resend.emails.send({
