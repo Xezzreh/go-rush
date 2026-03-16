@@ -140,12 +140,10 @@
         .lb-name { flex-grow: 1; font-weight: 600; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; padding-left: 10px;}
         .lb-score { color: var(--primary); font-weight: 800; }
 
-        /* NEU: Repariertes Styling für fliegende Punkte und die neuen Coins */
         .floating-points { position: absolute; color: var(--success); font-size: 2rem; font-weight: 900; pointer-events: none; text-shadow: 0 4px 12px rgba(0,0,0,0.8); animation: floatUp 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; z-index: 9998; }
         @keyframes floatUp { 0% { transform: translateY(0) scale(0.8); opacity: 0; } 20% { transform: translateY(-20px) scale(1.1); opacity: 1; } 100% { transform: translateY(-60px) scale(1); opacity: 0; } }
 
         .flying-coin { position: absolute; color: var(--warning); font-size: 1.8rem; font-weight: 900; pointer-events: none; text-shadow: 0 4px 12px rgba(0,0,0,0.8); z-index: 9999; transition: left 0.7s cubic-bezier(0.2, 0.8, 0.2, 1), top 0.7s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.7s, opacity 0.7s; }
-        
         .coin-bump { animation: bump 0.4s ease-out; }
         @keyframes bump { 0% { transform: scale(1); } 50% { transform: scale(1.3); background: rgba(245,158,11,0.2); } 100% { transform: scale(1); } }
 
@@ -466,6 +464,8 @@
                             </div>
                             
                             <div id="pvp-scoring-actions" style="display:none; flex-direction: column; gap: 10px;">
+                                <div id="live-score-preview" style="font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; color: var(--text-main); text-align: center;"></div>
+                                
                                 <p style="font-size:0.9rem; color:var(--text-muted); margin:0;">Klicke auf tote Steine. Danach bestätigen.</p>
                                 <button id="btn-pvp-accept" class="btn-success" style="margin: 0;">Zählung akzeptieren</button>
                                 <p id="pvp-accept-status" style="font-size: 0.9rem; font-weight: 600; color:var(--warning); margin:0; text-align: center;"></p>
@@ -507,7 +507,6 @@
 
         const socket = io(); let isMuted = false;
         document.getElementById('mute-btn').addEventListener('click', () => { isMuted = !isMuted; document.getElementById('mute-btn').innerText = isMuted ? "🔇" : "🔊"; });
-
         document.getElementById('leave-room-btn').addEventListener('click', () => { location.reload(); });
 
         const SoundFX = {
@@ -531,8 +530,6 @@
         
         let myName = ""; let myAvatar = "🦊"; let amIHost = false; 
         let myToken = ""; let myRank = "30k"; let myElo = 1000; let myCoins = 0; let myInventory = []; let myEquipped = {};
-
-        // NEU: Globale Variablen für den echten Maus-Klick auf dem Bildschirm
         let pageClickX = 0; let pageClickY = 0;
 
         window.onload = () => {
@@ -570,10 +567,7 @@
             } 
         });
 
-        socket.on('daily_reward', (amount) => {
-            SoundFX.play('win');
-            document.getElementById('daily-popup').style.display = "flex";
-        });
+        socket.on('daily_reward', (amount) => { SoundFX.play('win'); document.getElementById('daily-popup').style.display = "flex"; });
 
         socket.on('update_stats', (data) => { 
             myElo = data.elo; myRank = data.rank; myCoins = data.coins || 0; myInventory = data.inventory || []; myEquipped = data.equipped || {};
@@ -581,19 +575,11 @@
             document.getElementById('coin-display').innerText = `🪙 ${myCoins}`;
             
             document.querySelectorAll('.btn-shop').forEach(btn => {
-                let itemId = btn.getAttribute('data-id');
-                let price = parseInt(btn.getAttribute('data-price'));
-                let type = itemId.startsWith('title') ? 'title' : 'aura';
-                
-                if(myEquipped[type] === itemId) {
-                    btn.innerText = "Aktiviert ✅"; btn.className = "btn-shop btn-success"; btn.disabled = false;
-                } else if(myInventory.includes(itemId)) {
-                    btn.innerText = "Ausrüsten"; btn.className = "btn-shop btn-outline"; btn.disabled = false;
-                } else if(myCoins >= price) {
-                    btn.innerText = `${price} 🪙 Kaufen`; btn.className = "btn-shop"; btn.style.background = "var(--bg-base)"; btn.style.borderColor = "var(--primary)"; btn.disabled = false;
-                } else {
-                    btn.innerText = `${price} 🪙 (Zu teuer)`; btn.className = "btn-shop btn-outline"; btn.disabled = true;
-                }
+                let itemId = btn.getAttribute('data-id'); let price = parseInt(btn.getAttribute('data-price')); let type = itemId.startsWith('title') ? 'title' : 'aura';
+                if(myEquipped[type] === itemId) { btn.innerText = "Aktiviert ✅"; btn.className = "btn-shop btn-success"; btn.disabled = false; } 
+                else if(myInventory.includes(itemId)) { btn.innerText = "Ausrüsten"; btn.className = "btn-shop btn-outline"; btn.disabled = false; } 
+                else if(myCoins >= price) { btn.innerText = `${price} 🪙 Kaufen`; btn.className = "btn-shop"; btn.style.background = "var(--bg-base)"; btn.style.borderColor = "var(--primary)"; btn.disabled = false; } 
+                else { btn.innerText = `${price} 🪙 (Zu teuer)`; btn.className = "btn-shop btn-outline"; btn.disabled = true; }
             });
         });
 
@@ -607,7 +593,6 @@
                 else { socket.emit('buy_item', {token: myToken, itemId: itemId}); SoundFX.play('win'); }
             });
         });
-
 
         document.getElementById('btn-delete-profile').addEventListener('click', () => {
             if(confirm("Willst du deinen Account (inklusive Elo und Siegen) unwiderruflich löschen?")) {
@@ -669,6 +654,9 @@
         let currentPvpMatch = null; let myPvpColor = null; let pvpBoardSize = 19; let pvpCellSize = 0; let pvpHoverX = -1, pvpHoverY = -1;
         let pvpState = 'playing'; let pvpDeadStones = new Set(); let pendingMoveX = -1; let pendingMoveY = -1;
         let lastPlayedGame = { moveList: [], size: 19 };
+        
+        // NEU: Globale Variable für das ScoreData, das vom Server kommt
+        let currentScoreData = null;
 
         function formatTimerObj(t) { if(t.main > 0) { let m = Math.floor(t.main / 60); let s = t.main % 60; return m + ":" + (s < 10 ? "0" : "") + s; } else { return t.byo + "s (" + t.periods + "x)"; } }
 
@@ -685,6 +673,7 @@
             
             document.getElementById('btn-pvp-accept').innerText = "Zählung akzeptieren"; document.getElementById('btn-pvp-accept').className = "btn-success"; document.getElementById('pvp-accept-status').innerText = "";
             document.getElementById('pvp-confirm-area').style.display = "none"; pendingMoveX = -1; pendingMoveY = -1; document.getElementById('undo-popup').style.display = "none";
+            currentScoreData = null;
             
             currentPvpMatch = data.roomId; pvpBoardSize = data.size; 
             if(pvpBoardSize !== 'polar') pvpCellSize = (600 - padding * 2) / (pvpBoardSize - 1);
@@ -749,6 +738,23 @@
 
         function renderPvpScene(board, turn, lastMove) {
             drawPvpBoard();
+            
+            // NEU: Wenn wir im Scoring Modus sind, male die Live-Territory Quadrate!
+            if(pvpState === 'scoring' && currentScoreData && currentScoreData.territoryMap) {
+                pvpCtx.globalAlpha = 0.6;
+                currentScoreData.territoryMap.forEach(pt => {
+                    let cx, cy;
+                    if (pvpBoardSize === 'polar') {
+                        let coords = getPolarCoords(pt.x, pt.y); cx = coords.px; cy = coords.py;
+                    } else {
+                        cx = padding + pt.x * pvpCellSize; cy = padding + pt.y * pvpCellSize;
+                    }
+                    pvpCtx.fillStyle = pt.owner === 'black' ? '#3b82f6' : '#f59e0b';
+                    pvpCtx.fillRect(cx - 6, cy - 6, 12, 12);
+                });
+                pvpCtx.globalAlpha = 1.0;
+            }
+
             let w = pvpBoardSize === 'polar' ? 24 : pvpBoardSize; let h = pvpBoardSize === 'polar' ? 6 : pvpBoardSize;
             for(let x=0; x<w; x++) {
                 for(let y=0; y<h; y++) {
@@ -787,13 +793,29 @@
         document.getElementById('btn-undo-no').addEventListener('click', () => { document.getElementById('undo-popup').style.display = "none"; socket.emit('1v1_respond_undo', {matchId: currentPvpMatch, accept: false}); });
         document.getElementById('btn-pvp-undo').addEventListener('click', () => { socket.emit('1v1_request_undo', currentPvpMatch); });
 
-        socket.on('1v1_scoring_phase', () => { pvpState = 'scoring'; if(myPvpColor !== 'spectator') { document.getElementById('pvp-playing-actions').style.display = "none"; document.getElementById('pvp-scoring-actions').style.display = "flex"; } renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove); });
+        // NEU: Empfange das ScoreData für die Vorschau
+        socket.on('1v1_scoring_phase', (data) => { 
+            pvpState = 'scoring'; 
+            if(data && data.scoreData) currentScoreData = data.scoreData;
+            
+            if(myPvpColor !== 'spectator') { 
+                document.getElementById('pvp-playing-actions').style.display = "none"; 
+                document.getElementById('pvp-scoring-actions').style.display = "flex"; 
+                if(currentScoreData) document.getElementById('live-score-preview').innerHTML = `Prognose:<br>⚫ ${currentScoreData.blackTotal} | ⚪ ${currentScoreData.whiteTotal}`;
+            } 
+            renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove); 
+        });
+        
         socket.on('1v1_scoring_update', (data) => {
             pvpDeadStones = new Set(data.deadStones);
+            if(data && data.scoreData) currentScoreData = data.scoreData;
+            
             if(myPvpColor !== 'spectator') {
                 let iAccepted = data.accepts[myPvpColor]; let enemyAccepted = data.accepts[myPvpColor === 'black' ? 'white' : 'black'];
                 if(iAccepted) { document.getElementById('btn-pvp-accept').innerText = "✅ Bereit"; document.getElementById('btn-pvp-accept').className = "btn-outline"; } else { document.getElementById('btn-pvp-accept').innerText = "Zählung akzeptieren"; document.getElementById('btn-pvp-accept').className = "btn-success"; }
                 if(iAccepted && !enemyAccepted) document.getElementById('pvp-accept-status').innerText = "Warte auf Gegner..."; else if(!iAccepted && enemyAccepted) document.getElementById('pvp-accept-status').innerText = "Gegner ist bereit!"; else document.getElementById('pvp-accept-status').innerText = "";
+                
+                if(currentScoreData) document.getElementById('live-score-preview').innerHTML = `Prognose:<br>⚫ ${currentScoreData.blackTotal} | ⚪ ${currentScoreData.whiteTotal}`;
             }
             renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove);
         });
@@ -846,7 +868,6 @@
         document.getElementById('btn-pvp-resign').addEventListener('click', () => { socket.emit('1v1_resign', currentPvpMatch); });
         document.getElementById('btn-pvp-accept').addEventListener('click', () => { socket.emit('1v1_accept_score', currentPvpMatch); });
 
-        // --- SGF STUDIO ---
         const anaCanvas = document.getElementById('analysisCanvas'); const anaCtx = anaCanvas.getContext('2d');
         let analysisMoves = []; let analysisCurrentStep = 0; let analysisBoardSize = 19; let analysisCellSize = 0; let anaHoverX = -1, anaHoverY = -1; let anaManualColor = 'black'; 
 
@@ -1050,7 +1071,6 @@
             msgLabel.innerText = winText; msgLabel.style.color = "#10b981"; 
             SoundFX.play('win'); 
 
-            // 1. GEFIXT: Schwebende Punkte direkt an der Maus
             const floatDiv = document.createElement('div'); 
             floatDiv.className = 'floating-points'; 
             floatDiv.innerText = "+" + data.points + (data.combo > 1 ? " 🔥" : ""); 
@@ -1059,7 +1079,6 @@
             document.body.appendChild(floatDiv); 
             setTimeout(() => { floatDiv.remove(); }, 1000); 
 
-            // 2. NEU: Die fliegenden Coins!
             const coinDiv = document.createElement('div');
             coinDiv.className = 'flying-coin';
             coinDiv.innerText = "+2 🪙";
@@ -1100,7 +1119,6 @@
         canvas.addEventListener('click', (event) => { 
             if (!canClick) return; 
             
-            // GEFIXT: Speichere die exakte Position auf dem Bildschirm für das Pop-up!
             pageClickX = event.pageX; pageClickY = event.pageY;
 
             const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; lastClickX = (event.clientX - rect.left) * scaleX; lastClickY = (event.clientY - rect.top) * scaleY; const gridX = Math.round((lastClickX - padding) / currentCellSize); const gridY = Math.round((lastClickY - padding) / currentCellSize); const actualX = viewMinX + gridX; const actualY = viewMinY + gridY; if (actualX >= 0 && actualX <= 18 && actualY >= 0 && actualY <= 18) { let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === actualX && s.y === actualY) isOccupied = true; }); if (isOccupied) return; myPlacedStone = { x: actualX, y: actualY }; canClick = false; SoundFX.play('clack'); renderScene(); socket.emit('guess', { x: actualX, y: actualY }); } 

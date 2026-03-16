@@ -20,7 +20,6 @@ if (fs.existsSync(dbFile)) {
 
 function saveDB() { fs.writeFileSync(dbFile, JSON.stringify(userDB, null, 2)); }
 
-// --- NEU: SHOP ITEMS CONFIG ---
 const SHOP_ITEMS = {
     title_ronin: { type: 'title', name: '[Ronin]', price: 200 },
     title_gott: { type: 'title', name: '[Go-Gott]', price: 1000 },
@@ -54,8 +53,6 @@ function finishMatch(matchId, winnerColor, reasonStr) {
         
         w.elo += pointChangeW; l.elo += pointChangeL;
         w.wins++; l.losses++;
-        
-        // NEU: COIN BELOHNUNG
         w.coins = (w.coins || 0) + 100;
         l.coins = (l.coins || 0) + 20;
         
@@ -106,7 +103,6 @@ function loadPuzzles() {
         });
     });
     if (globalPuzzles.length === 0) globalPuzzles.push(parseSGF("(;GM[1]FF[4]SZ[19]AB[dd]AW[pp];B[qq])", "Fallback", ["qq"]));
-    console.log(`🚀 BEREIT: ${globalPuzzles.length} Level in der Datenbank!`);
 }
 loadPuzzles();
 
@@ -164,10 +160,12 @@ function getGroupOfColor(board, startX, startY, size) {
     return group;
 }
 
+// NEU: Diese Funktion gibt jetzt eine "territoryMap" mit zurück, damit der Client es zeichnen kann!
 function calculateJapaneseScore(board, captures, deadStonesSet, komi, size) {
     let w = size === 'polar' ? 24 : size; let h = size === 'polar' ? 6 : size;
     let blackTerritory = 0; let whiteTerritory = 0;
     let finalCaptures = { black: captures.black, white: captures.white };
+    let territoryMap = [];
 
     let scoreBoard = board.map(row => [...row]);
     deadStonesSet.forEach(pos => {
@@ -181,21 +179,32 @@ function calculateJapaneseScore(board, captures, deadStonesSet, komi, size) {
         for (let y = 0; y < h; y++) {
             if (scoreBoard[x][y] === null && !visited[x][y]) {
                 let queue = [{x, y}]; visited[x][y] = true; let touchesBlack = false; let touchesWhite = false; let emptyCount = 0;
+                let currentRegion = [{x, y}];
                 while (queue.length > 0) {
                     let curr = queue.shift(); emptyCount++;
                     let neighbors = getNeighbors(curr.x, curr.y, size);
                     for (let n of neighbors) {
                         if (scoreBoard[n.x][n.y] === 'black') touchesBlack = true;
                         else if (scoreBoard[n.x][n.y] === 'white') touchesWhite = true;
-                        else if (!visited[n.x][n.y]) { visited[n.x][n.y] = true; queue.push(n); }
+                        else if (!visited[n.x][n.y]) { visited[n.x][n.y] = true; queue.push(n); currentRegion.push(n); }
                     }
                 }
-                if (touchesBlack && !touchesWhite) blackTerritory += emptyCount;
-                if (touchesWhite && !touchesBlack) whiteTerritory += emptyCount;
+                if (touchesBlack && !touchesWhite) {
+                    blackTerritory += emptyCount;
+                    currentRegion.forEach(pt => territoryMap.push({x: pt.x, y: pt.y, owner: 'black'}));
+                }
+                if (touchesWhite && !touchesBlack) {
+                    whiteTerritory += emptyCount;
+                    currentRegion.forEach(pt => territoryMap.push({x: pt.x, y: pt.y, owner: 'white'}));
+                }
             }
         }
     }
-    return { blackTotal: blackTerritory + finalCaptures.black, whiteTotal: whiteTerritory + finalCaptures.white + komi, blackTerr: blackTerritory, whiteTerr: whiteTerritory, blackCaps: finalCaptures.black, whiteCaps: finalCaptures.white };
+    return { 
+        blackTotal: blackTerritory + finalCaptures.black, whiteTotal: whiteTerritory + finalCaptures.white + komi, 
+        blackTerr: blackTerritory, whiteTerr: whiteTerritory, blackCaps: finalCaptures.black, whiteCaps: finalCaptures.white,
+        territoryMap: territoryMap
+    };
 }
 
 function getHandicapStones(size, count) {
@@ -210,8 +219,6 @@ function getHandicapStones(size, count) {
     return stones.slice(0, count);
 }
 
-
-// --- MULTIPLAYER HOTEL ---
 const rooms = {}; const challenges = {}; const active1v1Matches = {}; 
 
 function initRoom(roomId) {
@@ -249,26 +256,14 @@ setInterval(() => {
 io.on('connection', (socket) => {
     let currentRoom = null; 
 
-    // NEU: LOGIN MIT DAILY REWARD
     socket.on('login', (data) => {
         let today = new Date().toISOString().split('T')[0];
-        
-        if(!userDB[data.token]) { 
-            userDB[data.token] = { elo: 1000, wins: 0, losses: 0, coins: 0, inventory: [], equipped: {title: null, aura: null}, lastLogin: null }; 
-        }
-        let u = userDB[data.token];
-        u.coins = u.coins || 0;
-        u.inventory = u.inventory || [];
-        u.equipped = u.equipped || {title: null, aura: null};
+        if(!userDB[data.token]) { userDB[data.token] = { elo: 1000, wins: 0, losses: 0, coins: 0, inventory: [], equipped: {title: null, aura: null}, lastLogin: null }; }
+        let u = userDB[data.token]; u.coins = u.coins || 0; u.inventory = u.inventory || []; u.equipped = u.equipped || {title: null, aura: null};
         
         let dailyReward = 0;
-        if(u.lastLogin !== today) {
-            u.coins += 50;
-            u.lastLogin = today;
-            dailyReward = 50;
-        }
-        u.rank = getRank(u.elo); 
-        saveDB();
+        if(u.lastLogin !== today) { u.coins += 50; u.lastLogin = today; dailyReward = 50; }
+        u.rank = getRank(u.elo); saveDB();
         
         socket.emit('update_stats', u);
         if(dailyReward > 0) socket.emit('daily_reward', dailyReward);
@@ -277,29 +272,16 @@ io.on('connection', (socket) => {
     socket.on('delete_profile', (token) => { if(userDB[token]) { delete userDB[token]; saveDB(); } });
     socket.on('request_challenges', () => { broadcastMatchmaking(); });
     
-    // NEU: SHOP AKTIONEN
     socket.on('buy_item', (data) => {
-        let u = userDB[data.token];
-        let item = SHOP_ITEMS[data.itemId];
-        if(u && item && u.coins >= item.price && !u.inventory.includes(data.itemId)) {
-            u.coins -= item.price;
-            u.inventory.push(data.itemId);
-            saveDB();
-            socket.emit('update_stats', u);
-        }
+        let u = userDB[data.token]; let item = SHOP_ITEMS[data.itemId];
+        if(u && item && u.coins >= item.price && !u.inventory.includes(data.itemId)) { u.coins -= item.price; u.inventory.push(data.itemId); saveDB(); socket.emit('update_stats', u); }
     });
 
     socket.on('equip_item', (data) => {
-        let u = userDB[data.token];
-        let item = SHOP_ITEMS[data.itemId];
+        let u = userDB[data.token]; let item = SHOP_ITEMS[data.itemId];
         if(u && item && u.inventory.includes(data.itemId)) {
-            if(u.equipped[item.type] === data.itemId) {
-                u.equipped[item.type] = null; // Unequip
-            } else {
-                u.equipped[item.type] = data.itemId; // Equip
-            }
-            saveDB();
-            socket.emit('update_stats', u);
+            if(u.equipped[item.type] === data.itemId) { u.equipped[item.type] = null; } else { u.equipped[item.type] = data.itemId; }
+            saveDB(); socket.emit('update_stats', u);
         }
     });
 
@@ -423,7 +405,13 @@ io.on('connection', (socket) => {
         const myColor = (match.players.black.id === socket.id) ? 'black' : 'white'; if(match.turn !== myColor) return;
         match.passes++; match.turn = (myColor === 'black') ? 'white' : 'black'; match.moveList.push({ color: myColor, pass: true });
         if(match.timers[myColor].main <= 0 && match.timers[myColor].periods > 0) match.timers[myColor].byo = match.settings.byoTime;
-        if(match.passes >= 2) { match.state = 'scoring'; io.to(matchId).emit('1v1_scoring_phase'); } 
+        
+        // NEU: Wenn das Spiel in die Zählphase geht, sende das Map-Data direkt mit
+        if(match.passes >= 2) { 
+            match.state = 'scoring'; 
+            let scoreData = calculateJapaneseScore(match.board, match.captures, match.deadStones, match.komi, match.size);
+            io.to(matchId).emit('1v1_scoring_phase', { deadStones: Array.from(match.deadStones), accepts: match.accepts, scoreData: scoreData }); 
+        } 
         else { io.to(matchId).emit('1v1_update_board', { board: match.board, turn: match.turn, lastMove: null, captures: match.captures }); }
     });
 
@@ -440,19 +428,23 @@ io.on('connection', (socket) => {
             if(isDead) match.deadStones.delete(`${stone.x},${stone.y}`); else match.deadStones.add(`${stone.x},${stone.y}`); 
         });
         match.accepts.black = false; match.accepts.white = false;
-        io.to(matchId).emit('1v1_scoring_update', { deadStones: Array.from(match.deadStones), accepts: match.accepts });
+        
+        // NEU: Aktualisiertes Territory an Client schicken
+        let scoreData = calculateJapaneseScore(match.board, match.captures, match.deadStones, match.komi, match.size);
+        io.to(matchId).emit('1v1_scoring_update', { deadStones: Array.from(match.deadStones), accepts: match.accepts, scoreData: scoreData });
     });
 
     socket.on('1v1_accept_score', (matchId) => {
         const match = active1v1Matches[matchId]; if(!match || match.state !== 'scoring') return;
         const myColor = (match.players.black.id === socket.id) ? 'black' : 'white'; match.accepts[myColor] = true;
-        io.to(matchId).emit('1v1_scoring_update', { deadStones: Array.from(match.deadStones), accepts: match.accepts });
+        
+        let scoreData = calculateJapaneseScore(match.board, match.captures, match.deadStones, match.komi, match.size);
+        io.to(matchId).emit('1v1_scoring_update', { deadStones: Array.from(match.deadStones), accepts: match.accepts, scoreData: scoreData });
 
         if(match.accepts.black && match.accepts.white) {
-            let finalScore = calculateJapaneseScore(match.board, match.captures, match.deadStones, match.komi, match.size);
-            let winnerColor = finalScore.blackTotal > finalScore.whiteTotal ? 'black' : 'white';
-            let winnerPlayer = match.players[winnerColor]; let diff = Math.abs(finalScore.blackTotal - finalScore.whiteTotal);
-            let reason = `Beide Spieler haben die Zählung akzeptiert.<br>🏆 <b>${winnerPlayer.avatar} ${winnerPlayer.name} gewinnt</b> mit ${diff} Punkten Vorsprung!<br><br><div style='font-size:1.1rem; color:#ccc; margin-top: 15px; text-align: left; background: #111; padding: 10px; border-radius: 8px;'><b>Japanische Zählung:</b><br>⚫ Schwarz: ${finalScore.blackTotal} Punkte <br><span style='font-size:0.9rem;'>(${finalScore.blackTerr} Gebiet + ${finalScore.blackCaps} Gefangene)</span><br><br>⚪ Weiß: ${finalScore.whiteTotal} Punkte <br><span style='font-size:0.9rem;'>(${finalScore.whiteTerr} Gebiet + ${finalScore.whiteCaps} Gefangene + ${match.komi} Komi)</span></div>`;
+            let winnerColor = scoreData.blackTotal > scoreData.whiteTotal ? 'black' : 'white';
+            let winnerPlayer = match.players[winnerColor]; let diff = Math.abs(scoreData.blackTotal - scoreData.whiteTotal);
+            let reason = `Beide Spieler haben die Zählung akzeptiert.<br>🏆 <b>${winnerPlayer.avatar} ${winnerPlayer.name} gewinnt</b> mit ${diff} Punkten Vorsprung!<br><br><div style='font-size:1.1rem; color:#ccc; margin-top: 15px; text-align: left; background: #111; padding: 10px; border-radius: 8px;'><b>Japanische Zählung:</b><br>⚫ Schwarz: ${scoreData.blackTotal} Punkte <br><span style='font-size:0.9rem;'>(${scoreData.blackTerr} Gebiet + ${scoreData.blackCaps} Gefangene)</span><br><br>⚪ Weiß: ${scoreData.whiteTotal} Punkte <br><span style='font-size:0.9rem;'>(${scoreData.whiteTerr} Gebiet + ${scoreData.whiteCaps} Gefangene + ${match.komi} Komi)</span></div>`;
             finishMatch(matchId, winnerColor, reason);
         }
     });
@@ -464,12 +456,10 @@ io.on('connection', (socket) => {
         finishMatch(matchId, winnerColor, `🏳️ ${loser.avatar} ${loser.name} hat aufgegeben.`);
     });
 
-    // --- TSUMEGO RUSH LOGIK ---
     socket.on('join_room', (data) => {
         const playerName = data.name; const playerAvatar = data.avatar; const requestedRoom = data.roomId; currentRoom = requestedRoom; initRoom(currentRoom); socket.join(currentRoom); 
         let isHost = false; if (currentRoom !== 'public' && Object.keys(rooms[currentRoom].players).length === 0) rooms[currentRoom].hostId = socket.id;
         if (rooms[currentRoom].hostId === socket.id) isHost = true;
-        // NEU: Speichere Token beim Betreten des Raumes für Coins!
         rooms[currentRoom].players[socket.id] = { name: playerName, avatar: playerAvatar, score: 0, combo: 0, id: socket.id, token: data.token }; 
         socket.emit('room_joined', { roomId: currentRoom, isHost: isHost }); broadcastLeaderboard(currentRoom); 
         if (rooms[currentRoom].isPlaying) { socket.emit('game_already_started'); if (rooms[currentRoom].currentLevel < rooms[currentRoom].puzzles.length) { socket.emit('new_round', { puzzle: rooms[currentRoom].puzzles[rooms[currentRoom].currentLevel], maxTime: rooms[currentRoom].settings.timeLimit }); } }
@@ -480,7 +470,6 @@ io.on('connection', (socket) => {
         if (!r.isPlaying) { let freshDeck = [...r.originalPuzzles]; shuffle(freshDeck); if (settings) { r.settings.timeLimit = parseInt(settings.timeLimit); let count = settings.puzzleCount === 'all' ? freshDeck.length : parseInt(settings.puzzleCount); r.puzzles = freshDeck.slice(0, count); } else { r.puzzles = freshDeck; } r.isPlaying = true; r.currentLevel = -1; for (let id in r.players) { r.players[id].score = 0; r.players[id].combo = 0; } broadcastLeaderboard(currentRoom); io.to(currentRoom).emit('game_starting'); setTimeout(() => nextLevel(currentRoom), 1000); }
     });
 
-    // NEU: CHAT TITEL & AUREN ÜBERTRAGEN
     socket.on('chat_message', (data) => { 
         let u = userDB[data.token];
         let msgData = {
@@ -497,7 +486,6 @@ io.on('connection', (socket) => {
         if (isCorrect) { 
             player.combo += 1; let basePoints = 100 + (r.timeLeft * (100 / r.settings.timeLimit)); let comboBonus = (player.combo > 1) ? (player.combo - 1) * 50 : 0; let totalPoints = Math.round(basePoints + comboBonus); player.score += totalPoints; 
             
-            // NEU: COIN BELOHNUNG FÜR TSUMEGO (+2 Coins)
             if (userDB[player.token]) {
                 userDB[player.token].coins = (userDB[player.token].coins || 0) + 2;
                 saveDB();
