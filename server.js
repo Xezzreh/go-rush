@@ -5,27 +5,23 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const fs = require('fs'); 
 const path = require('path'); 
-const { Resend } = require('resend'); // WICHTIG: Das fehlte!
-const crypto = require('crypto'); // NEU: Für sicheres Hashing der Passwörter
+const { Resend } = require('resend'); 
+const crypto = require('crypto'); 
 
-// Wir holen den Key jetzt sicher aus den geheimen Render-Einstellungen
 const resend = new Resend(process.env.RESEND_API_KEY); 
 
-app.use(express.json()); // Damit der Server die JSON-Daten vom Frontend lesen kann
+app.use(express.json()); 
 
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
 
-// Hilfsfunktion: Passwörter unleserlich machen
 function hashPwd(pwd) { 
     return crypto.createHash('sha256').update(pwd).digest('hex'); 
 }
 
-// NEU: Verhindert, dass jemand auf zwei Geräten gleichzeitig spielt (Bugfix!)
 const activeSessions = {}; 
 
-// Diese Route empfängt das Feedback aus der index.html
 app.post('/send-message', async (req, res) => {
     const userName = req.body.name || "Unbekannter Spieler";
     const userMessage = req.body.message;
@@ -78,6 +74,20 @@ function getRank(elo) {
     return dan + "d";
 }
 
+// NEU: Helfer-Funktion fürs Tamagotchi
+function addPetXp(u, amount, socketId) {
+    if(!u.pet) u.pet = { xp: 0, level: 0, emoji: '🥚' };
+    u.pet.xp += amount;
+    let oldLevel = u.pet.level;
+    
+    if(u.pet.xp >= 300) { u.pet.level = 2; u.pet.emoji = '🐉'; }
+    else if(u.pet.xp >= 100) { u.pet.level = 1; u.pet.emoji = '🐣'; }
+    
+    if(u.pet.level > oldLevel && socketId) {
+        io.to(socketId).emit('pet_evolved', u.pet);
+    }
+}
+
 function finishMatch(matchId, winnerColor, reasonStr) {
     let match = active1v1Matches[matchId];
     if(!match) return;
@@ -85,6 +95,12 @@ function finishMatch(matchId, winnerColor, reasonStr) {
     let winner = match.players[winnerColor];
     let loser = match.players[winnerColor === 'black' ? 'white' : 'black'];
     
+    // Disconnect-Timer aufräumen, falls das Spiel normal endet
+    if(match.dcTimers) {
+        if(match.dcTimers.black) clearTimeout(match.dcTimers.black);
+        if(match.dcTimers.white) clearTimeout(match.dcTimers.white);
+    }
+
     let wToken = winner.token; let lToken = loser.token;
     if(userDB[wToken] && userDB[lToken] && wToken !== lToken) { 
         let w = userDB[wToken]; let l = userDB[lToken];
@@ -116,6 +132,10 @@ function finishMatch(matchId, winnerColor, reasonStr) {
             if (l.quests.play.current < l.quests.play.target) l.quests.play.current++;
         }
         
+        // NEU: Pet XP für Matches vergeben
+        addPetXp(w, 30, winner.id);
+        addPetXp(l, 10, loser.id);
+
         saveDB();
         
         w.rank = getRank(w.elo); l.rank = getRank(l.elo);
@@ -315,30 +335,26 @@ setInterval(() => {
 io.on('connection', (socket) => {
     let currentRoom = null; 
 
-    // GEÄNDERT: Echtes Account-System mit Passwort-Check & Bug-Schutz
     socket.on('login', (data) => {
         if (!data.name || !data.password) return socket.emit('login_error', 'Name und Passwort erforderlich!');
         
-        let token = data.name.trim().toLowerCase(); // Der Spielername wird der eindeutige Schlüssel
+        let token = data.name.trim().toLowerCase(); 
         let today = new Date().toISOString().split('T')[0];
 
-        // 1. NEUER ACCOUNT
         if(!userDB[token]) { 
             userDB[token] = { 
-                name: data.name.trim(), // Originalschreibweise speichern
-                password: hashPwd(data.password), // Sicher verschlüsselt
-                elo: 1000, wins: 0, losses: 0, coins: 0, inventory: [], equipped: {title: null, aura: null}, lastLogin: null, matchHistory: [] 
+                name: data.name.trim(), 
+                password: hashPwd(data.password), 
+                elo: 1000, wins: 0, losses: 0, coins: 0, inventory: [], equipped: {title: null, aura: null}, lastLogin: null, matchHistory: [],
+                pet: { xp: 0, level: 0, emoji: '🥚' } // NEU: Start-Pet
             }; 
         } else {
-            // 2. LOGIN CHECK
             if(userDB[token].password && userDB[token].password !== hashPwd(data.password)) {
                 return socket.emit('login_error', 'Falsches Passwort für diesen Spielernamen!');
             }
-            // Falls alter Account ohne Passwort: Jetzt nachtragen
             if(!userDB[token].password) userDB[token].password = hashPwd(data.password);
         }
 
-        // 3. MULTI-BOXING SCHUTZ (Der ultimative Bugfix!)
         if (activeSessions[token] && activeSessions[token] !== socket.id) {
             let oldSocket = io.sockets.sockets.get(activeSessions[token]);
             if (oldSocket) {
@@ -355,6 +371,9 @@ io.on('connection', (socket) => {
         u.coins = u.coins || 0; u.inventory = u.inventory || []; u.equipped = u.equipped || {title: null, aura: null};
         u.wins = u.wins || 0; u.losses = u.losses || 0; u.matchHistory = u.matchHistory || [];
         
+        // Pet Fallback für alte Accounts
+        if(!u.pet) u.pet = { xp: 0, level: 0, emoji: '🥚' };
+
         if(!u.quests || u.quests.date !== today) {
             u.quests = {
                 date: today,
@@ -368,7 +387,39 @@ io.on('connection', (socket) => {
         if(u.lastLogin !== today) { u.coins += 50; u.lastLogin = today; dailyReward = 50; }
         u.rank = getRank(u.elo); saveDB();
         
-        socket.emit('login_success', { token: token }); // Client die Erlaubnis geben
+        // --- NEU: Disconnect-Rejoin Logik ---
+        let reconnectedMatch = null;
+        let myPvpColor = null;
+        for(let mId in active1v1Matches) {
+            let m = active1v1Matches[mId];
+            if(m.players.black.token === token) { myPvpColor = 'black'; reconnectedMatch = m; }
+            else if(m.players.white.token === token) { myPvpColor = 'white'; reconnectedMatch = m; }
+        }
+
+        if(reconnectedMatch) {
+            reconnectedMatch.players[myPvpColor].id = socket.id; // Socket aktualisieren
+            
+            // Timeout stoppen, falls vorhanden
+            if(reconnectedMatch.dcTimers && reconnectedMatch.dcTimers[myPvpColor]) {
+                clearTimeout(reconnectedMatch.dcTimers[myPvpColor]);
+                delete reconnectedMatch.dcTimers[myPvpColor];
+            }
+            
+            socket.join(reconnectedMatch.id);
+            socket.emit('1v1_match_reconnected', { 
+                roomId: reconnectedMatch.id, size: reconnectedMatch.size, 
+                playerBlack: reconnectedMatch.players.black.name, avatarBlack: reconnectedMatch.players.black.avatar, 
+                playerWhite: reconnectedMatch.players.white.name, avatarWhite: reconnectedMatch.players.white.avatar, 
+                myColor: myPvpColor, komi: reconnectedMatch.komi, 
+                board: reconnectedMatch.board, turn: reconnectedMatch.turn, captures: reconnectedMatch.captures,
+                timers: reconnectedMatch.timers, state: reconnectedMatch.state, deadStones: Array.from(reconnectedMatch.deadStones) 
+            });
+            // Gegner benachrichtigen, dass du wieder da bist
+            socket.to(reconnectedMatch.id).emit('1v1_opponent_reconnected', { color: myPvpColor });
+        }
+        // ------------------------------------
+
+        socket.emit('login_success', { token: token });
         socket.emit('update_stats', u);
         if(dailyReward > 0) socket.emit('daily_reward', dailyReward);
     });
@@ -614,6 +665,9 @@ io.on('connection', (socket) => {
                     if(uDB.quests.tsumego.current < uDB.quests.tsumego.target) uDB.quests.tsumego.current++;
                 }
 
+                // NEU: Pet XP für Tsumegos
+                addPetXp(uDB, 5, player.id);
+
                 saveDB();
                 io.to(player.id).emit('update_stats', uDB);
             }
@@ -623,12 +677,29 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        // NEU: Bereinigt die Sitzung aus dem Multi-Boxing Schutz
         if(socket.userToken && activeSessions[socket.userToken] === socket.id) {
             delete activeSessions[socket.userToken];
         }
 
         const chalId = 'chal_' + socket.id; if (challenges[chalId]) { delete challenges[chalId]; broadcastMatchmaking(); }
+        
+        // NEU: Disconnect Timer für 1v1 Arena Matches
+        for(let mId in active1v1Matches) {
+            let m = active1v1Matches[mId];
+            let dcColor = null;
+            if(m.players.black.id === socket.id) dcColor = 'black';
+            else if(m.players.white.id === socket.id) dcColor = 'white';
+            
+            if(dcColor) {
+                m.dcTimers = m.dcTimers || {};
+                m.dcTimers[dcColor] = setTimeout(() => {
+                    let winnerColor = dcColor === 'black' ? 'white' : 'black';
+                    finishMatch(mId, winnerColor, `⏳ Gegner hat die Verbindung verloren (Timeout).`);
+                }, 60000); // 60 Sekunden Gnadenfrist
+                io.to(mId).emit('1v1_opponent_disconnected', { color: dcColor });
+            }
+        }
+
         if(currentRoom && rooms[currentRoom] && rooms[currentRoom].players[socket.id]) { delete rooms[currentRoom].players[socket.id]; broadcastLeaderboard(currentRoom); const remainingPlayers = Object.keys(rooms[currentRoom].players); if (currentRoom !== 'public' && remainingPlayers.length === 0) { clearInterval(rooms[currentRoom].interval); delete rooms[currentRoom]; } else if (currentRoom !== 'public' && rooms[currentRoom].hostId === socket.id) { rooms[currentRoom].hostId = remainingPlayers[0]; io.to(remainingPlayers[0]).emit('you_are_host'); } }
     });
 });

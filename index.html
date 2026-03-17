@@ -38,6 +38,7 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulseAura { 0% { box-shadow: 0 0 10px #ef4444; } 50% { box-shadow: 0 0 25px #ef4444; } 100% { box-shadow: 0 0 10px #ef4444; } }
+        @keyframes petBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 
         /* SCREENS */
         #login-screen, #menu-screen, #matchmaking-screen, #fun-modes-screen, #shop-screen { 
@@ -205,13 +206,19 @@
 <body>
 
     <div id="profile-modal">
-        <div class="panel" style="width: 100%; max-width: 450px; text-align: left; position: relative;">
+        <div class="panel" style="width: 100%; max-width: 450px; text-align: left; position: relative; max-height: 90vh; overflow-y: auto;">
             <button onclick="document.getElementById('profile-modal').style.display='none'" style="position: absolute; top: 15px; right: 15px; background: transparent; border: none; color: var(--text-muted); font-size: 1.5rem; padding: 0;">✖</button>
             
             <div style="text-align: center; margin-bottom: 20px;">
                 <div id="prof-avatar" style="font-size: 4rem; margin-bottom: 10px;">🦊</div>
                 <h2 style="margin-bottom: 5px;" id="prof-name">Name</h2>
                 <div style="color: var(--primary); font-weight: 700; font-size: 1.2rem;" id="prof-rank">Rank</div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px solid var(--border-color);">
+                <h3 style="margin-top:0; font-size:0.9rem; color:var(--text-muted); text-transform: uppercase;">Dein Begleiter</h3>
+                <div id="prof-pet-emoji" style="font-size:3.5rem; animation: petBounce 2s ease-in-out infinite;">🥚</div>
+                <div id="prof-pet-xp" style="font-size:0.9rem; color:var(--warning); font-weight:bold; margin-top:5px;">XP: 0 / 100</div>
             </div>
 
             <div style="display: flex; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
@@ -253,6 +260,15 @@
             <h2 style="margin-top:0; color:var(--text-main); text-align:center; font-size: 2rem;">📜 Daily Missions</h2>
             <p style="text-align:center; color:var(--text-muted); font-size:0.95rem; margin-bottom:25px;">Erfülle Aufgaben für fette Belohnungen!</p>
             <div id="missions-list"></div>
+        </div>
+    </div>
+
+    <div id="pet-popup" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 5000; display: none; justify-content: center; align-items: center;">
+        <div class="panel" style="text-align: center; border-top: 4px solid var(--primary); max-width: 400px; animation: bump 0.5s ease-out;">
+            <h2 style="font-size: 2rem; margin-bottom:5px; color:var(--text-main);">✨ Level Up!</h2>
+            <p style="font-size: 1rem; color:var(--text-muted);">Dein Begleiter hat sich entwickelt!</p>
+            <div id="pet-evolution-emoji" style="font-size: 5rem; margin: 20px 0; animation: pulseAura 1s infinite;">🐣</div>
+            <button class="btn-primary" onclick="document.getElementById('pet-popup').style.display='none';" style="width: 100%;">Geil!</button>
         </div>
     </div>
 
@@ -417,7 +433,7 @@
     </div>
 
     <div id="analysis-screen">
-        <h1 style="color: var(--text-main); margin-top: 0; margin-bottom: 5px;">SGF Studio</h1>
+        <h1 style="color: var(--text-main); margin: 0; margin-bottom: 5px;">SGF Studio</h1>
         <p style="color: var(--text-muted); margin-top: 0; margin-bottom: 30px;">Analysiere Züge, spiele Varianten oder importiere Dateien.</p>
         <div id="analysis-content">
             <div class="board-wrapper">
@@ -496,6 +512,10 @@
             <div id="pvp-screen">
                 <div id="pvp-content">
                     <div class="board-wrapper">
+                        <div id="dc-banner" style="display:none; width:100%; background:var(--danger); color:white; padding:12px; text-align:center; font-weight:bold; border-radius:8px; margin-bottom:15px; animation: pulseAura 1s infinite;">
+                            ⚠️ Gegner hat die Verbindung verloren. Auto-Sieg in <span id="dc-timer-span">60</span>s...
+                        </div>
+
                         <div style="width: 100%; text-align: left; margin-bottom: 15px;">
                             <h2 id="pvp-turn-indicator" style="margin: 0; font-size: 1.4rem; color: var(--warning);">Schwarz ist am Zug</h2>
                         </div>
@@ -623,7 +643,7 @@
         window.onload = () => {
             const savedName = localStorage.getItem('goRushName'); 
             const savedAvatar = localStorage.getItem('goRushAvatar');
-            const savedPwd = localStorage.getItem('goRushPassword'); // NEU: Passwort merken
+            const savedPwd = localStorage.getItem('goRushPassword');
             
             if (savedName && savedAvatar && savedPwd) {
                 myName = savedName; myAvatar = savedAvatar;
@@ -675,7 +695,7 @@
             document.getElementById('profile-btn').style.display = "none"; 
             document.getElementById('coin-display').style.display = "none"; 
             document.getElementById('btn-missions').style.display = "none";
-            localStorage.removeItem('goRushPassword'); // Passwort beim Ausloggen vergessen
+            localStorage.removeItem('goRushPassword');
         });
 
         document.querySelectorAll('.avatar-option').forEach(el => {
@@ -698,22 +718,19 @@
             }
         });
 
-        // NEU: Erfolgreicher Login vom Server bestätigt
         socket.on('login_success', (data) => {
-            myToken = data.token; // Jetzt nutzen wir den vom Server validierten Key
+            myToken = data.token; 
             loginScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('profile-btn').style.display = "inline-block"; 
             document.getElementById('coin-display').style.display = "inline-block";
             document.getElementById('btn-missions').style.display = "inline-block";
         });
 
-        // NEU: Falsches Passwort oder fehlende Daten
         socket.on('login_error', (msg) => {
             alert(msg);
             localStorage.removeItem('goRushPassword');
             document.getElementById('password').value = "";
         });
 
-        // NEU: Multi-Boxing Schutz -> Tab wird gekickt
         socket.on('force_logout', (msg) => {
             alert(msg);
             localStorage.clear();
@@ -728,6 +745,13 @@
             
             document.getElementById('profile-btn').innerHTML = `👤 [${myRank}] Profil`; 
             document.getElementById('coin-display').innerText = `🪙 ${myCoins}`;
+
+            // NEU: Pet UI updaten
+            if(data.pet) {
+                document.getElementById('prof-pet-emoji').innerText = data.pet.emoji;
+                let nextTarget = data.pet.level === 0 ? 100 : data.pet.level === 1 ? 300 : "MAX";
+                document.getElementById('prof-pet-xp').innerText = `XP: ${data.pet.xp} / ${nextTarget}`;
+            }
             
             document.querySelectorAll('.btn-shop').forEach(btn => {
                 let itemId = btn.getAttribute('data-id'); let price = parseInt(btn.getAttribute('data-price')); let type = itemId.startsWith('title') ? 'title' : 'aura';
@@ -776,6 +800,13 @@
                     mBadge.style.display = "none";
                 }
             }
+        });
+
+        // NEU: Pet Level-Up Event fangen
+        socket.on('pet_evolved', (petData) => {
+            SoundFX.play('win');
+            document.getElementById('pet-evolution-emoji').innerText = petData.emoji;
+            document.getElementById('pet-popup').style.display = "flex";
         });
 
         document.getElementById('btn-goto-shop').addEventListener('click', () => { menuScreen.style.display = "none"; shopScreen.style.display = "block"; });
@@ -904,6 +935,11 @@
             
             document.getElementById('btn-pvp-accept').innerText = "Zählung akzeptieren"; document.getElementById('btn-pvp-accept').className = "btn-success"; document.getElementById('pvp-accept-status').innerText = "";
             document.getElementById('pvp-confirm-area').style.display = "none"; pendingMoveX = -1; pendingMoveY = -1; document.getElementById('undo-popup').style.display = "none";
+            
+            // NEU: Disconnect Banner verstecken, wenn das Spiel startet
+            document.getElementById('dc-banner').style.display = "none";
+            if(dcInterval) { clearInterval(dcInterval); dcInterval = null; }
+
             currentScoreData = null;
             
             currentPvpMatch = data.roomId; pvpBoardSize = data.size === 'polar' ? 'polar' : parseInt(data.size); 
@@ -918,6 +954,50 @@
                 if(data.timers) { document.getElementById('pvp-black-time').innerText = formatTimerObj(data.timers.black); document.getElementById('pvp-white-time').innerText = formatTimerObj(data.timers.white); }
                 renderPvpScene(currentPvpBoardState, currentPvpTurn, null);
             }
+        });
+
+        // NEU: Reconnect Logik fangen (Wenn du selbst wieder reinkommst)
+        socket.on('1v1_match_reconnected', (data) => {
+            menuScreen.style.display = "none"; loginScreen.style.display = "none"; document.getElementById('room-container').style.display = "flex";
+            lobbyScreen.style.display = "none"; pvpScreen.style.display = "block";
+            
+            myPvpColor = data.myColor;
+            document.getElementById('pvp-playing-actions').style.display = pvpState === 'scoring' ? "none" : "flex"; 
+            document.getElementById('pvp-scoring-actions').style.display = pvpState === 'scoring' ? "flex" : "none";
+            document.getElementById('btn-leave-spectate').style.display = "none";
+            
+            document.getElementById('dc-banner').style.display = "none";
+            if(dcInterval) { clearInterval(dcInterval); dcInterval = null; }
+
+            currentPvpMatch = data.roomId; pvpBoardSize = data.size === 'polar' ? 'polar' : parseInt(data.size); 
+            if(pvpBoardSize !== 'polar') pvpCellSize = (600 - padding * 2) / (pvpBoardSize - 1);
+            
+            document.getElementById('pvp-black-name').innerText = `⚫ ${data.avatarBlack} ${data.playerBlack}`; document.getElementById('pvp-white-name').innerText = `⚪ ${data.avatarWhite} ${data.playerWhite}`;
+            
+            currentPvpBoardState = data.board; currentPvpTurn = data.turn; pvpState = data.state; pvpDeadStones = new Set(data.deadStones || []);
+            document.getElementById('pvp-black-caps').innerText = data.captures ? data.captures.black : "0"; 
+            document.getElementById('pvp-white-caps').innerText = data.captures ? data.captures.white : "0";
+            if(data.timers) { document.getElementById('pvp-black-time').innerText = formatTimerObj(data.timers.black); document.getElementById('pvp-white-time').innerText = formatTimerObj(data.timers.white); }
+            renderPvpScene(currentPvpBoardState, currentPvpTurn, null);
+        });
+
+        // NEU: Disconnect Banner Logik (Wenn Gegner abhaut)
+        let dcInterval = null;
+        socket.on('1v1_opponent_disconnected', () => {
+            document.getElementById('dc-banner').style.display = "block";
+            let dcTime = 60;
+            document.getElementById('dc-timer-span').innerText = dcTime;
+            if(dcInterval) clearInterval(dcInterval);
+            dcInterval = setInterval(() => {
+                dcTime--;
+                if(dcTime >= 0) document.getElementById('dc-timer-span').innerText = dcTime;
+            }, 1000);
+        });
+
+        // NEU: Gegner ist wieder da
+        socket.on('1v1_opponent_reconnected', () => {
+            document.getElementById('dc-banner').style.display = "none";
+            if(dcInterval) { clearInterval(dcInterval); dcInterval = null; }
         });
 
         let lastSpokenTime = -1;
@@ -1077,6 +1157,11 @@
         socket.on('1v1_game_over', (data) => {
             pvpState = 'playing'; pvpScreen.style.display = "none"; document.getElementById('game-over-screen').style.display = "block";
             document.getElementById('go-reason').innerHTML = data.reason; document.getElementById('podium-container').innerHTML = "";
+            
+            // NEU: Disconnect Banner verstecken
+            document.getElementById('dc-banner').style.display = "none";
+            if(dcInterval) { clearInterval(dcInterval); dcInterval = null; }
+
             if(data.moveList) { lastPlayedGame.moveList = data.moveList; lastPlayedGame.size = data.size || pvpBoardSize; document.getElementById('btn-go-analyze').style.display = "inline-flex"; } 
             else { document.getElementById('btn-go-analyze').style.display = "none"; }
         });
@@ -1381,49 +1466,6 @@
             const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; lastClickX = (event.clientX - rect.left) * scaleX; lastClickY = (event.clientY - rect.top) * scaleY; const gridX = Math.round((lastClickX - padding) / currentCellSize); const gridY = Math.round((lastClickY - padding) / currentCellSize); const actualX = viewMinX + gridX; const actualY = viewMinY + gridY; if (actualX >= 0 && actualX <= 18 && actualY >= 0 && actualY <= 18) { let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === actualX && s.y === actualY) isOccupied = true; }); if (isOccupied) return; myPlacedStone = { x: actualX, y: actualY }; canClick = false; SoundFX.play('clack'); renderScene(); socket.emit('guess', { x: actualX, y: actualY }); } 
         });
 
-        // Button öffnet das Modal
-        document.getElementById('btn-missions').addEventListener('click', () => {
-            document.getElementById('missions-modal').style.display = "flex";
-            SoundFX.play('clack');
-        });
-
-        // Quest abholen (mit Coin-Flug Animation!)
-        window.claimQuest = function(questId, event) {
-            socket.emit('claim_quest', { token: myToken, questId: questId });
-            
-            // Game Juice: Fliegende Münze vom Klick zum Coin-Display!
-            const coinDiv = document.createElement('div');
-            coinDiv.className = 'flying-coin';
-            coinDiv.innerText = "🪙";
-            coinDiv.style.left = event.pageX + "px";
-            coinDiv.style.top = event.pageY + "px";
-            document.body.appendChild(coinDiv);
-
-            setTimeout(() => {
-                const wallet = document.getElementById('coin-display');
-                if(wallet) {
-                    const rect = wallet.getBoundingClientRect();
-                    coinDiv.style.left = (rect.left + rect.width / 2 - 15) + "px";
-                    coinDiv.style.top = (rect.top + rect.height / 2 - 15) + "px";
-                    coinDiv.style.transform = "scale(0.5)";
-                    coinDiv.style.opacity = "0";
-                }
-            }, 10);
-
-            setTimeout(() => { coinDiv.remove(); }, 710);
-        };
-
-        // Feedback wenn Claim bestätigt
-        socket.on('quest_claimed', (data) => {
-            SoundFX.play('win');
-            // Das Wallet (Coin Display) kurz aufblinken lassen
-            const wallet = document.getElementById('coin-display');
-            if(wallet) {
-                wallet.classList.remove('coin-bump');
-                void wallet.offsetWidth; 
-                wallet.classList.add('coin-bump');
-            }
-        });
     </script>
 </body>
 </html>
