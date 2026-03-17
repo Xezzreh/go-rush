@@ -6,6 +6,7 @@ const io = require('socket.io')(http);
 const fs = require('fs'); 
 const path = require('path'); 
 const { Resend } = require('resend'); // WICHTIG: Das fehlte!
+const crypto = require('crypto'); // NEU: Für sicheres Hashing der Passwörter
 
 // Wir holen den Key jetzt sicher aus den geheimen Render-Einstellungen
 const resend = new Resend(process.env.RESEND_API_KEY); 
@@ -16,12 +17,19 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
 
-// NEU: Diese Route empfängt das Feedback aus der index.html
+// Hilfsfunktion: Passwörter unleserlich machen
+function hashPwd(pwd) { 
+    return crypto.createHash('sha256').update(pwd).digest('hex'); 
+}
+
+// NEU: Verhindert, dass jemand auf zwei Geräten gleichzeitig spielt (Bugfix!)
+const activeSessions = {}; 
+
+// Diese Route empfängt das Feedback aus der index.html
 app.post('/send-message', async (req, res) => {
     const userName = req.body.name || "Unbekannter Spieler";
     const userMessage = req.body.message;
 
-    // --- UNSER SPION FÜR DIE LOGS ---
     console.log("=== API KEY CHECK ===");
     console.log("Wurde ein Key gefunden?:", process.env.RESEND_API_KEY ? "JA ✅" : "NEIN ❌ (Ist undefined)");
     if (process.env.RESEND_API_KEY) {
@@ -29,12 +37,11 @@ app.post('/send-message', async (req, res) => {
         console.log("Fängt an mit:", process.env.RESEND_API_KEY.substring(0, 4));
     }
     console.log("=======================");
-    // --------------------------------
 
     try {
         const data = await resend.emails.send({
             from: 'Go-Rush Server <onboarding@resend.dev>', 
-            to: 'go.rush.server@gmail.com',  // Deine Ziel-E-Mail
+            to: 'go.rush.server@gmail.com',  
             subject: `💡 Neues Feedback von ${userName}`,
             text: `Spieler: ${userName}\n\nNachricht:\n${userMessage}`
         });
@@ -100,7 +107,6 @@ function finishMatch(matchId, winnerColor, reasonStr) {
         l.matchHistory.unshift({ opponent: winner.name, result: 'Niederlage', eloChange: pointChangeL, date: dateStr });
         if(l.matchHistory.length > 5) l.matchHistory.pop();
 
-        // NEU: Quests für 1v1 hochzählen
         let todayStr = new Date().toISOString().split('T')[0];
         if (w.quests && w.quests.date === todayStr) {
             if (w.quests.play.current < w.quests.play.target) w.quests.play.current++;
@@ -309,14 +315,46 @@ setInterval(() => {
 io.on('connection', (socket) => {
     let currentRoom = null; 
 
+    // GEÄNDERT: Echtes Account-System mit Passwort-Check & Bug-Schutz
     socket.on('login', (data) => {
+        if (!data.name || !data.password) return socket.emit('login_error', 'Name und Passwort erforderlich!');
+        
+        let token = data.name.trim().toLowerCase(); // Der Spielername wird der eindeutige Schlüssel
         let today = new Date().toISOString().split('T')[0];
-        if(!userDB[data.token]) { userDB[data.token] = { elo: 1000, wins: 0, losses: 0, coins: 0, inventory: [], equipped: {title: null, aura: null}, lastLogin: null, matchHistory: [] }; }
-        let u = userDB[data.token]; 
+
+        // 1. NEUER ACCOUNT
+        if(!userDB[token]) { 
+            userDB[token] = { 
+                name: data.name.trim(), // Originalschreibweise speichern
+                password: hashPwd(data.password), // Sicher verschlüsselt
+                elo: 1000, wins: 0, losses: 0, coins: 0, inventory: [], equipped: {title: null, aura: null}, lastLogin: null, matchHistory: [] 
+            }; 
+        } else {
+            // 2. LOGIN CHECK
+            if(userDB[token].password && userDB[token].password !== hashPwd(data.password)) {
+                return socket.emit('login_error', 'Falsches Passwort für diesen Spielernamen!');
+            }
+            // Falls alter Account ohne Passwort: Jetzt nachtragen
+            if(!userDB[token].password) userDB[token].password = hashPwd(data.password);
+        }
+
+        // 3. MULTI-BOXING SCHUTZ (Der ultimative Bugfix!)
+        if (activeSessions[token] && activeSessions[token] !== socket.id) {
+            let oldSocket = io.sockets.sockets.get(activeSessions[token]);
+            if (oldSocket) {
+                oldSocket.emit('force_logout', '⚠️ Verbindung getrennt: Jemand anderes (vielleicht du am Handy?) hat sich mit deinem Account angemeldet.');
+                oldSocket.disconnect(true);
+            }
+        }
+        activeSessions[token] = socket.id;
+        socket.userToken = token;
+
+        let u = userDB[token]; 
+        u.name = data.name.trim();
+        u.avatar = data.avatar;
         u.coins = u.coins || 0; u.inventory = u.inventory || []; u.equipped = u.equipped || {title: null, aura: null};
         u.wins = u.wins || 0; u.losses = u.losses || 0; u.matchHistory = u.matchHistory || [];
         
-        // NEU: Tägliche Missionen (Game Juice)
         if(!u.quests || u.quests.date !== today) {
             u.quests = {
                 date: today,
@@ -330,11 +368,11 @@ io.on('connection', (socket) => {
         if(u.lastLogin !== today) { u.coins += 50; u.lastLogin = today; dailyReward = 50; }
         u.rank = getRank(u.elo); saveDB();
         
+        socket.emit('login_success', { token: token }); // Client die Erlaubnis geben
         socket.emit('update_stats', u);
         if(dailyReward > 0) socket.emit('daily_reward', dailyReward);
     });
 
-    // NEU: Belohnung abholen
     socket.on('claim_quest', (data) => {
         let u = userDB[data.token];
         if(u && u.quests && u.quests[data.questId]) {
@@ -572,7 +610,6 @@ io.on('connection', (socket) => {
                 let uDB = userDB[player.token];
                 uDB.coins = (uDB.coins || 0) + 2;
                 
-                // NEU: Tsumego Quest hochzählen
                 if(uDB.quests && uDB.quests.date === new Date().toISOString().split('T')[0]) {
                     if(uDB.quests.tsumego.current < uDB.quests.tsumego.target) uDB.quests.tsumego.current++;
                 }
@@ -586,6 +623,11 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
+        // NEU: Bereinigt die Sitzung aus dem Multi-Boxing Schutz
+        if(socket.userToken && activeSessions[socket.userToken] === socket.id) {
+            delete activeSessions[socket.userToken];
+        }
+
         const chalId = 'chal_' + socket.id; if (challenges[chalId]) { delete challenges[chalId]; broadcastMatchmaking(); }
         if(currentRoom && rooms[currentRoom] && rooms[currentRoom].players[socket.id]) { delete rooms[currentRoom].players[socket.id]; broadcastLeaderboard(currentRoom); const remainingPlayers = Object.keys(rooms[currentRoom].players); if (currentRoom !== 'public' && remainingPlayers.length === 0) { clearInterval(rooms[currentRoom].interval); delete rooms[currentRoom]; } else if (currentRoom !== 'public' && rooms[currentRoom].hostId === socket.id) { rooms[currentRoom].hostId = remainingPlayers[0]; io.to(remainingPlayers[0]).emit('you_are_host'); } }
     });
