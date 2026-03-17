@@ -269,17 +269,18 @@
 
     <div id="login-screen">
         <h1 style="font-size: 3.5rem; margin-bottom: 5px; font-weight: 900; letter-spacing: -0.05em; color: var(--text-main);">Go-Rush<span style="color:var(--primary);">.</span></h1>
-        <p style="font-size: 1.1rem; margin-bottom: 30px;">Wähle deinen Avatar & Namen</p>
+        <p style="font-size: 1.1rem; margin-bottom: 30px;">Wähle deinen Avatar, Namen & Passwort</p>
         <div class="avatar-options" id="avatar-selection">
             <div class="avatar-option selected">🦊</div><div class="avatar-option">🐼</div><div class="avatar-option">🐸</div><div class="avatar-option">🐉</div>
             <div class="avatar-option">🐯</div><div class="avatar-option">🐱</div><div class="avatar-option">🐧</div><div class="avatar-option">🦉</div>
         </div>
-        <input type="text" id="username" placeholder="Spielername eingeben..." autocomplete="off"><br>
+        <input type="text" id="username" placeholder="Spielername eingeben..." autocomplete="off">
+        <input type="password" id="password" placeholder="Passwort (Login oder Registrierung)..." autocomplete="off"><br>
         <button id="next-btn" style="padding: 14px 40px; font-size: 1.1rem; margin-top: 10px;">Los geht's</button>
         
         <br>
         <button id="btn-delete-profile" class="btn-danger" style="display:none; padding: 8px 16px; font-size: 0.9rem; margin-top: 30px;">🗑️ Daten löschen</button>
-        <p class="gdpr-text">🔐 Dein Spielstand (Elo) wird anonymisiert lokal gespeichert. Wir nutzen kein Tracking.</p>
+        <p class="gdpr-text">🔐 Dein Spielstand (Elo) wird sicher gespeichert. Wir nutzen kein Tracking.</p>
     </div>
 
     <div id="menu-screen">
@@ -620,18 +621,18 @@
         let pageClickX = 0; let pageClickY = 0;
 
         window.onload = () => {
-            const savedName = localStorage.getItem('goRushName'); const savedAvatar = localStorage.getItem('goRushAvatar');
-            if (savedName && savedAvatar) {
+            const savedName = localStorage.getItem('goRushName'); 
+            const savedAvatar = localStorage.getItem('goRushAvatar');
+            const savedPwd = localStorage.getItem('goRushPassword'); // NEU: Passwort merken
+            
+            if (savedName && savedAvatar && savedPwd) {
                 myName = savedName; myAvatar = savedAvatar;
-                myToken = localStorage.getItem('goRushToken');
-                if(!myToken) { myToken = Math.random().toString(36).substring(2) + Date.now().toString(36); localStorage.setItem('goRushToken', myToken); }
                 
                 document.getElementById('username').value = myName;
+                document.getElementById('password').value = savedPwd;
                 document.querySelectorAll('.avatar-option').forEach(opt => { opt.classList.remove('selected'); if(opt.innerText === myAvatar) opt.classList.add('selected'); });
                 
-                socket.emit('login', { token: myToken, name: myName, avatar: myAvatar });
-                loginScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('profile-btn').style.display = "inline-block";
-                document.getElementById('coin-display').style.display = "inline-block";
+                socket.emit('login', { name: myName, password: savedPwd, avatar: myAvatar });
             }
         };
 
@@ -674,6 +675,7 @@
             document.getElementById('profile-btn').style.display = "none"; 
             document.getElementById('coin-display').style.display = "none"; 
             document.getElementById('btn-missions').style.display = "none";
+            localStorage.removeItem('goRushPassword'); // Passwort beim Ausloggen vergessen
         });
 
         document.querySelectorAll('.avatar-option').forEach(el => {
@@ -681,16 +683,41 @@
         });
 
         document.getElementById('next-btn').addEventListener('click', () => { 
-            SoundFX.init(); myName = document.getElementById('username').value.trim(); 
-            if (myName !== "") { 
-                localStorage.setItem('goRushName', myName); localStorage.setItem('goRushAvatar', myAvatar); 
-                myToken = localStorage.getItem('goRushToken');
-                if(!myToken) { myToken = Math.random().toString(36).substring(2) + Date.now().toString(36); localStorage.setItem('goRushToken', myToken); }
+            SoundFX.init(); 
+            myName = document.getElementById('username').value.trim(); 
+            let myPwd = document.getElementById('password').value.trim();
+
+            if (myName !== "" && myPwd !== "") { 
+                localStorage.setItem('goRushName', myName); 
+                localStorage.setItem('goRushAvatar', myAvatar); 
+                localStorage.setItem('goRushPassword', myPwd);
                 
-                socket.emit('login', { token: myToken, name: myName, avatar: myAvatar });
-                loginScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('profile-btn').style.display = "inline-block"; 
-                document.getElementById('coin-display').style.display = "inline-block";
-            } 
+                socket.emit('login', { name: myName, password: myPwd, avatar: myAvatar });
+            } else {
+                alert("Bitte wähle einen Namen und ein Passwort!");
+            }
+        });
+
+        // NEU: Erfolgreicher Login vom Server bestätigt
+        socket.on('login_success', (data) => {
+            myToken = data.token; // Jetzt nutzen wir den vom Server validierten Key
+            loginScreen.style.display = "none"; menuScreen.style.display = "block"; document.getElementById('profile-btn').style.display = "inline-block"; 
+            document.getElementById('coin-display').style.display = "inline-block";
+            document.getElementById('btn-missions').style.display = "inline-block";
+        });
+
+        // NEU: Falsches Passwort oder fehlende Daten
+        socket.on('login_error', (msg) => {
+            alert(msg);
+            localStorage.removeItem('goRushPassword');
+            document.getElementById('password').value = "";
+        });
+
+        // NEU: Multi-Boxing Schutz -> Tab wird gekickt
+        socket.on('force_logout', (msg) => {
+            alert(msg);
+            localStorage.clear();
+            location.reload();
         });
 
         socket.on('daily_reward', (amount) => { SoundFX.play('win'); document.getElementById('daily-popup').style.display = "flex"; });
@@ -764,7 +791,7 @@
 
         document.getElementById('btn-delete-profile').addEventListener('click', () => {
             if(confirm("Willst du deinen Account (inklusive Elo und Siegen) unwiderruflich löschen?")) {
-                socket.emit('delete_profile', myToken); localStorage.removeItem('goRushName'); localStorage.removeItem('goRushAvatar'); localStorage.removeItem('goRushToken'); location.reload();
+                socket.emit('delete_profile', myToken); localStorage.clear(); location.reload();
             }
         });
 
@@ -893,7 +920,6 @@
             }
         });
 
-        // NEU: Variablen, um sich zu merken, was zuletzt gesagt wurde (BYO-YOMI)
         let lastSpokenTime = -1;
         let lastSpokenTurn = null;
 
@@ -901,7 +927,6 @@
             document.getElementById('pvp-black-time').innerText = formatTimerObj(data.timers.black); document.getElementById('pvp-white-time').innerText = formatTimerObj(data.timers.white);
             document.getElementById('pvp-black-time').style.color = (data.timers.black.main <= 0 && data.timers.black.byo <= 10) ? "var(--danger)" : "var(--success)"; document.getElementById('pvp-white-time').style.color = (data.timers.white.main <= 0 && data.timers.white.byo <= 10) ? "var(--danger)" : "var(--success)";
             
-            // Byo-Yomi Sprachausgabe
             if (pvpState === 'playing') {
                 let activeTimer = data.timers[data.turn];
                 let timeLeft = activeTimer.main > 0 ? activeTimer.main : activeTimer.byo;
