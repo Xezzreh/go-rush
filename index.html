@@ -495,6 +495,7 @@
                 <div class="podium" id="podium-container"></div>
                 <div style="margin-top: 50px; display: flex; justify-content: center; gap: 15px;">
                     <button id="btn-go-back-lobby" class="btn-outline">🔙 Zurück</button>
+                    <button id="btn-download-sgf" class="btn-outline" style="display: none;">💾 SGF Speichern</button>
                     <button id="btn-go-analyze" class="btn-analysis" style="display: none;">🔬 Analysieren</button>
                 </div>
             </div>
@@ -555,6 +556,10 @@
                             </div>
 
                             <h3 style="margin-top:0; color:var(--text-muted); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; font-size:0.9rem; text-transform: uppercase; letter-spacing: 1px;">Aktionen</h3>
+                            <label style="font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; margin-bottom: 15px; cursor: pointer;">
+                                <input type="checkbox" id="cb-click-protect" checked style="width: auto; margin: 0;"> Klick-Schutz (Zug bestätigen)
+                            </label>
+
                             <div id="pvp-playing-actions" style="display: flex; flex-direction: column; gap: 10px;">
                                 <button id="btn-pvp-pass" class="btn-warning" style="margin: 0;">Gepasst</button>
                                 <button id="btn-pvp-undo" class="btn-outline" style="margin: 0; font-size: 1rem;">Zug zurücknehmen</button>
@@ -746,7 +751,6 @@
             document.getElementById('profile-btn').innerHTML = `👤 [${myRank}] Profil`; 
             document.getElementById('coin-display').innerText = `🪙 ${myCoins}`;
 
-            // Pet UI updaten
             if(data.pet) {
                 document.getElementById('prof-pet-emoji').innerText = data.pet.emoji;
                 let nextTarget = data.pet.level === 0 ? 100 : data.pet.level === 1 ? 300 : "MAX";
@@ -802,7 +806,6 @@
             }
         });
 
-        // Pet Level-Up Event fangen
         socket.on('pet_evolved', (petData) => {
             SoundFX.play('win');
             document.getElementById('pet-evolution-emoji').innerText = petData.emoji;
@@ -1157,8 +1160,16 @@
             document.getElementById('dc-banner').style.display = "none";
             if(dcInterval) { clearInterval(dcInterval); dcInterval = null; }
 
-            if(data.moveList) { lastPlayedGame.moveList = data.moveList; lastPlayedGame.size = data.size || pvpBoardSize; document.getElementById('btn-go-analyze').style.display = "inline-flex"; } 
-            else { document.getElementById('btn-go-analyze').style.display = "none"; }
+            if(data.moveList) { 
+                lastPlayedGame.moveList = data.moveList; 
+                lastPlayedGame.size = data.size || pvpBoardSize; 
+                document.getElementById('btn-go-analyze').style.display = "inline-flex"; 
+                document.getElementById('btn-download-sgf').style.display = "inline-flex"; // NEU: SGF Button zeigen
+            } 
+            else { 
+                document.getElementById('btn-go-analyze').style.display = "none"; 
+                document.getElementById('btn-download-sgf').style.display = "none";
+            }
         });
 
         pvpCanvas.addEventListener('mousemove', (event) => {
@@ -1175,6 +1186,8 @@
             if (gridX !== pvpHoverX || gridY !== pvpHoverY) { pvpHoverX = gridX; pvpHoverY = gridY; if(currentPvpBoardState.length > 0) renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove); }
         });
         pvpCanvas.addEventListener('mouseout', () => { pvpHoverX = -1; pvpHoverY = -1; if(currentPvpBoardState.length > 0) renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove); });
+        
+        // GEÄNDERT: Klick-Schutz Logik
         pvpCanvas.addEventListener('click', (event) => {
             if(myPvpColor === 'spectator') return;
             const rect = pvpCanvas.getBoundingClientRect(); const scaleX = pvpCanvas.width / rect.width; const scaleY = pvpCanvas.height / rect.height;
@@ -1191,7 +1204,14 @@
             
             if (gridX >= 0 && gridX < maxW && gridY >= 0 && gridY < maxH) { 
                 if (pvpState === 'playing' && currentPvpTurn === myPvpColor && currentPvpBoardState[gridX][gridY] === null) { 
-                    pendingMoveX = gridX; pendingMoveY = gridY; document.getElementById('pvp-confirm-area').style.display = "block"; renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove);
+                    // Wenn Klick-Schutz AN ist: Vorschau zeigen
+                    if (document.getElementById('cb-click-protect').checked) {
+                        pendingMoveX = gridX; pendingMoveY = gridY; document.getElementById('pvp-confirm-area').style.display = "block"; renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove);
+                    } 
+                    // Wenn Klick-Schutz AUS ist: Direkt setzen!
+                    else {
+                        socket.emit('1v1_make_move', { roomId: currentPvpMatch, x: gridX, y: gridY });
+                    }
                 } 
                 else if (pvpState === 'scoring') { socket.emit('1v1_toggle_dead', { roomId: currentPvpMatch, x: gridX, y: gridY }); }
             }
@@ -1341,6 +1361,21 @@
         document.getElementById('btn-go-analyze').addEventListener('click', () => { document.getElementById('game-over-screen').style.display = "none"; document.getElementById('room-container').style.display = "none"; analysisScreen.style.display = "block"; analysisMoves = lastPlayedGame.moveList || []; analysisBoardSize = lastPlayedGame.size || 19; if(analysisBoardSize !== 'polar') analysisCellSize = (600 - padding * 2) / (analysisBoardSize - 1); analysisCurrentStep = 0; document.getElementById('btn-ana-color-black').click(); renderAnalysis(); });
         document.getElementById('btn-go-back-lobby').addEventListener('click', () => { document.getElementById('game-over-screen').style.display = "none"; document.getElementById('room-container').style.display = "none"; menuScreen.style.display = "block"; });
         document.getElementById('btn-ana-leave').addEventListener('click', () => { analysisScreen.style.display = "none"; menuScreen.style.display = "block"; });
+
+        // NEU: SGF direkt nach dem Spiel herunterladen
+        document.getElementById('btn-download-sgf').addEventListener('click', () => {
+            if(!lastPlayedGame || !lastPlayedGame.moveList) return;
+            let sz = lastPlayedGame.size === 'polar' ? 24 : lastPlayedGame.size; // Polar hat max 24 in X
+            let sgf = "(;GM[1]FF[4]SZ[" + sz + "]\n";
+            lastPlayedGame.moveList.forEach(m => {
+                if(m.pass) { sgf += ";" + (m.color==='black'?'B':'W') + "[]"; } 
+                else { let letterX = String.fromCharCode(97 + m.x); let letterY = String.fromCharCode(97 + m.y); sgf += ";" + (m.color==='black'?'B':'W') + "[" + letterX + letterY + "]"; }
+            });
+            sgf += ")"; 
+            let blob = new Blob([sgf], {type: "application/x-go-sgf"}); 
+            let url = URL.createObjectURL(blob); 
+            let a = document.createElement("a"); a.href = url; a.download = "Go_Rush_Turnier_Match.sgf"; a.click();
+        });
 
         document.getElementById('btn-ana-download').addEventListener('click', () => {
             let sgf = "(;GM[1]FF[4]SZ[" + analysisBoardSize + "]\n";
