@@ -1,0 +1,7 @@
+node_modules/
+.env
+database.json
+feedback.txt
+# Ignoriere GnuGo Windows Dateien
+gnugo.exe
+*.dll
