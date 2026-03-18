@@ -23,27 +23,33 @@ function hashPwd(pwd) {
 
 const activeSessions = {}; 
 
-// --- NEU: GnuGo KI Setup (ULTRA DEBUG MODUS) ---
+// --- GnuGo KI Setup (Cross-Platform) ---
 let gnugoAvailable = false;
-const gnugoPath = path.join(__dirname, 'gnugo.exe');
+let gnugoPath = '';
+
+if (process.platform === 'win32') {
+    gnugoPath = path.join(__dirname, 'gnugo.exe');
+} else {
+    gnugoPath = path.join(__dirname, 'gnugo_linux');
+}
 
 console.log("\n================ KI SYSTEM CHECK ================");
 console.log("🔍 Suche GnuGo unter: " + gnugoPath);
 
 if (fs.existsSync(gnugoPath)) {
-    console.log("✅ Datei 'gnugo.exe' ist physisch im Ordner vorhanden!");
+    console.log("✅ GnuGo Datei gefunden! Teste Ausführung...");
     try {
-        console.log("⏳ Teste, ob Windows die Ausführung erlaubt...");
+        if (process.platform !== 'win32') {
+            execSync(`chmod +x "${gnugoPath}"`); // Linux Ausführungsrechte geben
+        }
         let test = execSync(`"${gnugoPath}" --version`).toString();
         console.log("✅ Erfolgreich gestartet! Info: " + test.split('\n')[0]);
         gnugoAvailable = true;
     } catch(err) {
-        console.log("❌ FEHLER: Datei ist da, aber Windows blockiert den Start!");
-        console.log("Grund: " + err.message);
-        console.log("Tipp: Rechtsklick auf gnugo.exe in Windows -> Eigenschaften -> Unten auf 'Zulassen' haken, falls vorhanden.");
+        console.log("❌ FEHLER beim Starten von GnuGo: " + err.message);
     }
 } else {
-    console.log("❌ FEHLER: Node.js sieht die Datei nicht! Bitte prüfen.");
+    console.log("⚠️ GnuGo NICHT gefunden! Falle auf den Javascript-Bot zurück.");
 }
 console.log("=================================================\n");
 
@@ -97,7 +103,6 @@ function fromGtp(gtpCoord, size) {
     let y = size - parseInt(gtpCoord.substring(1));
     return { x, y };
 }
-// -------------------------------------------------------------
 
 app.post('/send-message', async (req, res) => {
     const userName = req.body.name || "Unbekannter Spieler";
@@ -169,7 +174,6 @@ function finishMatch(matchId, winnerColor, reasonStr) {
 
     if(match.botProcess) {
         match.botProcess.kill();
-        console.log("🤖 GnuGo Prozess für dieses Spiel beendet.");
     }
 
     if (winner.isBot || loser.isBot) {
@@ -304,37 +308,26 @@ function checkCaptures(board, x, y, colorTarget, size) {
     return captured;
 }
 
-function getGroupOfColor(board, startX, startY, size) {
-    let color = board[startX][startY]; if (!color) return [];
-    let group = []; let visited = new Set(); let queue = [{x: startX, y: startY}]; visited.add(`${startX},${startY}`);
-    while(queue.length > 0) {
-        let curr = queue.shift(); group.push(curr);
-        let neighbors = getNeighbors(curr.x, curr.y, size);
-        for(let n of neighbors) {
-            if(board[n.x][n.y] === color && !visited.has(`${n.x},${n.y}`)) { visited.add(`${n.x},${n.y}`); queue.push(n); }
-        }
-    }
-    return group;
-}
-
 function hasLiberties(board, startX, startY, size) {
     let color = board[startX][startY];
     if (!color) return true;
     let queue = [{x: startX, y: startY}];
     let visited = new Set([`${startX},${startY}`]);
+    let libs = 0;
     
     while(queue.length > 0) {
         let curr = queue.shift();
         let neighbors = getNeighbors(curr.x, curr.y, size);
         for(let n of neighbors) {
-            if(board[n.x][n.y] === null) return true; 
-            if(board[n.x][n.y] === color && !visited.has(`${n.x},${n.y}`)) {
+            if(board[n.x][n.y] === null) {
+                libs++;
+            } else if(board[n.x][n.y] === color && !visited.has(`${n.x},${n.y}`)) {
                 visited.add(`${n.x},${n.y}`);
                 queue.push(n);
             }
         }
     }
-    return false; 
+    return libs > 0; 
 }
 
 function calculateJapaneseScore(board, captures, deadStonesSet, komi, size) {
@@ -479,9 +472,8 @@ async function triggerBotMove(matchId, lastHumanX, lastHumanY, humanPassed) {
 
     let humanColor = botColor === 'black' ? 'white' : 'black';
 
-    if (match.botProcess) {
+    if (match.botProcess && gnugoAvailable) {
         try {
-            console.log(`🤖 Frage GnuGo nach einem Zug...`);
             let humanGtp = humanPassed ? 'pass' : toGtp(lastHumanX, lastHumanY, match.size);
             if (humanGtp !== 'pass' || humanPassed) {
                 await match.botProcess.sendCommand(`play ${humanColor} ${humanGtp}`);
@@ -489,7 +481,6 @@ async function triggerBotMove(matchId, lastHumanX, lastHumanY, humanPassed) {
 
             let response = await match.botProcess.sendCommand(`genmove ${botColor}`);
             let botGtp = response.replace('=', '').trim(); 
-            console.log(`🤖 GnuGo Antwort: ${botGtp}`);
             
             try {
                 let move = fromGtp(botGtp, match.size);
@@ -508,6 +499,7 @@ async function triggerBotMove(matchId, lastHumanX, lastHumanY, humanPassed) {
         return; 
     }
 
+    // FALLBACK JS BOT
     setTimeout(() => {
         let currentMatch = active1v1Matches[matchId];
         if (!currentMatch || currentMatch.state !== 'playing') return;
@@ -522,6 +514,7 @@ async function triggerBotMove(matchId, lastHumanX, lastHumanY, humanPassed) {
                     let tempBoard = currentMatch.board.map(r => [...r]);
                     tempBoard[x][y] = botColor;
                     let caps = checkCaptures(tempBoard, x, y, humanColor, currentMatch.size);
+                    
                     let isSuicide = !hasLiberties(tempBoard, x, y, currentMatch.size);
                     
                     if(!isSuicide || caps.length > 0) {
