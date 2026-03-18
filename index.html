@@ -303,25 +303,26 @@
         <h2 style="font-size: 2.2rem; margin-bottom: 40px;">Dashboard</h2>
         
         <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; max-width: 400px; margin: 0 auto;">
-            <button class="btn-1v1" id="btn-goto-matchmaking" style="width: 100%; padding: 18px; font-size: 1.2rem;">⚔️ 1v1 Arena</button>
+            <button class="btn-public" id="btn-public" style="width: 100%; padding: 18px; font-size: 1.2rem; background: var(--primary); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);">🌍 Tsumego Rush (Öffentlich)</button>
+            
+            <button class="btn-1v1" id="btn-goto-matchmaking" style="width: 100%; padding: 16px;">⚔️ 1v1 Arena</button>
             <button class="btn-success" id="btn-goto-bot" style="width: 100%; padding: 16px;">🤖 Training (Vs. KI)</button>
-            <button class="btn-fun" id="btn-goto-fun" style="width: 100%; padding: 18px; font-size: 1.2rem; color: #fff;">🎉 Fun Game Modes</button>
-            <button class="btn-public" id="btn-public" style="width: 100%; padding: 16px;">🌍 Tsumego Rush (Öffentlich)</button>
+            <button class="btn-fun" id="btn-goto-fun" style="width: 100%; padding: 16px; color: #fff;">🎉 Fun Game Modes</button>
             <button class="btn-analysis" id="btn-goto-analysis-menu" style="width: 100%; padding: 16px;">🔬 SGF Studio / Analyse</button>
             <button class="btn-outline" id="btn-goto-shop" style="width: 100%; padding: 16px; border-color: var(--warning); color: var(--warning);">🛒 Shop & Prestige</button>
         </div>
         
-        <div class="panel" style="margin-top: 40px; display: inline-block; width: 100%; max-width: 400px; padding: 25px; box-sizing: border-box;">
-            <h3 style="margin-bottom: 20px; font-size: 1.1rem; color: var(--text-muted);">Private Räume (Tsumego)</h3>
-            <button class="btn-warning" id="btn-create-private" style="width: 100%; margin: 0 0 15px 0;">🔒 Raum erstellen</button>
+        <div class="panel" style="margin-top: 30px; display: inline-block; width: 100%; max-width: 400px; padding: 25px; box-sizing: border-box; border-top: 3px solid var(--warning);">
+            <h3 style="margin-bottom: 20px; font-size: 1.1rem; color: var(--text-main); margin-top: 0;">🔒 Private Räume (Tsumego)</h3>
+            <button class="btn-warning" id="btn-create-private" style="width: 100%; margin: 0 0 15px 0; font-weight: bold;">Raum erstellen</button>
             <div style="display: flex; gap: 10px;">
                 <input type="text" id="roomcode-input" placeholder="CODE..." style="margin: 0; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
                 <button id="btn-join-private" class="btn-outline" style="margin: 0; white-space: nowrap;">Beitreten</button>
             </div>
         </div>
 
-        <div class="panel" style="margin-top: 20px; display: inline-block; width: 100%; max-width: 400px; padding: 25px; box-sizing: border-box; border-color: var(--primary);">
-            <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--text-main);">💡 Ideen oder Bugs?</h3>
+        <div class="panel" style="margin-top: 20px; display: inline-block; width: 100%; max-width: 400px; padding: 25px; box-sizing: border-box; border-top: 3px solid var(--primary);">
+            <h3 style="margin-bottom: 10px; font-size: 1.1rem; color: var(--text-main); margin-top: 0;">💡 Ideen oder Bugs?</h3>
             <p style="font-size: 0.85rem; margin-bottom: 15px;">Schreib eine Nachricht direkt an den Entwickler.</p>
             <form id="feedbackForm">
                 <textarea id="feedback-text" rows="3" placeholder="Ich hätte gerne Feature XYZ..." style="resize: none;" required></textarea>
