@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path'); 
 const { Resend } = require('resend'); 
 const crypto = require('crypto'); 
-const { spawn } = require('child_process'); 
+const { spawn, execSync } = require('child_process'); 
 
 const resend = new Resend(process.env.RESEND_API_KEY); 
 
@@ -23,20 +23,29 @@ function hashPwd(pwd) {
 
 const activeSessions = {}; 
 
-// --- GnuGo KI Setup ---
+// --- NEU: GnuGo KI Setup (ULTRA DEBUG MODUS) ---
 let gnugoAvailable = false;
 const gnugoPath = path.join(__dirname, 'gnugo.exe');
 
-try {
-    if (fs.existsSync(gnugoPath)) {
+console.log("\n================ KI SYSTEM CHECK ================");
+console.log("🔍 Suche GnuGo unter: " + gnugoPath);
+
+if (fs.existsSync(gnugoPath)) {
+    console.log("✅ Datei 'gnugo.exe' ist physisch im Ordner vorhanden!");
+    try {
+        console.log("⏳ Teste, ob Windows die Ausführung erlaubt...");
+        let test = execSync(`"${gnugoPath}" --version`).toString();
+        console.log("✅ Erfolgreich gestartet! Info: " + test.split('\n')[0]);
         gnugoAvailable = true;
-        console.log("✅ GnuGo gefunden! Die starke KI ist BEREIT.");
-    } else {
-        console.log("⚠️ GnuGo NICHT gefunden! Falle auf den 'Drunken Master' (Javascript) Bot zurück.");
+    } catch(err) {
+        console.log("❌ FEHLER: Datei ist da, aber Windows blockiert den Start!");
+        console.log("Grund: " + err.message);
+        console.log("Tipp: Rechtsklick auf gnugo.exe in Windows -> Eigenschaften -> Unten auf 'Zulassen' haken, falls vorhanden.");
     }
-} catch (e) {
-    console.log("⚠️ Fehler beim Prüfen von GnuGo. Nutze Javascript-Bot.");
+} else {
+    console.log("❌ FEHLER: Node.js sieht die Datei nicht! Bitte prüfen.");
 }
+console.log("=================================================\n");
 
 class GnuGoBot {
     constructor(size, level, komi) {
@@ -88,6 +97,7 @@ function fromGtp(gtpCoord, size) {
     let y = size - parseInt(gtpCoord.substring(1));
     return { x, y };
 }
+// -------------------------------------------------------------
 
 app.post('/send-message', async (req, res) => {
     const userName = req.body.name || "Unbekannter Spieler";
@@ -159,6 +169,7 @@ function finishMatch(matchId, winnerColor, reasonStr) {
 
     if(match.botProcess) {
         match.botProcess.kill();
+        console.log("🤖 GnuGo Prozess für dieses Spiel beendet.");
     }
 
     if (winner.isBot || loser.isBot) {
@@ -458,7 +469,6 @@ function processMove(matchId, playerId, x, y, isPass) {
     return true;
 }
 
-// --- GEÄNDERT: Diese Funktion ist nun WIRKLICH async und steuert GnuGo! ---
 async function triggerBotMove(matchId, lastHumanX, lastHumanY, humanPassed) {
     let match = active1v1Matches[matchId];
     if (!match || match.state !== 'playing') return;
@@ -471,6 +481,7 @@ async function triggerBotMove(matchId, lastHumanX, lastHumanY, humanPassed) {
 
     if (match.botProcess) {
         try {
+            console.log(`🤖 Frage GnuGo nach einem Zug...`);
             let humanGtp = humanPassed ? 'pass' : toGtp(lastHumanX, lastHumanY, match.size);
             if (humanGtp !== 'pass' || humanPassed) {
                 await match.botProcess.sendCommand(`play ${humanColor} ${humanGtp}`);
@@ -478,6 +489,7 @@ async function triggerBotMove(matchId, lastHumanX, lastHumanY, humanPassed) {
 
             let response = await match.botProcess.sendCommand(`genmove ${botColor}`);
             let botGtp = response.replace('=', '').trim(); 
+            console.log(`🤖 GnuGo Antwort: ${botGtp}`);
             
             try {
                 let move = fromGtp(botGtp, match.size);
@@ -530,7 +542,6 @@ async function triggerBotMove(matchId, lastHumanX, lastHumanY, humanPassed) {
         }
     }, 1500); 
 }
-// --------------------------------------------------------------------------
 
 setInterval(() => {
     for (let matchId in active1v1Matches) {
@@ -765,7 +776,6 @@ io.on('connection', (socket) => {
         if(success) {
             let match = active1v1Matches[data.roomId];
             if(match && match.players[match.turn].isBot) {
-                // GEÄNDERT: Die KI wird jetzt asynchron übergeben!
                 triggerBotMove(data.roomId, data.x, data.y, false);
             }
         }
@@ -819,7 +829,6 @@ io.on('connection', (socket) => {
         if(success) {
             let match = active1v1Matches[matchId];
             if(match && match.state === 'playing' && match.players[match.turn].isBot) {
-                // GEÄNDERT: Bot Bescheid geben, dass Mensch gepasst hat
                 triggerBotMove(matchId, null, null, true);
             }
         }
