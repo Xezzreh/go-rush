@@ -74,7 +74,6 @@ function getRank(elo) {
     return dan + "d";
 }
 
-// NEU: Helfer-Funktion fürs Tamagotchi
 function addPetXp(u, amount, socketId) {
     if(!u.pet) u.pet = { xp: 0, level: 0, emoji: '🥚' };
     u.pet.xp += amount;
@@ -95,10 +94,17 @@ function finishMatch(matchId, winnerColor, reasonStr) {
     let winner = match.players[winnerColor];
     let loser = match.players[winnerColor === 'black' ? 'white' : 'black'];
     
-    // Disconnect-Timer aufräumen, falls das Spiel normal endet
     if(match.dcTimers) {
         if(match.dcTimers.black) clearTimeout(match.dcTimers.black);
         if(match.dcTimers.white) clearTimeout(match.dcTimers.white);
+    }
+
+    // NEU: Bot Check - Keine Punkte bei Trainingsspielen
+    if (winner.isBot || loser.isBot) {
+        reasonStr += `<br><br><span style="color:#f59e0b;">(Trainingsspiel - Kein Elo berechnet)</span>`;
+        io.to(matchId).emit('1v1_game_over', { reason: reasonStr, moveList: match.moveList, size: match.size });
+        delete active1v1Matches[matchId];
+        return;
     }
 
     let wToken = winner.token; let lToken = loser.token;
@@ -132,7 +138,6 @@ function finishMatch(matchId, winnerColor, reasonStr) {
             if (l.quests.play.current < l.quests.play.target) l.quests.play.current++;
         }
         
-        // NEU: Pet XP für Matches vergeben
         addPetXp(w, 30, winner.id);
         addPetXp(l, 10, loser.id);
 
@@ -312,6 +317,109 @@ function broadcastMatchmaking() {
     io.emit('update_challenges', { challenges: Object.values(challenges), activeMatches: activeList });
 }
 
+// --- NEU: ZENTRALE FUNKTION FÜR ZÜGE (Mensch & Bot) ---
+function processMove(matchId, playerId, x, y, isPass) {
+    const match = active1v1Matches[matchId];
+    if(!match || match.state !== 'playing') return false;
+    
+    let myColor = null;
+    if (match.players.black.id === playerId) myColor = 'black';
+    else if (match.players.white.id === playerId) myColor = 'white';
+    
+    if(!myColor || match.turn !== myColor) return false; 
+
+    if (isPass) {
+        match.passes++; match.turn = (myColor === 'black') ? 'white' : 'black'; match.moveList.push({ color: myColor, pass: true });
+        if(match.timers[myColor].main <= 0 && match.timers[myColor].periods > 0) match.timers[myColor].byo = match.settings.byoTime;
+        
+        if(match.passes >= 2) { 
+            match.state = 'scoring'; 
+            let scoreData = calculateJapaneseScore(match.board, match.captures, match.deadStones, match.komi, match.size);
+            io.to(matchId).emit('1v1_scoring_phase', { deadStones: Array.from(match.deadStones), accepts: match.accepts, scoreData: scoreData }); 
+            
+            if(match.players.black.isBot || match.players.white.isBot) {
+                let botColor = match.players.black.isBot ? 'black' : 'white';
+                match.accepts[botColor] = true;
+            }
+        } else {
+            io.to(matchId).emit('1v1_update_board', { board: match.board, turn: match.turn, lastMove: null, captures: match.captures });
+        }
+        return true;
+    }
+
+    if(x === undefined || y === undefined || match.board[x][y] !== null) return false;
+
+    let newBoard = match.board.map(row => [...row]);
+    newBoard[x][y] = myColor;
+
+    const enemyColor = (myColor === 'black') ? 'white' : 'black';
+    let capturedStones = checkCaptures(newBoard, x, y, enemyColor, match.size);
+    capturedStones.forEach(stone => { newBoard[stone.x][stone.y] = null; });
+
+    let suicideCheck = checkCaptures(newBoard, x, y, myColor, match.size);
+    if(suicideCheck.length > 0 && capturedStones.length === 0) { 
+        if(!match.players[myColor].isBot) io.to(playerId).emit('1v1_illegal_move', "Selbstmord ist nicht erlaubt!"); 
+        return false; 
+    }
+
+    let boardString = JSON.stringify(newBoard);
+    if(match.history.has(boardString)) { 
+        if(!match.players[myColor].isBot) io.to(playerId).emit('1v1_illegal_move', "Ko-Regel: Diese Stellung gab es gerade schon!"); 
+        return false; 
+    }
+
+    match.captures[myColor] += capturedStones.length;
+    match.board = newBoard; match.history.add(boardString); match.turn = enemyColor; match.passes = 0;
+    
+    if(match.timers[myColor].main <= 0 && match.timers[myColor].periods > 0) { match.timers[myColor].byo = match.settings.byoTime; }
+    match.moveList.push({ color: myColor, x: x, y: y });
+    
+    io.to(matchId).emit('1v1_update_board', { board: match.board, turn: match.turn, lastMove: {x: x, y: y}, captures: match.captures });
+    return true;
+}
+
+// --- NEU: DUMMY JAVASCRIPT BOT LOGIK (Platzhalter für GnuGo) ---
+function triggerBotMove(matchId) {
+    setTimeout(() => {
+        let match = active1v1Matches[matchId];
+        if (!match || match.state !== 'playing') return;
+        
+        let botColor = match.turn;
+        let botPlayer = match.players[botColor];
+        if (!botPlayer.isBot) return;
+
+        let enemyColor = botColor === 'black' ? 'white' : 'black';
+        let validMoves = [];
+        let w = match.size === 'polar' ? 24 : match.size;
+        let h = match.size === 'polar' ? 6 : match.size;
+
+        for(let x=0; x<w; x++) {
+            for(let y=0; y<h; y++) {
+                if(match.board[x][y] === null) {
+                    let tempBoard = match.board.map(r => [...r]);
+                    tempBoard[x][y] = botColor;
+                    let caps = checkCaptures(tempBoard, x, y, enemyColor, match.size);
+                    let suicide = checkCaptures(tempBoard, x, y, botColor, match.size);
+                    
+                    if(suicide.length === 0 || caps.length > 0) {
+                        let boardString = JSON.stringify(tempBoard);
+                        if(!match.history.has(boardString)) {
+                            validMoves.push({x, y});
+                        }
+                    }
+                }
+            }
+        }
+
+        if(validMoves.length === 0) {
+            processMove(matchId, botPlayer.id, null, null, true); 
+        } else {
+            let choice = validMoves[Math.floor(Math.random() * validMoves.length)];
+            processMove(matchId, botPlayer.id, choice.x, choice.y, false);
+        }
+    }, 1500); // 1.5 Sekunden "Bedenkzeit" simulieren
+}
+
 setInterval(() => {
     for (let matchId in active1v1Matches) {
         let match = active1v1Matches[matchId];
@@ -346,7 +454,7 @@ io.on('connection', (socket) => {
                 name: data.name.trim(), 
                 password: hashPwd(data.password), 
                 elo: 1000, wins: 0, losses: 0, coins: 0, inventory: [], equipped: {title: null, aura: null}, lastLogin: null, matchHistory: [],
-                pet: { xp: 0, level: 0, emoji: '🥚' } // NEU: Start-Pet
+                pet: { xp: 0, level: 0, emoji: '🥚' } 
             }; 
         } else {
             if(userDB[token].password && userDB[token].password !== hashPwd(data.password)) {
@@ -371,7 +479,6 @@ io.on('connection', (socket) => {
         u.coins = u.coins || 0; u.inventory = u.inventory || []; u.equipped = u.equipped || {title: null, aura: null};
         u.wins = u.wins || 0; u.losses = u.losses || 0; u.matchHistory = u.matchHistory || [];
         
-        // Pet Fallback für alte Accounts
         if(!u.pet) u.pet = { xp: 0, level: 0, emoji: '🥚' };
 
         if(!u.quests || u.quests.date !== today) {
@@ -387,7 +494,6 @@ io.on('connection', (socket) => {
         if(u.lastLogin !== today) { u.coins += 50; u.lastLogin = today; dailyReward = 50; }
         u.rank = getRank(u.elo); saveDB();
         
-        // --- NEU: Disconnect-Rejoin Logik ---
         let reconnectedMatch = null;
         let myPvpColor = null;
         for(let mId in active1v1Matches) {
@@ -397,9 +503,8 @@ io.on('connection', (socket) => {
         }
 
         if(reconnectedMatch) {
-            reconnectedMatch.players[myPvpColor].id = socket.id; // Socket aktualisieren
+            reconnectedMatch.players[myPvpColor].id = socket.id; 
             
-            // Timeout stoppen, falls vorhanden
             if(reconnectedMatch.dcTimers && reconnectedMatch.dcTimers[myPvpColor]) {
                 clearTimeout(reconnectedMatch.dcTimers[myPvpColor]);
                 delete reconnectedMatch.dcTimers[myPvpColor];
@@ -414,10 +519,8 @@ io.on('connection', (socket) => {
                 board: reconnectedMatch.board, turn: reconnectedMatch.turn, captures: reconnectedMatch.captures,
                 timers: reconnectedMatch.timers, state: reconnectedMatch.state, deadStones: Array.from(reconnectedMatch.deadStones) 
             });
-            // Gegner benachrichtigen, dass du wieder da bist
             socket.to(reconnectedMatch.id).emit('1v1_opponent_reconnected', { color: myPvpColor });
         }
-        // ------------------------------------
 
         socket.emit('login_success', { token: token });
         socket.emit('update_stats', u);
@@ -452,6 +555,37 @@ io.on('connection', (socket) => {
             if(u.equipped[item.type] === data.itemId) { u.equipped[item.type] = null; } else { u.equipped[item.type] = data.itemId; }
             saveDB(); socket.emit('update_stats', u);
         }
+    });
+
+    // NEU: Event für das Starten eines Bot-Spiels
+    socket.on('start_bot_match', (data) => {
+        const newRoomId = 'bot_' + Math.random().toString(36).substring(2,8);
+        let bSize = parseInt(data.boardSize);
+        let emptyBoard = Array(bSize).fill(null).map(() => Array(bSize).fill(null));
+        
+        let botName = "Bot (Lvl " + data.level + ")";
+        let botAvatar = "🤖";
+        
+        active1v1Matches[newRoomId] = {
+            id: newRoomId, size: bSize, board: emptyBoard, turn: 'black', passes: 0,
+            state: 'playing', komi: 6.5, handicapStones: [], settings: { byoTime: 30 },
+            deadStones: new Set(), accepts: { black: false, white: false },
+            history: new Set([JSON.stringify(emptyBoard)]), moveList: [], 
+            timers: { black: { main: 600, byo: 30, periods: 3 }, white: { main: 600, byo: 30, periods: 3 } }, 
+            captures: { black: 0, white: 0 },   
+            players: { 
+                black: { id: socket.id, name: data.name, avatar: data.avatar, token: data.token, isBot: false }, 
+                white: { id: 'bot_id', name: botName, avatar: botAvatar, token: 'bot_token', isBot: true, botLevel: data.level } 
+            }
+        };
+
+        socket.join(newRoomId);
+        socket.emit('1v1_match_started', { 
+            roomId: newRoomId, size: bSize, 
+            playerBlack: data.name, avatarBlack: data.avatar, 
+            playerWhite: botName, avatarWhite: botAvatar, 
+            myColor: 'black', komi: 6.5, timers: active1v1Matches[newRoomId].timers, board: emptyBoard, turn: 'black', state: 'playing' 
+        });
     });
 
     socket.on('create_challenge', (data) => { 
@@ -508,39 +642,27 @@ io.on('connection', (socket) => {
     });
 
     socket.on('1v1_make_move', (data) => {
-        const matchId = data.roomId; const match = active1v1Matches[matchId];
-        if(!match || match.state !== 'playing') return;
-        const myColor = (match.players.black.id === socket.id) ? 'black' : 'white';
-        if(match.turn !== myColor) return;
-        if(match.board[data.x][data.y] !== null) return;
-
-        let newBoard = match.board.map(row => [...row]);
-        newBoard[data.x][data.y] = myColor;
-
-        const enemyColor = (myColor === 'black') ? 'white' : 'black';
-        let capturedStones = checkCaptures(newBoard, data.x, data.y, enemyColor, match.size);
-        capturedStones.forEach(stone => { newBoard[stone.x][stone.y] = null; });
-
-        let suicideCheck = checkCaptures(newBoard, data.x, data.y, myColor, match.size);
-        if(suicideCheck.length > 0 && capturedStones.length === 0) { socket.emit('1v1_illegal_move', "Selbstmord ist nicht erlaubt!"); return; }
-
-        let boardString = JSON.stringify(newBoard);
-        if(match.history.has(boardString)) { socket.emit('1v1_illegal_move', "Ko-Regel: Diese Stellung gab es gerade schon!"); return; }
-
-        match.captures[myColor] += capturedStones.length;
-        match.board = newBoard; match.history.add(boardString); match.turn = enemyColor; match.passes = 0;
-        
-        if(match.timers[myColor].main <= 0 && match.timers[myColor].periods > 0) { match.timers[myColor].byo = match.settings.byoTime; }
-        match.moveList.push({ color: myColor, x: data.x, y: data.y });
-        io.to(matchId).emit('1v1_update_board', { board: match.board, turn: match.turn, lastMove: {x: data.x, y: data.y}, captures: match.captures });
+        let success = processMove(data.roomId, socket.id, data.x, data.y, false);
+        if(success) {
+            let match = active1v1Matches[data.roomId];
+            // Wenn der Zug erfolgreich war und der Gegner ein Bot ist -> Bot anstoßen
+            if(match && match.players[match.turn].isBot) {
+                triggerBotMove(data.roomId);
+            }
+        }
     });
 
     socket.on('1v1_request_undo', (matchId) => {
         let match = active1v1Matches[matchId]; if(!match || match.state !== 'playing') return;
         if(match.moveList.length === 0) return;
         let myColor = match.players.black.id === socket.id ? 'black' : 'white';
-        let enemyId = match.players[myColor === 'black' ? 'white' : 'black'].id;
-        io.to(enemyId).emit('1v1_undo_requested');
+        let enemy = match.players[myColor === 'black' ? 'white' : 'black'];
+        
+        if (enemy.isBot) {
+            socket.emit('1v1_undo_declined'); // Bot erlaubt kein Undo!
+        } else {
+            io.to(enemy.id).emit('1v1_undo_requested');
+        }
     });
 
     socket.on('1v1_respond_undo', (data) => {
@@ -574,17 +696,13 @@ io.on('connection', (socket) => {
     });
 
     socket.on('1v1_pass', (matchId) => {
-        const match = active1v1Matches[matchId]; if(!match || match.state !== 'playing') return;
-        const myColor = (match.players.black.id === socket.id) ? 'black' : 'white'; if(match.turn !== myColor) return;
-        match.passes++; match.turn = (myColor === 'black') ? 'white' : 'black'; match.moveList.push({ color: myColor, pass: true });
-        if(match.timers[myColor].main <= 0 && match.timers[myColor].periods > 0) match.timers[myColor].byo = match.settings.byoTime;
-        
-        if(match.passes >= 2) { 
-            match.state = 'scoring'; 
-            let scoreData = calculateJapaneseScore(match.board, match.captures, match.deadStones, match.komi, match.size);
-            io.to(matchId).emit('1v1_scoring_phase', { deadStones: Array.from(match.deadStones), accepts: match.accepts, scoreData: scoreData }); 
-        } 
-        else { io.to(matchId).emit('1v1_update_board', { board: match.board, turn: match.turn, lastMove: null, captures: match.captures }); }
+        let success = processMove(matchId, socket.id, null, null, true);
+        if(success) {
+            let match = active1v1Matches[matchId];
+            if(match && match.state === 'playing' && match.players[match.turn].isBot) {
+                triggerBotMove(matchId);
+            }
+        }
     });
 
     socket.on('1v1_toggle_dead', (data) => {
@@ -600,6 +718,10 @@ io.on('connection', (socket) => {
             if(isDead) match.deadStones.delete(`${stone.x},${stone.y}`); else match.deadStones.add(`${stone.x},${stone.y}`); 
         });
         match.accepts.black = false; match.accepts.white = false;
+        
+        // Bots akzeptieren immer sofort alles, wenn sie im Scoring sind
+        if(match.players.black.isBot) match.accepts.black = true;
+        if(match.players.white.isBot) match.accepts.white = true;
         
         let scoreData = calculateJapaneseScore(match.board, match.captures, match.deadStones, match.komi, match.size);
         io.to(matchId).emit('1v1_scoring_update', { deadStones: Array.from(match.deadStones), accepts: match.accepts, scoreData: scoreData });
@@ -665,7 +787,6 @@ io.on('connection', (socket) => {
                     if(uDB.quests.tsumego.current < uDB.quests.tsumego.target) uDB.quests.tsumego.current++;
                 }
 
-                // NEU: Pet XP für Tsumegos
                 addPetXp(uDB, 5, player.id);
 
                 saveDB();
@@ -683,19 +804,18 @@ io.on('connection', (socket) => {
 
         const chalId = 'chal_' + socket.id; if (challenges[chalId]) { delete challenges[chalId]; broadcastMatchmaking(); }
         
-        // NEU: Disconnect Timer für 1v1 Arena Matches
         for(let mId in active1v1Matches) {
             let m = active1v1Matches[mId];
             let dcColor = null;
-            if(m.players.black.id === socket.id) dcColor = 'black';
-            else if(m.players.white.id === socket.id) dcColor = 'white';
+            if(m.players.black.id === socket.id && !m.players.black.isBot) dcColor = 'black';
+            else if(m.players.white.id === socket.id && !m.players.white.isBot) dcColor = 'white';
             
             if(dcColor) {
                 m.dcTimers = m.dcTimers || {};
                 m.dcTimers[dcColor] = setTimeout(() => {
                     let winnerColor = dcColor === 'black' ? 'white' : 'black';
                     finishMatch(mId, winnerColor, `⏳ Gegner hat die Verbindung verloren (Timeout).`);
-                }, 60000); // 60 Sekunden Gnadenfrist
+                }, 60000); 
                 io.to(mId).emit('1v1_opponent_disconnected', { color: dcColor });
             }
         }

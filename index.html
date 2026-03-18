@@ -41,7 +41,7 @@
         @keyframes petBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 
         /* SCREENS */
-        #login-screen, #menu-screen, #matchmaking-screen, #fun-modes-screen, #shop-screen { 
+        #login-screen, #menu-screen, #matchmaking-screen, #fun-modes-screen, #shop-screen, #bot-screen { 
             display: none; max-width: 1000px; margin: 8vh auto 0 auto; padding: 20px; text-align: center; animation: fadeIn 0.3s ease-out forwards; 
         }
         #login-screen { display: block; }
@@ -304,6 +304,7 @@
         
         <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; max-width: 400px; margin: 0 auto;">
             <button class="btn-1v1" id="btn-goto-matchmaking" style="width: 100%; padding: 18px; font-size: 1.2rem;">⚔️ 1v1 Arena</button>
+            <button class="btn-success" id="btn-goto-bot" style="width: 100%; padding: 16px;">🤖 Training (Vs. KI)</button>
             <button class="btn-fun" id="btn-goto-fun" style="width: 100%; padding: 18px; font-size: 1.2rem; color: #fff;">🎉 Fun Game Modes</button>
             <button class="btn-public" id="btn-public" style="width: 100%; padding: 16px;">🌍 Tsumego Rush (Öffentlich)</button>
             <button class="btn-analysis" id="btn-goto-analysis-menu" style="width: 100%; padding: 16px;">🔬 SGF Studio / Analyse</button>
@@ -327,6 +328,30 @@
                 <button type="submit" id="btn-send-feedback" class="btn-primary" style="width: 100%; margin: 0;">Nachricht senden</button>
             </form>
             <p id="feedback-status" style="font-size: 0.85rem; color: var(--success); margin-top: 10px; display: none;"></p>
+        </div>
+    </div>
+
+    <div id="bot-screen">
+        <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1000px; margin: 0 auto 20px auto;">
+            <h1 style="color: var(--text-main); margin: 0;">🤖 Training (Vs. KI)</h1>
+            <button id="btn-back-from-bot" class="btn-outline" style="margin:0;">Zurück</button>
+        </div>
+        
+        <div style="display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; max-width: 1000px; margin: 0 auto;">
+            <div class="panel" style="flex: 1; min-width: 320px; max-width: 500px; border-top: 3px solid var(--success);">
+                <h3 style="margin-top:0;">Spiel gegen die Maschine</h3>
+                <select id="select-bot-boardsize">
+                    <option value="9" selected>9x9 Brett (Empfohlen)</option>
+                    <option value="13">13x13 Brett</option>
+                    <option value="19">19x19 Brett</option>
+                </select>
+                <select id="select-bot-level">
+                    <option value="1" selected>Leicht (~20 Kyu)</option>
+                    <option value="5">Mittel (~12 Kyu)</option>
+                    <option value="10">Schwer (~8 Kyu)</option>
+                </select>
+                <button class="btn-success" id="btn-start-bot" style="width: 100%; margin: 10px 0 0 0;">Spiel starten</button>
+            </div>
         </div>
     </div>
 
@@ -638,6 +663,7 @@
         const gameScreen = document.getElementById('game-screen'); const pvpScreen = document.getElementById('pvp-screen');
         const analysisScreen = document.getElementById('analysis-screen'); const funModesScreen = document.getElementById('fun-modes-screen');
         const shopScreen = document.getElementById('shop-screen');
+        const botScreen = document.getElementById('bot-screen');
         
         let myName = ""; let myAvatar = "🦊"; let amIHost = false; 
         let myToken = ""; let myRank = "30k"; let myElo = 1000; let myCoins = 0; let myInventory = []; let myEquipped = {};
@@ -815,6 +841,17 @@
         document.getElementById('btn-goto-shop').addEventListener('click', () => { menuScreen.style.display = "none"; shopScreen.style.display = "block"; });
         document.getElementById('btn-back-from-shop').addEventListener('click', () => { shopScreen.style.display = "none"; menuScreen.style.display = "block"; });
         
+        // NEU: Bot-Menü Navigation
+        document.getElementById('btn-goto-bot').addEventListener('click', () => { menuScreen.style.display = "none"; botScreen.style.display = "block"; });
+        document.getElementById('btn-back-from-bot').addEventListener('click', () => { botScreen.style.display = "none"; menuScreen.style.display = "block"; });
+        
+        document.getElementById('btn-start-bot').addEventListener('click', () => {
+            let size = document.getElementById('select-bot-boardsize').value;
+            let level = document.getElementById('select-bot-level').value;
+            socket.emit('start_bot_match', { boardSize: size, level: level, name: myName, avatar: myAvatar, token: myToken });
+            botScreen.style.display = "none";
+        });
+
         document.querySelectorAll('.btn-shop').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 let itemId = e.target.getAttribute('data-id');
@@ -1164,7 +1201,7 @@
                 lastPlayedGame.moveList = data.moveList; 
                 lastPlayedGame.size = data.size || pvpBoardSize; 
                 document.getElementById('btn-go-analyze').style.display = "inline-flex"; 
-                document.getElementById('btn-download-sgf').style.display = "inline-flex"; // NEU: SGF Button zeigen
+                document.getElementById('btn-download-sgf').style.display = "inline-flex"; 
             } 
             else { 
                 document.getElementById('btn-go-analyze').style.display = "none"; 
@@ -1187,7 +1224,6 @@
         });
         pvpCanvas.addEventListener('mouseout', () => { pvpHoverX = -1; pvpHoverY = -1; if(currentPvpBoardState.length > 0) renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove); });
         
-        // GEÄNDERT: Klick-Schutz Logik
         pvpCanvas.addEventListener('click', (event) => {
             if(myPvpColor === 'spectator') return;
             const rect = pvpCanvas.getBoundingClientRect(); const scaleX = pvpCanvas.width / rect.width; const scaleY = pvpCanvas.height / rect.height;
@@ -1204,11 +1240,9 @@
             
             if (gridX >= 0 && gridX < maxW && gridY >= 0 && gridY < maxH) { 
                 if (pvpState === 'playing' && currentPvpTurn === myPvpColor && currentPvpBoardState[gridX][gridY] === null) { 
-                    // Wenn Klick-Schutz AN ist: Vorschau zeigen
                     if (document.getElementById('cb-click-protect').checked) {
                         pendingMoveX = gridX; pendingMoveY = gridY; document.getElementById('pvp-confirm-area').style.display = "block"; renderPvpScene(currentPvpBoardState, currentPvpTurn, currentPvpLastMove);
                     } 
-                    // Wenn Klick-Schutz AUS ist: Direkt setzen!
                     else {
                         socket.emit('1v1_make_move', { roomId: currentPvpMatch, x: gridX, y: gridY });
                     }
@@ -1362,10 +1396,9 @@
         document.getElementById('btn-go-back-lobby').addEventListener('click', () => { document.getElementById('game-over-screen').style.display = "none"; document.getElementById('room-container').style.display = "none"; menuScreen.style.display = "block"; });
         document.getElementById('btn-ana-leave').addEventListener('click', () => { analysisScreen.style.display = "none"; menuScreen.style.display = "block"; });
 
-        // NEU: SGF direkt nach dem Spiel herunterladen
         document.getElementById('btn-download-sgf').addEventListener('click', () => {
             if(!lastPlayedGame || !lastPlayedGame.moveList) return;
-            let sz = lastPlayedGame.size === 'polar' ? 24 : lastPlayedGame.size; // Polar hat max 24 in X
+            let sz = lastPlayedGame.size === 'polar' ? 24 : lastPlayedGame.size; 
             let sgf = "(;GM[1]FF[4]SZ[" + sz + "]\n";
             lastPlayedGame.moveList.forEach(m => {
                 if(m.pass) { sgf += ";" + (m.color==='black'?'B':'W') + "[]"; } 
@@ -1374,7 +1407,7 @@
             sgf += ")"; 
             let blob = new Blob([sgf], {type: "application/x-go-sgf"}); 
             let url = URL.createObjectURL(blob); 
-            let a = document.createElement("a"); a.href = url; a.download = "Go_Rush_Turnier_Match.sgf"; a.click();
+            let a = document.createElement("a"); a.href = url; a.download = "Go_Rush_Match.sgf"; a.click();
         });
 
         document.getElementById('btn-ana-download').addEventListener('click', () => {
@@ -1496,17 +1529,14 @@
             const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; lastClickX = (event.clientX - rect.left) * scaleX; lastClickY = (event.clientY - rect.top) * scaleY; const gridX = Math.round((lastClickX - padding) / currentCellSize); const gridY = Math.round((lastClickY - padding) / currentCellSize); const actualX = viewMinX + gridX; const actualY = viewMinY + gridY; if (actualX >= 0 && actualX <= 18 && actualY >= 0 && actualY <= 18) { let isOccupied = false; if (currentPuzzle) currentPuzzle.setup.forEach(s => { if(s.x === actualX && s.y === actualY) isOccupied = true; }); if (isOccupied) return; myPlacedStone = { x: actualX, y: actualY }; canClick = false; SoundFX.play('clack'); renderScene(); socket.emit('guess', { x: actualX, y: actualY }); } 
         });
 
-        // Button öffnet das Modal
         document.getElementById('btn-missions').addEventListener('click', () => {
             document.getElementById('missions-modal').style.display = "flex";
             SoundFX.play('clack');
         });
 
-        // Quest abholen (mit Coin-Flug Animation!)
         window.claimQuest = function(questId, event) {
             socket.emit('claim_quest', { token: myToken, questId: questId });
             
-            // Game Juice: Fliegende Münze vom Klick zum Coin-Display!
             const coinDiv = document.createElement('div');
             coinDiv.className = 'flying-coin';
             coinDiv.innerText = "🪙";
@@ -1528,10 +1558,8 @@
             setTimeout(() => { coinDiv.remove(); }, 710);
         };
 
-        // Feedback wenn Claim bestätigt
         socket.on('quest_claimed', (data) => {
             SoundFX.play('win');
-            // Das Wallet (Coin Display) kurz aufblinken lassen
             const wallet = document.getElementById('coin-display');
             if(wallet) {
                 wallet.classList.remove('coin-bump');
