@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path'); 
 const { Resend } = require('resend'); 
 const crypto = require('crypto'); 
+const { spawn, execSync } = require('child_process'); // Wichtig für GnuGo
 
 const resend = new Resend(process.env.RESEND_API_KEY); 
 
@@ -21,6 +22,72 @@ function hashPwd(pwd) {
 }
 
 const activeSessions = {}; 
+
+// --- NEU: GnuGo KI Setup (Sucht die .exe im selben Ordner) ---
+let gnugoAvailable = false;
+const gnugoPath = path.join(__dirname, 'gnugo.exe');
+
+try {
+    if (fs.existsSync(gnugoPath)) {
+        gnugoAvailable = true;
+        console.log("✅ GnuGo gefunden! Die starke KI ist BEREIT.");
+    } else {
+        console.log("⚠️ GnuGo NICHT gefunden! Falle auf den 'Drunken Master' (Javascript) Bot zurück.");
+    }
+} catch (e) {
+    console.log("⚠️ Fehler beim Prüfen von GnuGo. Nutze Javascript-Bot.");
+}
+
+class GnuGoBot {
+    constructor(size, level, komi) {
+        this.process = spawn(gnugoPath, ['--mode', 'gtp', '--level', level.toString(), '--boardsize', size.toString(), '--komi', komi.toString()]);
+        this.buffer = '';
+        this.resolvers = [];
+
+        this.process.stdout.on('data', (data) => {
+            this.buffer += data.toString();
+            let parts = this.buffer.split('\n\n'); 
+            while (parts.length > 1) {
+                let response = parts.shift();
+                this.buffer = parts.join('\n\n');
+                if (this.resolvers.length > 0) {
+                    let resolve = this.resolvers.shift();
+                    resolve(response);
+                }
+            }
+        });
+        
+        this.process.stderr.on('data', () => {});
+    }
+
+    sendCommand(cmd) {
+        return new Promise((resolve) => {
+            this.resolvers.push(resolve);
+            this.process.stdin.write(cmd + '\n');
+        });
+    }
+
+    kill() {
+        try { this.process.kill(); } catch(e){}
+    }
+}
+
+function toGtp(x, y, size) {
+    if (x === null || y === null) return 'pass';
+    let letter = String.fromCharCode(65 + x + (x >= 8 ? 1 : 0)); 
+    let number = size - y; 
+    return `${letter}${number}`;
+}
+
+function fromGtp(gtpCoord, size) {
+    gtpCoord = gtpCoord.trim().toUpperCase();
+    if (gtpCoord === 'PASS' || gtpCoord === 'RESIGN') return { pass: true };
+    let letter = gtpCoord.charCodeAt(0);
+    let x = letter - 65 - (letter > 73 ? 1 : 0);
+    let y = size - parseInt(gtpCoord.substring(1));
+    return { x, y };
+}
+// -------------------------------------------------------------
 
 app.post('/send-message', async (req, res) => {
     const userName = req.body.name || "Unbekannter Spieler";
@@ -97,6 +164,10 @@ function finishMatch(matchId, winnerColor, reasonStr) {
     if(match.dcTimers) {
         if(match.dcTimers.black) clearTimeout(match.dcTimers.black);
         if(match.dcTimers.white) clearTimeout(match.dcTimers.white);
+    }
+
+    if(match.botProcess) {
+        match.botProcess.kill();
     }
 
     if (winner.isBot || loser.isBot) {
@@ -244,7 +315,6 @@ function getGroupOfColor(board, startX, startY, size) {
     return group;
 }
 
-// --- NEU: ZUVERLÄSSIGER SELBSTMORD-CHECKER ---
 function hasLiberties(board, startX, startY, size) {
     let color = board[startX][startY];
     if (!color) return true;
@@ -255,16 +325,15 @@ function hasLiberties(board, startX, startY, size) {
         let curr = queue.shift();
         let neighbors = getNeighbors(curr.x, curr.y, size);
         for(let n of neighbors) {
-            if(board[n.x][n.y] === null) return true; // Freiheit gefunden!
+            if(board[n.x][n.y] === null) return true; 
             if(board[n.x][n.y] === color && !visited.has(`${n.x},${n.y}`)) {
                 visited.add(`${n.x},${n.y}`);
                 queue.push(n);
             }
         }
     }
-    return false; // Gruppe erstickt!
+    return false; 
 }
-// ----------------------------------------------
 
 function calculateJapaneseScore(board, captures, deadStonesSet, komi, size) {
     let w = size === 'polar' ? 24 : size; let h = size === 'polar' ? 6 : size;
@@ -376,7 +445,6 @@ function processMove(matchId, playerId, x, y, isPass) {
     let capturedStones = checkCaptures(newBoard, x, y, enemyColor, match.size);
     capturedStones.forEach(stone => { newBoard[stone.x][stone.y] = null; });
 
-    // GEÄNDERT: Wir prüfen jetzt richtig mit der neuen hasLiberties Funktion!
     let isSuicide = !hasLiberties(newBoard, x, y, match.size);
     if(isSuicide && capturedStones.length === 0) { 
         if(!match.players[myColor].isBot) io.to(playerId).emit('1v1_illegal_move', "Selbstmord ist nicht erlaubt!"); 
@@ -399,33 +467,62 @@ function processMove(matchId, playerId, x, y, isPass) {
     return true;
 }
 
-function triggerBotMove(matchId) {
-    setTimeout(() => {
-        let match = active1v1Matches[matchId];
-        if (!match || match.state !== 'playing') return;
-        
-        let botColor = match.turn;
-        let botPlayer = match.players[botColor];
-        if (!botPlayer.isBot) return;
+async function triggerBotMove(matchId, lastHumanX, lastHumanY, humanPassed) {
+    let match = active1v1Matches[matchId];
+    if (!match || match.state !== 'playing') return;
+    
+    let botColor = match.turn;
+    let botPlayer = match.players[botColor];
+    if (!botPlayer.isBot) return;
 
-        let enemyColor = botColor === 'black' ? 'white' : 'black';
+    let humanColor = botColor === 'black' ? 'white' : 'black';
+
+    if (match.botProcess) {
+        try {
+            let humanGtp = humanPassed ? 'pass' : toGtp(lastHumanX, lastHumanY, match.size);
+            if (humanGtp !== 'pass' || humanPassed) {
+                await match.botProcess.sendCommand(`play ${humanColor} ${humanGtp}`);
+            }
+
+            let response = await match.botProcess.sendCommand(`genmove ${botColor}`);
+            let botGtp = response.replace('=', '').trim(); 
+            
+            try {
+                let move = fromGtp(botGtp, match.size);
+                if (move.pass) {
+                    processMove(matchId, botPlayer.id, null, null, true);
+                } else {
+                    processMove(matchId, botPlayer.id, move.x, move.y, false);
+                }
+            } catch (parseError) {
+                console.error("GnuGo Parse Error:", parseError, botGtp);
+                processMove(matchId, botPlayer.id, null, null, true);
+            }
+        } catch (e) {
+            console.error("GnuGo Communication Error", e);
+        }
+        return; 
+    }
+
+    setTimeout(() => {
+        let currentMatch = active1v1Matches[matchId];
+        if (!currentMatch || currentMatch.state !== 'playing') return;
+
         let validMoves = [];
-        let w = match.size === 'polar' ? 24 : match.size;
-        let h = match.size === 'polar' ? 6 : match.size;
+        let w = currentMatch.size === 'polar' ? 24 : currentMatch.size;
+        let h = currentMatch.size === 'polar' ? 6 : currentMatch.size;
 
         for(let x=0; x<w; x++) {
             for(let y=0; y<h; y++) {
-                if(match.board[x][y] === null) {
-                    let tempBoard = match.board.map(r => [...r]);
+                if(currentMatch.board[x][y] === null) {
+                    let tempBoard = currentMatch.board.map(r => [...r]);
                     tempBoard[x][y] = botColor;
-                    let caps = checkCaptures(tempBoard, x, y, enemyColor, match.size);
-                    
-                    // GEÄNDERT: Bot prüft jetzt auch richtig auf Selbstmord!
-                    let isSuicide = !hasLiberties(tempBoard, x, y, match.size);
+                    let caps = checkCaptures(tempBoard, x, y, humanColor, currentMatch.size);
+                    let isSuicide = !hasLiberties(tempBoard, x, y, currentMatch.size);
                     
                     if(!isSuicide || caps.length > 0) {
                         let boardString = JSON.stringify(tempBoard);
-                        if(!match.history.has(boardString)) {
+                        if(!currentMatch.history.has(boardString)) {
                             validMoves.push({x, y});
                         }
                     }
@@ -588,7 +685,7 @@ io.on('connection', (socket) => {
         let bSize = parseInt(data.boardSize);
         let emptyBoard = Array(bSize).fill(null).map(() => Array(bSize).fill(null));
         
-        let botName = "Bot (Lvl " + data.level + ")";
+        let botName = gnugoAvailable ? "GnuGo (Lvl " + data.level + ")" : "Drunken Master";
         let botAvatar = "🤖";
         
         active1v1Matches[newRoomId] = {
@@ -603,6 +700,10 @@ io.on('connection', (socket) => {
                 white: { id: 'bot_id', name: botName, avatar: botAvatar, token: 'bot_token', isBot: true, botLevel: data.level } 
             }
         };
+
+        if (gnugoAvailable && data.boardSize !== 'polar') {
+            active1v1Matches[newRoomId].botProcess = new GnuGoBot(bSize, data.level, 6.5);
+        }
 
         socket.join(newRoomId);
         socket.emit('1v1_match_started', { 
@@ -671,7 +772,7 @@ io.on('connection', (socket) => {
         if(success) {
             let match = active1v1Matches[data.roomId];
             if(match && match.players[match.turn].isBot) {
-                triggerBotMove(data.roomId);
+                triggerBotMove(data.roomId, data.x, data.y, false);
             }
         }
     });
@@ -724,7 +825,7 @@ io.on('connection', (socket) => {
         if(success) {
             let match = active1v1Matches[matchId];
             if(match && match.state === 'playing' && match.players[match.turn].isBot) {
-                triggerBotMove(matchId);
+                triggerBotMove(matchId, null, null, true);
             }
         }
     });
@@ -836,6 +937,8 @@ io.on('connection', (socket) => {
             else if(m.players.white.id === socket.id && !m.players.white.isBot) dcColor = 'white';
             
             if(dcColor) {
+                if(m.botProcess) m.botProcess.kill();
+
                 m.dcTimers = m.dcTimers || {};
                 m.dcTimers[dcColor] = setTimeout(() => {
                     let winnerColor = dcColor === 'black' ? 'white' : 'black';
