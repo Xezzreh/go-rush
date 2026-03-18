@@ -99,7 +99,6 @@ function finishMatch(matchId, winnerColor, reasonStr) {
         if(match.dcTimers.white) clearTimeout(match.dcTimers.white);
     }
 
-    // NEU: Bot Check - Keine Punkte bei Trainingsspielen
     if (winner.isBot || loser.isBot) {
         reasonStr += `<br><br><span style="color:#f59e0b;">(Trainingsspiel - Kein Elo berechnet)</span>`;
         io.to(matchId).emit('1v1_game_over', { reason: reasonStr, moveList: match.moveList, size: match.size });
@@ -245,6 +244,28 @@ function getGroupOfColor(board, startX, startY, size) {
     return group;
 }
 
+// --- NEU: ZUVERLÄSSIGER SELBSTMORD-CHECKER ---
+function hasLiberties(board, startX, startY, size) {
+    let color = board[startX][startY];
+    if (!color) return true;
+    let queue = [{x: startX, y: startY}];
+    let visited = new Set([`${startX},${startY}`]);
+    
+    while(queue.length > 0) {
+        let curr = queue.shift();
+        let neighbors = getNeighbors(curr.x, curr.y, size);
+        for(let n of neighbors) {
+            if(board[n.x][n.y] === null) return true; // Freiheit gefunden!
+            if(board[n.x][n.y] === color && !visited.has(`${n.x},${n.y}`)) {
+                visited.add(`${n.x},${n.y}`);
+                queue.push(n);
+            }
+        }
+    }
+    return false; // Gruppe erstickt!
+}
+// ----------------------------------------------
+
 function calculateJapaneseScore(board, captures, deadStonesSet, komi, size) {
     let w = size === 'polar' ? 24 : size; let h = size === 'polar' ? 6 : size;
     let blackTerritory = 0; let whiteTerritory = 0;
@@ -317,7 +338,6 @@ function broadcastMatchmaking() {
     io.emit('update_challenges', { challenges: Object.values(challenges), activeMatches: activeList });
 }
 
-// --- NEU: ZENTRALE FUNKTION FÜR ZÜGE (Mensch & Bot) ---
 function processMove(matchId, playerId, x, y, isPass) {
     const match = active1v1Matches[matchId];
     if(!match || match.state !== 'playing') return false;
@@ -356,8 +376,9 @@ function processMove(matchId, playerId, x, y, isPass) {
     let capturedStones = checkCaptures(newBoard, x, y, enemyColor, match.size);
     capturedStones.forEach(stone => { newBoard[stone.x][stone.y] = null; });
 
-    let suicideCheck = checkCaptures(newBoard, x, y, myColor, match.size);
-    if(suicideCheck.length > 0 && capturedStones.length === 0) { 
+    // GEÄNDERT: Wir prüfen jetzt richtig mit der neuen hasLiberties Funktion!
+    let isSuicide = !hasLiberties(newBoard, x, y, match.size);
+    if(isSuicide && capturedStones.length === 0) { 
         if(!match.players[myColor].isBot) io.to(playerId).emit('1v1_illegal_move', "Selbstmord ist nicht erlaubt!"); 
         return false; 
     }
@@ -378,7 +399,6 @@ function processMove(matchId, playerId, x, y, isPass) {
     return true;
 }
 
-// --- NEU: DUMMY JAVASCRIPT BOT LOGIK (Platzhalter für GnuGo) ---
 function triggerBotMove(matchId) {
     setTimeout(() => {
         let match = active1v1Matches[matchId];
@@ -399,9 +419,11 @@ function triggerBotMove(matchId) {
                     let tempBoard = match.board.map(r => [...r]);
                     tempBoard[x][y] = botColor;
                     let caps = checkCaptures(tempBoard, x, y, enemyColor, match.size);
-                    let suicide = checkCaptures(tempBoard, x, y, botColor, match.size);
                     
-                    if(suicide.length === 0 || caps.length > 0) {
+                    // GEÄNDERT: Bot prüft jetzt auch richtig auf Selbstmord!
+                    let isSuicide = !hasLiberties(tempBoard, x, y, match.size);
+                    
+                    if(!isSuicide || caps.length > 0) {
                         let boardString = JSON.stringify(tempBoard);
                         if(!match.history.has(boardString)) {
                             validMoves.push({x, y});
@@ -417,7 +439,7 @@ function triggerBotMove(matchId) {
             let choice = validMoves[Math.floor(Math.random() * validMoves.length)];
             processMove(matchId, botPlayer.id, choice.x, choice.y, false);
         }
-    }, 1500); // 1.5 Sekunden "Bedenkzeit" simulieren
+    }, 1500); 
 }
 
 setInterval(() => {
@@ -441,6 +463,8 @@ setInterval(() => {
 }, 1000);
 
 io.on('connection', (socket) => {
+    console.log(`👀 Neuer Besucher auf der Website! (ID: ${socket.id})`);
+    
     let currentRoom = null; 
 
     socket.on('login', (data) => {
@@ -522,6 +546,8 @@ io.on('connection', (socket) => {
             socket.to(reconnectedMatch.id).emit('1v1_opponent_reconnected', { color: myPvpColor });
         }
 
+        console.log(`🟢 SPIELER EINGELOGGT: ${u.name} [${u.rank}] (Total Coins: ${u.coins})`);
+        
         socket.emit('login_success', { token: token });
         socket.emit('update_stats', u);
         if(dailyReward > 0) socket.emit('daily_reward', dailyReward);
@@ -557,7 +583,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // NEU: Event für das Starten eines Bot-Spiels
     socket.on('start_bot_match', (data) => {
         const newRoomId = 'bot_' + Math.random().toString(36).substring(2,8);
         let bSize = parseInt(data.boardSize);
@@ -645,7 +670,6 @@ io.on('connection', (socket) => {
         let success = processMove(data.roomId, socket.id, data.x, data.y, false);
         if(success) {
             let match = active1v1Matches[data.roomId];
-            // Wenn der Zug erfolgreich war und der Gegner ein Bot ist -> Bot anstoßen
             if(match && match.players[match.turn].isBot) {
                 triggerBotMove(data.roomId);
             }
@@ -659,7 +683,7 @@ io.on('connection', (socket) => {
         let enemy = match.players[myColor === 'black' ? 'white' : 'black'];
         
         if (enemy.isBot) {
-            socket.emit('1v1_undo_declined'); // Bot erlaubt kein Undo!
+            socket.emit('1v1_undo_declined'); 
         } else {
             io.to(enemy.id).emit('1v1_undo_requested');
         }
@@ -719,7 +743,6 @@ io.on('connection', (socket) => {
         });
         match.accepts.black = false; match.accepts.white = false;
         
-        // Bots akzeptieren immer sofort alles, wenn sie im Scoring sind
         if(match.players.black.isBot) match.accepts.black = true;
         if(match.players.white.isBot) match.accepts.white = true;
         
@@ -798,6 +821,8 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
+        console.log(`🔴 SPIELER GEGANGEN: ${socket.userToken || 'Unbekannter Besucher'} hat die Seite geschlossen.`);
+        
         if(socket.userToken && activeSessions[socket.userToken] === socket.id) {
             delete activeSessions[socket.userToken];
         }
