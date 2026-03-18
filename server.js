@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path'); 
 const { Resend } = require('resend'); 
 const crypto = require('crypto'); 
-const { spawn, execSync } = require('child_process'); // Wichtig für GnuGo
+const { spawn } = require('child_process'); 
 
 const resend = new Resend(process.env.RESEND_API_KEY); 
 
@@ -23,7 +23,7 @@ function hashPwd(pwd) {
 
 const activeSessions = {}; 
 
-// --- NEU: GnuGo KI Setup (Sucht die .exe im selben Ordner) ---
+// --- GnuGo KI Setup ---
 let gnugoAvailable = false;
 const gnugoPath = path.join(__dirname, 'gnugo.exe');
 
@@ -40,12 +40,13 @@ try {
 
 class GnuGoBot {
     constructor(size, level, komi) {
+        console.log(`🤖 Starte GnuGo-Prozess (Level ${level}, Board ${size}x${size})...`);
         this.process = spawn(gnugoPath, ['--mode', 'gtp', '--level', level.toString(), '--boardsize', size.toString(), '--komi', komi.toString()]);
         this.buffer = '';
         this.resolvers = [];
 
         this.process.stdout.on('data', (data) => {
-            this.buffer += data.toString();
+            this.buffer += data.toString().replace(/\r/g, ''); 
             let parts = this.buffer.split('\n\n'); 
             while (parts.length > 1) {
                 let response = parts.shift();
@@ -87,19 +88,10 @@ function fromGtp(gtpCoord, size) {
     let y = size - parseInt(gtpCoord.substring(1));
     return { x, y };
 }
-// -------------------------------------------------------------
 
 app.post('/send-message', async (req, res) => {
     const userName = req.body.name || "Unbekannter Spieler";
     const userMessage = req.body.message;
-
-    console.log("=== API KEY CHECK ===");
-    console.log("Wurde ein Key gefunden?:", process.env.RESEND_API_KEY ? "JA ✅" : "NEIN ❌ (Ist undefined)");
-    if (process.env.RESEND_API_KEY) {
-        console.log("Länge des Keys:", process.env.RESEND_API_KEY.length, "Zeichen");
-        console.log("Fängt an mit:", process.env.RESEND_API_KEY.substring(0, 4));
-    }
-    console.log("=======================");
 
     try {
         const data = await resend.emails.send({
@@ -108,7 +100,6 @@ app.post('/send-message', async (req, res) => {
             subject: `💡 Neues Feedback von ${userName}`,
             text: `Spieler: ${userName}\n\nNachricht:\n${userMessage}`
         });
-        console.log("E-Mail gesendet:", data);
         res.status(200).json({ success: true });
     } catch (error) {
         console.error("Fehler beim E-Mail-Versand:", error);
@@ -467,6 +458,7 @@ function processMove(matchId, playerId, x, y, isPass) {
     return true;
 }
 
+// --- GEÄNDERT: Diese Funktion ist nun WIRKLICH async und steuert GnuGo! ---
 async function triggerBotMove(matchId, lastHumanX, lastHumanY, humanPassed) {
     let match = active1v1Matches[matchId];
     if (!match || match.state !== 'playing') return;
@@ -538,6 +530,7 @@ async function triggerBotMove(matchId, lastHumanX, lastHumanY, humanPassed) {
         }
     }, 1500); 
 }
+// --------------------------------------------------------------------------
 
 setInterval(() => {
     for (let matchId in active1v1Matches) {
@@ -772,6 +765,7 @@ io.on('connection', (socket) => {
         if(success) {
             let match = active1v1Matches[data.roomId];
             if(match && match.players[match.turn].isBot) {
+                // GEÄNDERT: Die KI wird jetzt asynchron übergeben!
                 triggerBotMove(data.roomId, data.x, data.y, false);
             }
         }
@@ -825,6 +819,7 @@ io.on('connection', (socket) => {
         if(success) {
             let match = active1v1Matches[matchId];
             if(match && match.state === 'playing' && match.players[match.turn].isBot) {
+                // GEÄNDERT: Bot Bescheid geben, dass Mensch gepasst hat
                 triggerBotMove(matchId, null, null, true);
             }
         }
