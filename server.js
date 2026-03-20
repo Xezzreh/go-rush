@@ -9,6 +9,16 @@ const { Resend } = require('resend');
 const crypto = require('crypto'); 
 const { spawn, execSync } = require('child_process'); 
 
+// --- GLOBAL CRASH GUARD ---
+// Verhindert, dass der Server jemals abstürzt und laufende Matches löscht!
+process.on('uncaughtException', (err) => {
+    console.error('🔥 KRITISCHER FEHLER ABGEFANGEN (Server läuft weiter):', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('🔥 UNBEHANDELTE PROMISE ABGEFANGEN (Server läuft weiter):', reason);
+});
+// --------------------------
+
 const resend = new Resend(process.env.RESEND_API_KEY); 
 
 app.use(express.json()); 
@@ -60,6 +70,12 @@ class GnuGoBot {
         this.buffer = '';
         this.resolvers = [];
 
+        // ANTI-CRASH: Fängt tödliche EPIPE-Fehler ab, falls die KI abstürzt
+        this.process.on('error', (err) => { console.log('⚠️ GnuGo Process Error:', err.message); });
+        this.process.stdin.on('error', (err) => { console.log('⚠️ GnuGo Stdin Error:', err.message); });
+        this.process.stdout.on('error', (err) => { console.log('⚠️ GnuGo Stdout Error:', err.message); });
+        this.process.stderr.on('error', (err) => { console.log('⚠️ GnuGo Stderr Error:', err.message); });
+
         this.process.stdout.on('data', (data) => {
             this.buffer += data.toString().replace(/\r/g, ''); 
             let parts = this.buffer.split('\n\n'); 
@@ -79,7 +95,13 @@ class GnuGoBot {
     sendCommand(cmd) {
         return new Promise((resolve) => {
             this.resolvers.push(resolve);
-            this.process.stdin.write(cmd + '\n');
+            try {
+                this.process.stdin.write(cmd + '\n');
+            } catch(e) {
+                // Falls der Prozess schon tot ist, crashen wir nicht, sondern passen einfach
+                console.error("GnuGo Stdin Write Error:", e);
+                resolve("= pass\n\n");
+            }
         });
     }
 
@@ -96,11 +118,20 @@ function toGtp(x, y, size) {
 }
 
 function fromGtp(gtpCoord, size) {
+    if(!gtpCoord) return { pass: true };
     gtpCoord = gtpCoord.trim().toUpperCase();
-    if (gtpCoord === 'PASS' || gtpCoord === 'RESIGN') return { pass: true };
-    let letter = gtpCoord.charCodeAt(0);
+    
+    let lines = gtpCoord.split('\n');
+    let cleanStr = lines[lines.length - 1].replace(/=/g, '').trim();
+    
+    if (cleanStr === 'PASS' || cleanStr === 'RESIGN') return { pass: true };
+    
+    let match = cleanStr.match(/([A-Z])(\d+)/);
+    if(!match) return { pass: true };
+    
+    let letter = match[1].charCodeAt(0);
     let x = letter - 65 - (letter > 73 ? 1 : 0);
-    let y = size - parseInt(gtpCoord.substring(1));
+    let y = size - parseInt(match[2]);
     return { x, y };
 }
 
@@ -308,7 +339,6 @@ function checkCaptures(board, x, y, colorTarget, size) {
     return captured;
 }
 
-// DIE WIEDERHERGESTELLTE FUNKTION:
 function getGroupOfColor(board, startX, startY, size) {
     let color = board[startX][startY]; if (!color) return [];
     let group = []; let visited = new Set(); let queue = [{x: startX, y: startY}]; visited.add(`${startX},${startY}`);
@@ -445,7 +475,9 @@ function processMove(matchId, playerId, x, y, isPass) {
         return true;
     }
 
-    if(x === undefined || y === undefined || match.board[x][y] !== null) return false;
+    // SICHERHEITS-CHECK: Wenn ungültige Züge ankommen, einfach abwehren statt abstürzen!
+    if (x === undefined || y === undefined || isNaN(x) || isNaN(y) || x < 0 || x >= match.size || y < 0 || y >= match.size) return false;
+    if (match.board[x][y] !== null) return false;
 
     let newBoard = match.board.map(row => [...row]);
     newBoard[x][y] = myColor;
@@ -845,6 +877,8 @@ io.on('connection', (socket) => {
         const matchId = data.roomId; const match = active1v1Matches[matchId];
         if(!match || match.state !== 'scoring') return;
         if(match.players.black.id !== socket.id && match.players.white.id !== socket.id) return; 
+        
+        if (data.x === undefined || data.y === undefined || isNaN(data.x) || isNaN(data.y) || data.x < 0 || data.x >= match.size || data.y < 0 || data.y >= match.size) return;
         if(match.board[data.x][data.y] === null) return; 
 
         let group = getGroupOfColor(match.board, data.x, data.y, match.size);
