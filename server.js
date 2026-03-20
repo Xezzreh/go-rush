@@ -308,6 +308,20 @@ function checkCaptures(board, x, y, colorTarget, size) {
     return captured;
 }
 
+// DIE WIEDERHERGESTELLTE FUNKTION:
+function getGroupOfColor(board, startX, startY, size) {
+    let color = board[startX][startY]; if (!color) return [];
+    let group = []; let visited = new Set(); let queue = [{x: startX, y: startY}]; visited.add(`${startX},${startY}`);
+    while(queue.length > 0) {
+        let curr = queue.shift(); group.push(curr);
+        let neighbors = getNeighbors(curr.x, curr.y, size);
+        for(let n of neighbors) {
+            if(board[n.x][n.y] === color && !visited.has(`${n.x},${n.y}`)) { visited.add(`${n.x},${n.y}`); queue.push(n); }
+        }
+    }
+    return group;
+}
+
 function hasLiberties(board, startX, startY, size) {
     let color = board[startX][startY];
     if (!color) return true;
